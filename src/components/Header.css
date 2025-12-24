@@ -1,0 +1,90 @@
+/* 🔵 FULL NAVBAR */
+.header-container {
+  width: 100%;
+  background-color: #4a90e2;
+  padding: 16px 24px; /* reduced padding */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+}
+
+/* LEFT SIDE */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* reduced gap */
+}
+
+.header-logo {
+  font-size: 30px; /* reduced from 55px */
+}
+
+.header-title {
+  font-size: 26px; /* reduced from 55px */
+  font-weight: 700;
+  margin: 0;
+}
+
+.header-sub {
+  font-size: 14px; /* reduced from 25px */
+  margin-top: -4px;
+}
+
+/* RIGHT SIDE */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px; /* reduced from 30px */
+  text-align: right;
+}
+
+.header-user-name {
+  font-size: 18px; /* reduced from 45px */
+  font-weight: 600;
+  margin: 0;
+}
+
+.header-user-role {
+  font-size: 14px; /* reduced from 35px */
+  margin-top: -2px;
+  font-weight: 600;
+}
+
+/* LOGOUT BUTTON */
+.header-logout-btn {
+  background-color: white;
+  color: red;
+  padding: 8px 18px; /* reduced from 18px 45px */
+  border-radius: 8px; /* reduced */
+  border: none;
+  font-size: 14px; /* reduced from 38px */
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.header-logout-btn:hover {
+  opacity: 0.9;
+}
+
+/* MOBILE ICON */
+.header-mobile-icon {
+  color: white;
+}
+/* NOTIFICATION BUTTON */
+.header-notification-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+
+.header-notification-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

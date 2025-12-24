@@ -1,0 +1,35 @@
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background-image: var(--bg-image);
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.chevron-open {
+  transform: rotate(180deg) !important;
+}
+
+.profile-dropdown {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.dropdown-menu {
+  position: fixed;
+  background-color: white;
+  color: black;
+  border: 2px solid #d1d5db;
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  max-height: 400px;
+  overflow-y: auto;
+  width: 320px;
+  left: calc(50% - 160px);
+  top: 128px;
+}
