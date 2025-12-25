@@ -3,7 +3,7 @@
 // If we are on a network IP (e.g. 192.168.x.x), assume backend is on same IP:8000
 const getBaseUrl = () => {
   if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
-  if (import.meta.env.PROD) return 'https://air-ambulance-moviecloud-1.onrender.com';
+  if (import.meta.env.PROD) return 'https://air-ambulance-backend.onrender.com';
 
   // Development mode with dynamic host
   const hostname = window.location.hostname;
