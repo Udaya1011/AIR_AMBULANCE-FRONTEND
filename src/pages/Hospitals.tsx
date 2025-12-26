@@ -20,6 +20,7 @@ import { toast } from '@/components/ui/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { HospitalService } from '@/services/hospital.service';
 import { exportHospitals } from '@/utils/exportHospitals';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import chatBotImage from '../emoji.jpeg';
 
 type LevelOfCare = 'Primary' | 'Secondary' | 'Tertiary' | 'Quaternary';
@@ -250,12 +251,28 @@ const Hospitals = () => {
     return { total, totalICUCapacity, primary, secondary, tertiary, quaternary };
   }, [hospitals]);
 
+  /* PAGINATION STATE */
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
   const visible = useMemo(() => {
     return hospitals.filter((h) => {
       const q = query.trim().toLowerCase();
       return q === '' || h.name.toLowerCase().includes(q) || h.address.toLowerCase().includes(q) || h.contactPerson.toLowerCase().includes(q);
     });
   }, [hospitals, query]);
+
+  const totalPages = Math.ceil(visible.length / itemsPerPage);
+  const paginatedHospitals = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return visible.slice(start, start + itemsPerPage);
+  }, [visible, currentPage]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
 
   const handleOpenDialog = (mode: 'Add' | 'Edit', hospital?: Hospital) => {
     setDialog({ mode, isOpen: true, hospital });
@@ -626,9 +643,7 @@ const Hospitals = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">Loading...</div>
-        </div>
+        <LoadingSpinner />
       </Layout>
     );
   }
@@ -649,148 +664,107 @@ const Hospitals = () => {
                 ➕ Add Hospital
               </Button>
             </DialogTrigger>
-            <DialogContent
-              className="
-    w-[95vw]
-    h-[95vh]
-    max-w-none
-    max-h-none
-    bg-white
-    p-6
-    overflow-y-auto
-    rounded-xl
-  "
-            >
-              <DialogHeader>
-                <DialogTitle>{dialog.mode} Hospital</DialogTitle>
+            <DialogContent className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+              <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
+                <DialogTitle className="text-white text-xl">{dialog.mode === 'Add' ? '➕ Add New Hospital' : `✏️ Edit Hospital - ${formData.name}`}</DialogTitle>
+                <DialogDescription className="text-blue-100">Enter hospital details and capacity information</DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-6">
-
-                {/* Row 1 */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Hospital Name *</Label>
+              <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                {/* ROW 1: Basic Info */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="col-span-2 space-y-1.5">
+                    <Label className="font-semibold">🏥 Hospital Name *</Label>
                     <Input
                       value={formData.name || ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Hospital name"
-                      className="bg-white text-black border border-gray-300 focus:border-gray-400"
+                      className="h-9"
                     />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label>Level of Care</Label>
-                    <select
-                      title="Select level of care"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-black focus:border-gray-400"
+                  <div className="space-y-1.5">
+                    <Label className="font-semibold">⭐ Level of Care</Label>
+                    <Select
                       value={formData.levelOfCare || "Primary"}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          levelOfCare: e.target.value as LevelOfCare,
-                        })
-                      }
+                      onValueChange={(v) => setFormData({ ...formData, levelOfCare: v as LevelOfCare })}
                     >
-                      {CARE_LEVELS.map((level) => (
-                        <option key={level} value={level}>
-                          {level}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Select level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CARE_LEVELS.map((level) => (
+                          <SelectItem key={level} value={level}>{level}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
-
-                {/* Address */}
-                <div className="space-y-2">
-                  <Label>Address *</Label>
-                  <Input
-                    value={formData.address || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, address: e.target.value })
-                    }
-                    placeholder="Hospital address"
-                    className="bg-white text-black border border-gray-300 focus:border-gray-400"
-                  />
-                </div>
-
-                {/* Row 2 */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Contact Person</Label>
-                    <Input
-                      value={formData.contactPerson || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          contactPerson: e.target.value,
-                        })
-                      }
-                      placeholder="Contact person name"
-                      className="bg-white text-black border border-gray-300 focus:border-gray-400"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>ICU Capacity</Label>
+                  <div className="space-y-1.5">
+                    <Label className="font-semibold">🛏️ ICU Capacity</Label>
                     <Input
                       type="number"
                       value={formData.icuCapacity || 0}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          icuCapacity: parseInt(e.target.value),
-                        })
-                      }
-                      placeholder="ICU capacity"
-                      className="bg-white text-black border border-gray-300 focus:border-gray-400"
+                      onChange={(e) => setFormData({ ...formData, icuCapacity: parseInt(e.target.value) || 0 })}
+                      className="h-9"
                     />
                   </div>
                 </div>
 
-                {/* Row 3 */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Phone</Label>
+                {/* ROW 2: Contact & Address */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="col-span-2 space-y-1.5">
+                    <Label className="font-semibold">📍 Address *</Label>
                     <Input
-                      value={formData.phone || ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, phone: e.target.value })
-                      }
-                      placeholder="Phone number"
-                      className="bg-white text-black border border-gray-300 focus:border-gray-400"
+                      value={formData.address || ""}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      placeholder="Full address"
+                      className="h-9"
                     />
                   </div>
+                  <div className="space-y-1.5">
+                    <Label className="font-semibold">👤 Contact Person</Label>
+                    <Input
+                      value={formData.contactPerson || ""}
+                      onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                      placeholder="Name"
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="font-semibold">📞 Phone</Label>
+                    <Input
+                      value={formData.phone || ""}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="Phone"
+                      className="h-9"
+                    />
+                  </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label>Email</Label>
+                {/* ROW 3: Email & Coordinates (Optional) */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="col-span-2 space-y-1.5">
+                    <Label className="font-semibold">📧 Email</Label>
                     <Input
                       type="email"
                       value={formData.email || ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                      placeholder="Email address"
-                      className="bg-white text-black border border-gray-300 focus:border-gray-400"
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="Email"
+                      className="h-9"
                     />
                   </div>
+                  {/* Placeholder for future fields or empty space */}
+                  <div className="col-span-2"></div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex justify-end gap-3 pt-4 border-t mt-4">
+                  <Button variant="ghost" onClick={handleCloseDialog}>Cancel</Button>
+                  <Button onClick={handleSave} disabled={submittingId === "saving"} className="bg-blue-600 hover:bg-blue-700 text-white">
+                    {submittingId === "saving" ? "Saving..." : "Save Hospital"}
+                  </Button>
                 </div>
               </div>
-
-              {/* Footer */}
-              <DialogFooter className="pt-6">
-                <Button variant="ghost" onClick={handleCloseDialog}>
-                  Cancel
-                </Button>
-
-                <Button onClick={handleSave} disabled={submittingId === "saving"}>
-                  {submittingId === "saving" ? "Saving..." : "Save Hospital"}
-                </Button>
-              </DialogFooter>
             </DialogContent>
-
           </Dialog>
         </div>
 
@@ -1240,12 +1214,12 @@ const Hospitals = () => {
 
         {/* Edit / Approve Patient Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={(open) => { if (!open) { setEditCandidate(null); } setIsEditDialogOpen(open); }}>
-          <DialogContent className="w-[98vw] h-[95vh] max-w-none max-h-none overflow-y-auto">
-            <DialogHeader className="pb-6 border-b mb-6">
-              <DialogTitle className="text-2xl font-bold">{editCandidate ? `✏️ Manage Patient - ${editCandidate.name}` : '👥 Patient Information'}</DialogTitle>
-              <DialogDescription>Update patient medical and personal details</DialogDescription>
+          <DialogContent className="w-[90vw] max-w-none bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+            <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
+              <DialogTitle className="text-white text-xl">{editCandidate ? `✏️ Manage Patient - ${editCandidate.name}` : '👥 Patient Information'}</DialogTitle>
+              <DialogDescription className="text-blue-100">Update patient medical and personal details</DialogDescription>
             </DialogHeader>
-            <div className="space-y-6">
+            <div className="p-6 space-y-4">
               {/* ROW 1: Name & DOB */}
               <div className="grid grid-cols-4 gap-6">
                 <div className="col-span-2 space-y-2">
@@ -1503,7 +1477,7 @@ const Hospitals = () => {
                   </td>
                 </tr>
               ) : (
-                visible.map((hospital, idx) => (
+                paginatedHospitals.map((hospital, idx) => (
                   <tr key={hospital.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-200 group">
                     <td className="px-6 py-5">
                       <div>
@@ -1597,6 +1571,45 @@ const Hospitals = () => {
             </tbody>
           </table>
         </div>
+
+        {/* PAGINATION CONTROLS */}
+        {visible.length > itemsPerPage && (
+          <div className="flex justify-center items-center gap-2 mt-6 pb-8">
+            <Button
+              variant="outline"
+              disabled={currentPage === 1}
+              onClick={() => handlePageChange(currentPage - 1)}
+              className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
+            >
+              Previous
+            </Button>
+
+            <div className="flex gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  onClick={() => handlePageChange(page)}
+                  className={`w-10 h-10 p-0 font-bold ${currentPage === page
+                    ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+                    }`}
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+
+            <Button
+              variant="outline"
+              disabled={currentPage === totalPages}
+              onClick={() => handlePageChange(currentPage + 1)}
+              className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
+            >
+              Next
+            </Button>
+          </div>
+        )}
 
         {/* Chatbot Widget - Premium Enhanced - FIXED POSITION */}
         <div className="fixed bottom-6 right-6 z-50 max-h-[90vh] flex flex-col">

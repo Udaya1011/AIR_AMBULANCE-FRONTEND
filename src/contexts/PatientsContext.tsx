@@ -5,6 +5,7 @@ import { toast } from '@/components/ui/use-toast';
 
 type PatientsContextType = {
   patients: Patient[];
+  isLoading: boolean;
   addPatient: (p: Partial<Patient>) => Promise<Patient>;
   removePatient: (id: string) => Promise<void>;
   updatePatient: (id: string, p: Partial<Patient>) => Promise<void>;
@@ -19,10 +20,12 @@ import { useAuth } from './AuthContext';
 
 export const PatientsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, logout } = useAuth();
 
   useEffect(() => {
     const fetchPatients = async () => {
+      setIsLoading(true);
       try {
         const data = await PatientsService.list();
         setPatients(data);
@@ -37,11 +40,15 @@ export const PatientsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           // Token expired or invalid
           logout();
         }
+      } finally {
+        setIsLoading(false);
       }
     };
 
     if (isAuthenticated) {
       fetchPatients();
+    } else {
+      setIsLoading(false);
     }
   }, [isAuthenticated, logout]);
 
@@ -83,7 +90,7 @@ export const PatientsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
 
   return (
-    <PatientsContext.Provider value={{ patients, addPatient, removePatient, updatePatient, getPatientById }}>
+    <PatientsContext.Provider value={{ patients, isLoading, addPatient, removePatient, updatePatient, getPatientById }}>
       {children}
     </PatientsContext.Provider>
   );

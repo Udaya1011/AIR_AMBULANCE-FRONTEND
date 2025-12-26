@@ -40,7 +40,21 @@ export const PatientsService = {
   },
 
   async update(id: string, patient: Partial<Patient>): Promise<Patient> {
-    const response = await apiClient.put(`/api/patients/${id}`, patient);
+    const payload: any = { ...patient };
+    if (patient.name) {
+      payload.full_name = patient.name;
+      delete payload.name;
+    }
+    if (patient.dob) {
+      payload.date_of_birth = patient.dob;
+      delete payload.dob;
+    }
+    if (patient.weight !== undefined) {
+      payload.weight_kg = patient.weight;
+      delete payload.weight;
+    }
+
+    const response = await apiClient.put(`/api/patients/${id}`, payload);
     return {
       ...response,
       id: response.id || response._id,

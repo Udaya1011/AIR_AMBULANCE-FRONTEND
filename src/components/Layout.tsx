@@ -23,7 +23,13 @@ export const Layout = ({ children }) => {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
+  type NotificationItem = {
+    id: number;
+    title: string;
+    message: string;
+    time: string;
+  };
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   const handleLogout = () => {
     logout();
@@ -74,14 +80,15 @@ export const Layout = ({ children }) => {
     <div className="min-h-screen">
 
       {/* 🔵 TOP HEADER */}
-      <header className="header-container">
+      {/* 🔵 TOP HEADER */}
+      <header className="header-container sticky top-0 z-50 bg-blue-600 shadow-md text-white">
 
         {/* Left */}
         <div className="header-left">
           <span className="header-logo">✈️</span>
           <div>
-            <h1 className="header-title">Airswift</h1>
-            <div className="header-sub">Medical Transport</div>
+            <h1 className="header-title text-white">Airswift</h1>
+            <div className="header-sub text-blue-100">Medical Transport</div>
           </div>
         </div>
 
@@ -89,8 +96,8 @@ export const Layout = ({ children }) => {
         <div className="header-right">
           {/* User Info */}
           <div>
-            <div className="header-user-name">{user?.name}</div>
-            <div className="header-user-role">
+            <div className="header-user-name text-white">{user?.name}</div>
+            <div className="header-user-role text-blue-100">
               {user?.role?.replace("_", " ")}
             </div>
           </div>
@@ -103,19 +110,19 @@ export const Layout = ({ children }) => {
             <Bell size={24} className="text-white cursor-pointer" />
 
             {/* Notification Badge */}
-            <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full border border-blue-600">
               {notifications.length}
             </span>
           </button>
 
           {/* Logout button */}
-          <button className="header-logout-btn" onClick={handleLogout}>
+          <button className="header-logout-btn bg-white/10 hover:bg-white/20 text-white border-white/20" onClick={handleLogout}>
             Logout
           </button>
 
           {/* Mobile Menu Toggle */}
           <button
-            className="lg:hidden header-mobile-icon"
+            className="lg:hidden header-mobile-icon text-white"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? <X size={30} /> : <Menu size={30} />}
@@ -128,8 +135,8 @@ export const Layout = ({ children }) => {
         {/* 🔵 SIDEBAR */}
         <aside
           className={`
-            fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white/90 backdrop-blur-md 
-            border-r border-border shadow-md
+            fixed lg:sticky lg:top-[80px] lg:h-[calc(100vh-80px)] inset-y-0 left-0 z-40 w-64 bg-white/90 backdrop-blur-md 
+            border-r border-border shadow-md overflow-y-auto
             transform transition-transform duration-200 ease-in-out
             mt-[80px] lg:mt-0
             ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -173,53 +180,53 @@ export const Layout = ({ children }) => {
       )}
 
       {/* 🔔 NOTIFICATION DRAWER (Right Side) */}
-<div
-  className={`
+      <div
+        className={`
     fixed top-0 right-0 h-full w-80 bg-white shadow-2xl 
     transform transition-transform duration-300 z-50
     ${notifOpen ? "translate-x-0" : "translate-x-full"}
   `}
->
-  {/* Header */}
-  <div className="flex justify-between items-center px-5 py-4 border-b">
-    <h2 className="text-lg font-semibold">Notifications</h2>
-
-    {/* Close Button */}
-    <div className="flex items-center gap-3">
-      {/* 🧹 Clear All Notifications */}
-      <button
-        onClick={() => setNotifications([])}
-        className="text-sm text-red-600 hover:underline"
       >
-        Clear All
-      </button>
+        {/* Header */}
+        <div className="flex justify-between items-center px-5 py-4 border-b">
+          <h2 className="text-lg font-semibold">Notifications</h2>
 
-      <button onClick={() => setNotifOpen(false)}>
-        <X size={22} />
-      </button>
-    </div>
-  </div>
+          {/* Close Button */}
+          <div className="flex items-center gap-3">
+            {/* 🧹 Clear All Notifications */}
+            <button
+              onClick={() => setNotifications([])}
+              className="text-sm text-red-600 hover:underline"
+            >
+              Clear All
+            </button>
 
-  {/* Notification List */}
-  <div className="p-4 space-y-4 overflow-y-auto h-full">
-    {notifications.length === 0 ? (
-      <p className="text-center text-muted-foreground mt-10">
-        No notifications available.
-      </p>
-    ) : (
-      notifications.map((item) => (
-        <div
-          key={item.id}
-          className="p-4 bg-gray-100 rounded-xl shadow-sm border border-gray-200"
-        >
-          <h3 className="font-semibold text-gray-900">{item.title}</h3>
-          <p className="text-sm text-gray-700 mt-1">{item.message}</p>
-          <span className="text-xs text-gray-500 mt-2 block">{item.time}</span>
+            <button onClick={() => setNotifOpen(false)}>
+              <X size={22} />
+            </button>
+          </div>
         </div>
-      ))
-    )}
-  </div>
-</div>
+
+        {/* Notification List */}
+        <div className="p-4 space-y-4 overflow-y-auto h-full">
+          {notifications.length === 0 ? (
+            <p className="text-center text-muted-foreground mt-10">
+              No notifications available.
+            </p>
+          ) : (
+            notifications.map((item) => (
+              <div
+                key={item.id}
+                className="p-4 bg-gray-100 rounded-xl shadow-sm border border-gray-200"
+              >
+                <h3 className="font-semibold text-gray-900">{item.title}</h3>
+                <p className="text-sm text-gray-700 mt-1">{item.message}</p>
+                <span className="text-xs text-gray-500 mt-2 block">{item.time}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
 
 
       {/* Notification overlay */}
