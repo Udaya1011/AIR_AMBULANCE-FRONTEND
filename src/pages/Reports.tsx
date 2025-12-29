@@ -85,9 +85,7 @@ import { AircraftService } from "@/services/aircraft.service";
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // --- CHATBOT CONSTANTS ---
-const initialMessages = [
-  { id: 1, text: "Welcome! How can I assist you with your flight data?", sender: "ai", time: "8:50 PM" },
-];
+const initialMessages: any[] = [];
 // -------------------------
 
 // Helper component for Stat Cards (neutral background)
@@ -164,12 +162,19 @@ export default function Reports() {
   // data state
   const [bookings, setBookings] = useState<any[]>([]);
   const [aircraft, setAircraft] = useState<any[]>([]);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [hospitals, setHospitals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // UI state
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [urgencyFilter, setUrgencyFilter] = useState("all");
+
+  // PAGINATION STATE
+  const [currentPageBookings, setCurrentPageBookings] = useState(1);
+  const [currentPageBilling, setCurrentPageBilling] = useState(1);
+  const itemsPerPage = 5;
 
   // CHATBOT STATE
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -183,8 +188,13 @@ export default function Reports() {
 
   const [form, setForm] = useState<any>({
     id: "",
-    status: "",
-    urgency: "",
+    patientId: "",
+    originHospitalId: "",
+    destinationHospitalId: "",
+    status: "requested",
+    urgency: "routine",
+    preferredPickupWindow: "",
+    requiredEquipment: [],
     estimatedCost: 0,
     estimatedFlightTime: 0,
     requestedAt: new Date().toISOString(),
@@ -194,12 +204,18 @@ export default function Reports() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const bookingsData = await BookingService.list();
-        setBookings(bookingsData.map((b: any) => ({ ...b, id: b._id })));
-        const aircraftData = await AircraftService.getAircrafts();
-        setAircraft(aircraftData.map((a: any) => ({ ...a, id: a._id })));
-      } catch (error) {
-        console.error("Failed to fetch data", error);
+        const [bookingsData, aircraftData, patientsData, hospitalsData] = await Promise.all([
+          BookingService.list(),
+          AircraftService.getAircrafts(),
+          fetch('/api/patients/').then(r => r.json()).catch(() => []),
+          fetch('/api/hospitals/').then(r => r.json()).catch(() => []),
+        ]);
+        setBookings(bookingsData.map((b: any) => ({ ...b, id: b._id || b.id })));
+        setAircraft(aircraftData);
+        setPatients(patientsData);
+        setHospitals(hospitalsData);
+      } catch (err) {
+        console.error('Failed to fetch data', err);
       } finally {
         setLoading(false);
       }
@@ -224,6 +240,32 @@ export default function Reports() {
       return matchesSearch && matchesStatus && matchesUrgency;
     });
   }, [bookings, searchTerm, statusFilter, urgencyFilter]);
+
+  // PAGINATION LOGIC FOR BOOKING REPORTS
+  const totalPagesBookings = Math.ceil(filteredBookings.length / itemsPerPage);
+  const paginatedBookings = useMemo(() => {
+    const start = (currentPageBookings - 1) * itemsPerPage;
+    return filteredBookings.slice(start, start + itemsPerPage);
+  }, [filteredBookings, currentPageBookings]);
+
+  const handlePageChangeBookings = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPagesBookings) {
+      setCurrentPageBookings(newPage);
+    }
+  };
+
+  // PAGINATION LOGIC FOR BILLING
+  const totalPagesBilling = Math.ceil(bookings.length / itemsPerPage);
+  const paginatedBilling = useMemo(() => {
+    const start = (currentPageBilling - 1) * itemsPerPage;
+    return bookings.slice(start, start + itemsPerPage);
+  }, [bookings, currentPageBilling]);
+
+  const handlePageChangeBilling = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPagesBilling) {
+      setCurrentPageBilling(newPage);
+    }
+  };
 
   // CHATBOT HANDLERS
   const handleSend = (e: React.FormEvent | null) => {
@@ -256,8 +298,13 @@ export default function Reports() {
   function openAdd() {
     setForm({
       id: "",
-      status: "",
-      urgency: "",
+      patientId: "",
+      originHospitalId: "",
+      destinationHospitalId: "",
+      status: "requested",
+      urgency: "routine",
+      preferredPickupWindow: new Date().toISOString().slice(0, 16),
+      requiredEquipment: [],
       estimatedCost: 0,
       estimatedFlightTime: 0,
       requestedAt: new Date().toISOString(),
@@ -266,20 +313,37 @@ export default function Reports() {
   }
 
   async function submitAdd() {
-    if (!form.id) {
-      alert("Booking ID required");
+    // Validate required fields
+    if (!form.patientId || !form.originHospitalId || !form.destinationHospitalId || !form.urgency || !form.preferredPickupWindow) {
+      alert("Please fill all required fields: Patient, Origin Hospital, Destination Hospital, Urgency, and Pickup Time");
       return;
     }
-    const nb = {
-      ...form,
-      id: String(form.id).toLowerCase(),
-      estimatedCost: Number(form.estimatedCost) || 0,
-      estimatedFlightTime: Number(form.estimatedFlightTime) || 0,
-    };
-    await BookingService.create(nb);
-    setAddOpen(false);
-    const bookingsData = await BookingService.list();
-    setBookings(bookingsData.map((b: any) => ({ ...b, id: b._id })));
+
+    if (form.originHospitalId === form.destinationHospitalId) {
+      alert("Origin and destination hospitals cannot be the same");
+      return;
+    }
+
+    try {
+      const bookingData = {
+        patientId: form.patientId,
+        originHospitalId: form.originHospitalId,
+        destinationHospitalId: form.destinationHospitalId,
+        urgency: form.urgency,
+        preferredPickupWindow: form.preferredPickupWindow,
+        requiredEquipment: form.requiredEquipment || [],
+      };
+
+      await BookingService.create(bookingData);
+      setAddOpen(false);
+      const bookingsData = await BookingService.list();
+      setBookings(bookingsData.map((b: any) => ({ ...b, id: b._id || b.id })));
+
+      alert('Booking created successfully!');
+    } catch (err: any) {
+      console.error('Error creating booking:', err);
+      alert(`Failed to create booking: ${err.message || 'Unknown error'}`);
+    }
   }
 
   function openEdit(b: any) {
@@ -290,18 +354,36 @@ export default function Reports() {
 
   async function submitEdit() {
     if (!editingId) return;
-    await BookingService.update(editingId, form);
-    setEditingId(null);
-    setEditOpen(false);
-    const bookingsData = await BookingService.list();
-    setBookings(bookingsData.map((b: any) => ({ ...b, id: b._id })));
+
+    try {
+      await BookingService.update(editingId, form);
+      setEditingId(null);
+      setEditOpen(false);
+      const bookingsData = await BookingService.list();
+      setBookings(bookingsData.map((b: any) => ({ ...b, id: b._id || b.id })));
+
+      // Success notification
+      alert('Booking updated successfully!');
+    } catch (err: any) {
+      console.error('Error updating booking:', err);
+      alert(`Failed to update booking: ${err.message || 'Unknown error'}`);
+    }
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this booking?")) return;
-    await BookingService.remove(id);
-    const bookingsData = await BookingService.list();
-    setBookings(bookingsData.map((b: any) => ({ ...b, id: b._id })));
+
+    try {
+      await BookingService.remove(id);
+      const bookingsData = await BookingService.list();
+      setBookings(bookingsData.map((b: any) => ({ ...b, id: b._id || b.id })));
+
+      // Success notification
+      alert('Booking deleted successfully!');
+    } catch (err: any) {
+      console.error('Error deleting booking:', err);
+      alert(`Failed to delete booking: ${err.message || 'Unknown error'}`);
+    }
   }
 
   // PDF generation
@@ -483,14 +565,14 @@ export default function Reports() {
                             </TableHeader>
 
                             <TableBody>
-                              {filteredBookings.length === 0 ? (
+                              {paginatedBookings.length === 0 ? (
                                 <TableRow>
                                   <TableCell colSpan={6} className="py-6 text-center text-gray-500">
                                     No bookings found
                                   </TableCell>
                                 </TableRow>
                               ) : (
-                                filteredBookings.map((b, index) => (
+                                paginatedBookings.map((b, index) => (
                                   <TableRow key={b.id}>
                                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{b.id}</TableCell>
                                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -553,6 +635,45 @@ export default function Reports() {
                             </TableBody>
                           </Table>
                         </div>
+
+                        {/* PAGINATION CONTROLS FOR BOOKING REPORTS */}
+                        {filteredBookings.length > itemsPerPage && (
+                          <div className="flex justify-center items-center gap-2 mt-6 pb-4">
+                            <Button
+                              variant="outline"
+                              disabled={currentPageBookings === 1}
+                              onClick={() => handlePageChangeBookings(currentPageBookings - 1)}
+                              className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
+                            >
+                              Previous
+                            </Button>
+
+                            <div className="flex gap-1">
+                              {Array.from({ length: totalPagesBookings }, (_, i) => i + 1).map((page) => (
+                                <Button
+                                  key={page}
+                                  variant={currentPageBookings === page ? "default" : "outline"}
+                                  onClick={() => handlePageChangeBookings(page)}
+                                  className={`w-10 h-10 p-0 font-bold ${currentPageBookings === page
+                                    ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+                                    }`}
+                                >
+                                  {page}
+                                </Button>
+                              ))}
+                            </div>
+
+                            <Button
+                              variant="outline"
+                              disabled={currentPageBookings === totalPagesBookings}
+                              onClick={() => handlePageChangeBookings(currentPageBookings + 1)}
+                              className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
+                            >
+                              Next
+                            </Button>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </TabsContent>
@@ -576,7 +697,7 @@ export default function Reports() {
                             </TableHeader>
 
                             <TableBody>
-                              {bookings.map((b, index) => (
+                              {paginatedBilling.map((b, index) => (
                                 <TableRow key={b.id}>
                                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{b.id}</TableCell>
                                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{b.requestedAt ? format(new Date(b.requestedAt), "MMM dd, yyyy") : "N/A"}</TableCell>
@@ -602,6 +723,45 @@ export default function Reports() {
                             </TableBody>
                           </Table>
                         </div>
+
+                        {/* PAGINATION CONTROLS FOR BILLING */}
+                        {bookings.length > itemsPerPage && (
+                          <div className="flex justify-center items-center gap-2 mt-6 pb-4">
+                            <Button
+                              variant="outline"
+                              disabled={currentPageBilling === 1}
+                              onClick={() => handlePageChangeBilling(currentPageBilling - 1)}
+                              className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
+                            >
+                              Previous
+                            </Button>
+
+                            <div className="flex gap-1">
+                              {Array.from({ length: totalPagesBilling }, (_, i) => i + 1).map((page) => (
+                                <Button
+                                  key={page}
+                                  variant={currentPageBilling === page ? "default" : "outline"}
+                                  onClick={() => handlePageChangeBilling(page)}
+                                  className={`w-10 h-10 p-0 font-bold ${currentPageBilling === page
+                                    ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+                                    }`}
+                                >
+                                  {page}
+                                </Button>
+                              ))}
+                            </div>
+
+                            <Button
+                              variant="outline"
+                              disabled={currentPageBilling === totalPagesBilling}
+                              onClick={() => handlePageChangeBilling(currentPageBilling + 1)}
+                              className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
+                            >
+                              Next
+                            </Button>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </TabsContent>
@@ -746,12 +906,12 @@ export default function Reports() {
 
             {/* Edit dialog */}
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
-              <DialogContent className="w-[90vw] max-w-none bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+              <DialogContent className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
                 <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
                   <DialogTitle className="text-white text-xl">Edit Booking</DialogTitle>
                 </DialogHeader>
 
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-4 overflow-y-auto flex-1">
                   <div className="grid grid-cols-4 gap-4">
                     <div className="col-span-4 space-y-1.5">
                       <label className="text-sm font-medium">Booking ID</label>
@@ -809,11 +969,11 @@ export default function Reports() {
 
             {/* View dialog */}
             <Dialog open={!!viewBooking} onOpenChange={() => setViewBooking(null)}>
-              <DialogContent className="w-[90vw] max-w-none bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+              <DialogContent className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
                 <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
                   <DialogTitle className="text-white text-xl">Booking Details</DialogTitle>
                 </DialogHeader>
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-4 overflow-y-auto flex-1">
                   {viewBooking ? (
                     <div className="overflow-hidden rounded-lg border border-gray-200">
                       <table className="w-full text-sm">
@@ -875,11 +1035,11 @@ export default function Reports() {
 
             {/* Add dialog */}
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
-              <DialogContent className="w-[90vw] max-w-none bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+              <DialogContent className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
                 <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
                   <DialogTitle className="text-white text-xl">Add New Booking</DialogTitle>
                 </DialogHeader>
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-4 overflow-y-auto flex-1">
                   <div className="grid grid-cols-4 gap-4">
                     <div className="col-span-4 space-y-1.5">
                       <label className="text-sm font-medium">Booking ID</label>

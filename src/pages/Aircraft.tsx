@@ -292,13 +292,13 @@ const Aircraft: React.FC = () => {
   return (
     <Layout>
       <TooltipProvider>
-        <div>
+        <div className="space-y-4">
           {loading ? (
             <LoadingSpinner />
           ) : (
             <>
               {/* Header */}
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex items-start justify-between py-3">
                   <div>
                     <h1 className="text-3xl font-bold">✈️ Aircraft Fleet</h1>
@@ -421,17 +421,9 @@ const Aircraft: React.FC = () => {
                                 paginatedAircraft.map((ac, idx) => (
                                   <tr key={ac.id} className={`border-b hover:bg-gray-50/50 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
                                     <td className="p-4">
-                                      <div className="flex items-center gap-3">
-                                        <img
-                                          src={ac.imageUrl}
-                                          onError={handleImgError}
-                                          alt={ac.type}
-                                          className="w-16 h-12 rounded-lg object-cover border border-gray-200"
-                                        />
-                                        <div>
-                                          <p className="font-semibold text-gray-900">{ac.type}</p>
-                                          <p className="text-xs text-gray-500">Crew: {ac.crewAssigned}</p>
-                                        </div>
+                                      <div>
+                                        <p className="font-semibold text-gray-900">{ac.type}</p>
+                                        <p className="text-xs text-gray-500">Crew: {ac.crewAssigned}</p>
                                       </div>
                                     </td>
                                     <td className="p-4 font-medium text-gray-700">{ac.registration}</td>
@@ -541,7 +533,7 @@ const Aircraft: React.FC = () => {
               setForm({});
             }}
           >
-            <DialogContent className="w-[90vw] max-w-none bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+            <DialogContent className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
               <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
                 <DialogTitle className="text-white text-xl">{editItem ? "✏️ Edit Aircraft" : "➕ Add Aircraft"}</DialogTitle>
                 <DialogDescription className="text-blue-100">
@@ -549,7 +541,7 @@ const Aircraft: React.FC = () => {
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="p-6 space-y-4">
+              <div className="p-6 space-y-4 overflow-y-auto flex-1 text-black">
                 {/* ROW 1: Registration, Type, Operator, Status */}
                 <div className="grid grid-cols-4 gap-4">
                   <div className="space-y-1.5">
@@ -655,18 +647,17 @@ const Aircraft: React.FC = () => {
                     />
                   </div>
                 </div>
-              </div>
 
-              {/* ACTION BUTTONS */}
-              <div className="flex justify-end gap-3 pt-4 border-t mt-2">
-                <Button variant="ghost" onClick={() => { setIsAddOpen(false); setEditItem(null); setForm({}); }}>
-                  Cancel
-                </Button>
-                <Button onClick={saveAdd} className="bg-blue-600 hover:bg-blue-700 text-white">
-                  {editItem ? 'Save Changes' : 'Add Aircraft'}
-                </Button>
+                {/* ACTION BUTTONS */}
+                <div className="flex justify-end gap-3 pt-4 border-t mt-2">
+                  <Button variant="ghost" onClick={() => { setIsAddOpen(false); setEditItem(null); setForm({}); }}>
+                    Cancel
+                  </Button>
+                  <Button onClick={saveAdd} className="bg-blue-600 hover:bg-blue-700 text-white">
+                    {editItem ? 'Save Changes' : 'Add Aircraft'}
+                  </Button>
+                </div>
               </div>
-
             </DialogContent>
           </Dialog>
 

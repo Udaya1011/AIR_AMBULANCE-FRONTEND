@@ -495,11 +495,13 @@ const Patients = () => {
         {/* Add Patient Dialog Trigger */}        {/* Patients Table */}
         {/* Selected patient detail dialog (opens when navigating to /patients/:id) */}
         <Dialog open={Boolean(selectedPatient)} onOpenChange={(open) => { if (!open) { setSelectedPatient(null); navigate('/patients'); } }}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="space-y-4">
+          <DialogContent className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+            <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
+              <DialogTitle className="text-white text-xl">Patient Details - {selectedPatient?.full_name || selectedPatient?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="p-6 space-y-4 overflow-y-auto flex-1 text-black">
               {selectedPatient && (
                 <div>
-                  <h3 className="text-xl font-semibold mb-2">Patient Details - {selectedPatient.full_name}</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Patient ID</p>
@@ -517,7 +519,7 @@ const Patients = () => {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Weight</p>
-                      <p className="text-lg font-medium">{selectedPatient.weight} kg</p>
+                      <p className="text-lg font-medium">{selectedPatient.weight || selectedPatient.weight_kg} kg</p>
                     </div>
                   </div>
                   <div className="mt-4">
@@ -627,13 +629,13 @@ const Patients = () => {
 
         {/* EDIT DIALOG MOVED OUTSIDE LOOP */}
         <Dialog open={isEditOpen} onOpenChange={(open) => { setIsEditOpen(open); if (!open) setEditingPatientId(null); }}>
-          <DialogContent className="w-[90vw] max-w-none bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+          <DialogContent className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
             <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
               <DialogTitle className="text-white text-xl">✏️ Edit Patient</DialogTitle>
               <DialogDescription className="text-blue-100">Update patient medical information</DialogDescription>
             </DialogHeader>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto flex-1 text-black">
               {/* ROW 1: Basics */}
               <div className="grid grid-cols-4 gap-4">
                 <div className="space-y-1.5">
@@ -751,7 +753,7 @@ const Patients = () => {
               </div>
 
               {/* SAVE */}
-              <div className="flex gap-4 pt-6 border-t mt-8">
+              <div className="flex gap-4 pt-6 border-t mt-8 text-black">
                 <Button
                   className="flex-1 h-11 bg-green-600 hover:bg-green-700 text-white font-semibold text-base rounded-lg transition"
                   onClick={async () => {
@@ -804,7 +806,7 @@ const Patients = () => {
                 </Button>
                 <Button
                   variant="outline"
-                  className="flex-1 h-11 text-base rounded-lg border border-gray-300 hover:bg-gray-50"
+                  className="flex-1 h-11 text-base rounded-lg border border-gray-300 hover:bg-gray-50 bg-white"
                   onClick={() => { setIsEditOpen(false); setEditingPatientId(null); }}
                 >
                   ❌ Cancel

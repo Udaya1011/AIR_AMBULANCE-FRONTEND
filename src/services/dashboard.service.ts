@@ -17,7 +17,8 @@ export interface Activity {
 
 export const DashboardService = {
     getRecentBookings: async (limit: number = 10) => {
-        const response = await apiClient.get(`/api/dashboard/recent-bookings?limit=${limit}`);
+        // Fetch all bookings instead of limited dashboard endpoint
+        const response = await apiClient.get(`/api/bookings`);
         return response;
     },
 

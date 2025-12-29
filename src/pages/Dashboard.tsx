@@ -28,6 +28,9 @@ import {
   Download,
 } from "lucide-react";
 import { DashboardService, DashboardStats } from "@/services/dashboard.service";
+import { BookingService } from "@/services/booking.service";
+import { HospitalService } from "@/services/hospital.service";
+import { usePatients } from "@/contexts/PatientsContext";
 import { toast } from "sonner";
 
 const KpiCard = ({
@@ -69,12 +72,7 @@ interface ChatbotProps {
 
 const Chatbot: React.FC<ChatbotProps> = ({ stats, bookings }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([
-    {
-      sender: "bot",
-      text: "Hello! I'm AirSwift Assistant. Try asking:\n• How many active transfers?\n• List available aircraft\n• How many critical patients?\n• Help",
-    },
-  ]);
+  const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [inactivityTimer, setInactivityTimer] = useState<NodeJS.Timeout | null>(null);
   const INACTIVITY_TIME = 2 * 60 * 1000; // 2 minutes
@@ -243,119 +241,68 @@ const Chatbot: React.FC<ChatbotProps> = ({ stats, bookings }) => {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { getPatientById } = usePatients();
   const [bookings, setBookings] = useState<any[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activities, setActivities] = useState<any[]>([]);
+  const [hospitals, setHospitals] = useState<any[]>([]);
   const [viewingBooking, setViewingBooking] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [urgencyFilter, setUrgencyFilter] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Helper functions from Bookings page
+  const getPatientName = (patientId: string) => {
+    if (!patientId) return 'Unknown Patient';
+    const patient = getPatientById(patientId);
+    return patient?.name || 'Unknown Patient';
+  };
+
+  const getHospitalName = (hospitalId: string) => {
+    if (!hospitalId) return 'Unknown Hospital';
+    const hospital = hospitals.find(h => h.id === hospitalId);
+    return hospital?.name || 'Unknown Hospital';
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [bookingsData, statsData, activitiesData] = await Promise.all([
-          DashboardService.getRecentBookings(),
+        const [bookingsData, statsData, activitiesData, hospitalsData] = await Promise.all([
+          BookingService.list(),
           DashboardService.getStats(),
-          DashboardService.getActivities()
+          DashboardService.getActivities(),
+          HospitalService.getHospitals()
         ]);
 
-        // Use API data if available, otherwise use mock data
-        setBookings(bookingsData && bookingsData.length > 0 ? bookingsData : [
-          {
-            id: "BK001",
-            patient: { full_name: "John Doe" },
-            origin_hospital: { hospital_name: "City General Hospital" },
-            destination_hospital: { hospital_name: "Metro Medical Center" },
-            status: "in_transit",
-            urgency: "urgent",
-            preferred_pickup_window: new Date().toISOString()
-          },
-          {
-            id: "BK002",
-            patient: { full_name: "Jane Smith" },
-            origin_hospital: { hospital_name: "Regional Health Center" },
-            destination_hospital: { hospital_name: "University Hospital" },
-            status: "requested",
-            urgency: "emergency",
-            preferred_pickup_window: new Date().toISOString()
-          }
-        ]);
-
+        // Use real API data
+        setBookings(bookingsData || []);
+        setHospitals(hospitalsData || []);
         setStats(statsData || {
-          active_transfers: 3,
-          pending_approvals: 2,
-          available_aircraft: 5,
-          critical_patients: 1
+          active_transfers: 0,
+          pending_approvals: 0,
+          available_aircraft: 0,
+          critical_patients: 0
         });
-
-        setActivities(activitiesData?.activities && activitiesData.activities.length > 0 ? activitiesData.activities : [
-          {
-            id: "1",
-            type: "booking",
-            status: "completed",
-            timestamp: new Date().toISOString(),
-            description: "New booking created for patient transfer"
-          },
-          {
-            id: "2",
-            type: "aircraft",
-            status: "assigned",
-            timestamp: new Date(Date.now() - 3600000).toISOString(),
-            description: "Aircraft assigned to emergency transfer"
-          }
-        ]);
+        setActivities(activitiesData?.activities || []);
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
-        toast.error("Using demo data - API connection failed");
+        toast.error("Failed to load dashboard data");
 
-        // Set mock data on error
-        setBookings([
-          {
-            id: "BK001",
-            patient: { full_name: "John Doe" },
-            origin_hospital: { hospital_name: "City General Hospital" },
-            destination_hospital: { hospital_name: "Metro Medical Center" },
-            status: "in_transit",
-            urgency: "urgent",
-            preferred_pickup_window: new Date().toISOString()
-          },
-          {
-            id: "BK002",
-            patient: { full_name: "Jane Smith" },
-            origin_hospital: { hospital_name: "Regional Health Center" },
-            destination_hospital: { hospital_name: "University Hospital" },
-            status: "requested",
-            urgency: "emergency",
-            preferred_pickup_window: new Date().toISOString()
-          }
-        ]);
-
+        // Set empty data on error
+        setBookings([]);
         setStats({
-          active_transfers: 3,
-          pending_approvals: 2,
-          available_aircraft: 5,
-          critical_patients: 1
+          active_transfers: 0,
+          pending_approvals: 0,
+          available_aircraft: 0,
+          critical_patients: 0
         });
-
-        setActivities([
-          {
-            id: "1",
-            type: "booking",
-            status: "completed",
-            timestamp: new Date().toISOString(),
-            description: "New booking created for patient transfer"
-          },
-          {
-            id: "2",
-            type: "aircraft",
-            status: "assigned",
-            timestamp: new Date(Date.now() - 3600000).toISOString(),
-            description: "Aircraft assigned to emergency transfer"
-          }
-        ]);
+        setActivities([]);
       } finally {
         setLoading(false);
       }
@@ -364,29 +311,104 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
-  const filteredBookings = bookings.filter((booking: any) => {
-    const patientName = booking.patient?.full_name || "";
-    const originName = booking.origin_hospital?.hospital_name || "";
-    const destinationName = booking.destination_hospital?.hospital_name || "";
+  const filteredBookings = useMemo(() => {
+    return bookings.filter((booking: any) => {
+      // Resolve patient name for searching
+      let patientName = "";
+      if (booking.patientId) {
+        const p = getPatientById(booking.patientId);
+        patientName = p?.name || p?.full_name || "";
+      } else if (booking.patient) {
+        patientName = booking.patient?.full_name || booking.patient?.name || (typeof booking.patient === 'string' ? booking.patient : "");
+      } else if (booking.patientName) {
+        patientName = booking.patientName;
+      }
 
-    const searchMatch =
-      !searchTerm ||
-      patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      originName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      destinationName.toLowerCase().includes(searchTerm.toLowerCase());
+      // Resolve origin hospital name
+      let originName = "";
+      if (booking.originHospitalId) {
+        const h = hospitals.find(h => h.id === booking.originHospitalId);
+        originName = h?.name || h?.hospital_name || "";
+      } else if (booking.origin_hospital) {
+        originName = booking.origin_hospital?.hospital_name || booking.origin_hospital?.name || (typeof booking.origin_hospital === 'string' ? booking.origin_hospital : "");
+      } else if (booking.originHospital?.name) {
+        originName = booking.originHospital.name;
+      }
 
-    const statusMatch = !statusFilter || booking.status === statusFilter;
-    const urgencyMatch = !urgencyFilter || booking.urgency === urgencyFilter;
+      // Resolve destination hospital name
+      let destinationName = "";
+      if (booking.destinationHospitalId) {
+        const h = hospitals.find(h => h.id === booking.destinationHospitalId);
+        destinationName = h?.name || h?.hospital_name || "";
+      } else if (booking.destination_hospital) {
+        destinationName = booking.destination_hospital?.hospital_name || booking.destination_hospital?.name || (typeof booking.destination_hospital === 'string' ? booking.destination_hospital : "");
+      } else if (booking.destinationHospital?.name) {
+        destinationName = booking.destinationHospital.name;
+      }
 
-    return searchMatch && statusMatch && urgencyMatch;
-  });
+      const searchTerms = searchTerm.toLowerCase();
+      const searchMatch =
+        !searchTerm ||
+        (booking.id && String(booking.id).toLowerCase().includes(searchTerms)) ||
+        patientName.toLowerCase().includes(searchTerms) ||
+        originName.toLowerCase().includes(searchTerms) ||
+        destinationName.toLowerCase().includes(searchTerms);
+
+      const statusMatch = !statusFilter || booking.status === statusFilter;
+      const urgencyMatch = !urgencyFilter || booking.urgency === urgencyFilter;
+
+      return searchMatch && statusMatch && urgencyMatch;
+    });
+  }, [bookings, searchTerm, statusFilter, urgencyFilter, hospitals, getPatientById]);
+
+  // Reset pagination when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, urgencyFilter]);
+
+  // Pagination calculation
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredBookings.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
+
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
 
   const getBookingDetails = (booking: any) => {
+    // Resolve patient ID to name using PatientsContext
+    let patientName = "N/A";
+    if (booking.patientId) {
+      const patient = getPatientById(booking.patientId);
+      patientName = patient?.name || patient?.full_name || "N/A";
+    } else if (booking.patient) {
+      patientName = booking.patient?.full_name || booking.patient?.name || booking.patient;
+    }
+
+    // Resolve origin hospital ID to name
+    let originName = "N/A";
+    if (booking.originHospitalId) {
+      const hospital = hospitals.find(h => h.id === booking.originHospitalId);
+      originName = hospital?.name || hospital?.hospital_name || "N/A";
+    } else if (booking.origin_hospital) {
+      originName = booking.origin_hospital?.hospital_name || booking.origin_hospital?.name || booking.origin_hospital;
+    }
+
+    // Resolve destination hospital ID to name
+    let destinationName = "N/A";
+    if (booking.destinationHospitalId) {
+      const hospital = hospitals.find(h => h.id === booking.destinationHospitalId);
+      destinationName = hospital?.name || hospital?.hospital_name || "N/A";
+    } else if (booking.destination_hospital) {
+      destinationName = booking.destination_hospital?.hospital_name || booking.destination_hospital?.name || booking.destination_hospital;
+    }
+
     return {
       ...booking,
-      patient: booking.patient?.full_name || "N/A",
-      origin: booking.origin_hospital?.hospital_name || "N/A",
-      destination: booking.destination_hospital?.hospital_name || "N/A",
+      patient: patientName,
+      origin: originName,
+      destination: destinationName,
     };
   };
 
@@ -462,10 +484,10 @@ export default function Dashboard() {
               {/* Search + Filters */}
               <div className="flex flex-wrap items-center gap-3 mb-6">
                 <Input
-                  placeholder="Search patient or hospital..."
+                  placeholder="Search patient, hospital, or ID..."
                   value={searchTerm}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                  className="w-48"
+                  className="w-full md:w-72"
                 />
 
                 <select
@@ -533,14 +555,14 @@ export default function Dashboard() {
                   </thead>
 
                   <tbody>
-                    {filteredBookings.length === 0 ? (
+                    {currentItems.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="text-center py-6 text-muted-foreground">
                           No bookings found.
                         </td>
                       </tr>
                     ) : (
-                      filteredBookings.slice(0, 10).map((booking: any) => {
+                      currentItems.map((booking: any) => {
                         const details = getBookingDetails(booking);
 
                         return (
@@ -589,17 +611,56 @@ export default function Dashboard() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination Controls */}
+              {filteredBookings.length > itemsPerPage && (
+                <div className="flex justify-center items-center gap-2 mt-6 pb-4">
+                  <Button
+                    variant="outline"
+                    disabled={currentPage === 1}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
+                  >
+                    Previous
+                  </Button>
+
+                  <div className="flex gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        onClick={() => handlePageChange(page)}
+                        className={`w-10 h-10 p-0 font-bold ${currentPage === page
+                          ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                          : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+                          }`}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    disabled={currentPage === totalPages}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {/* DIALOG: VIEW BOOKING */}
           <Dialog open={!!viewingBooking} onOpenChange={() => setViewingBooking(null)}>
-            <DialogContent className="w-[90vw] max-w-none bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+            <DialogContent className="w-[90vw] max-w-none max-h-[70vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
               <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
                 <DialogTitle className="text-white text-xl">Booking Details</DialogTitle>
               </DialogHeader>
 
-              <div className="p-6 space-y-4">
+              <div className="p-6 space-y-4 overflow-y-auto flex-1">
                 <table className="min-w-full text-sm border border-gray-300 rounded-lg overflow-hidden">
                   <tbody>
                     {viewingBooking &&
