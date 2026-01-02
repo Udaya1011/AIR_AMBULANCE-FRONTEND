@@ -31,6 +31,19 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import {
   Table,
@@ -61,6 +74,10 @@ import {
   ReceiptText,
   MessageSquare,
   Send,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  Search,
 } from "lucide-react";
 
 import jsPDF from "jspdf";
@@ -82,7 +99,10 @@ import {
 import { format } from "date-fns";
 import { BookingService } from "@/services/booking.service";
 import { AircraftService } from "@/services/aircraft.service";
+import { HospitalService } from "@/services/hospital.service";
+import { PatientsService } from "@/services/patients.service";
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { calculateDistance, calculateRevenue } from "@/utils/revenueUtils";
 
 // --- CHATBOT CONSTANTS ---
 const initialMessages: any[] = [];
@@ -207,8 +227,8 @@ export default function Reports() {
         const [bookingsData, aircraftData, patientsData, hospitalsData] = await Promise.all([
           BookingService.list(),
           AircraftService.getAircrafts(),
-          fetch('/api/patients/').then(r => r.json()).catch(() => []),
-          fetch('/api/hospitals/').then(r => r.json()).catch(() => []),
+          PatientsService.list(),
+          HospitalService.getHospitals(),
         ]);
         setBookings(bookingsData.map((b: any) => ({ ...b, id: b._id || b.id })));
         setAircraft(aircraftData);
@@ -223,23 +243,149 @@ export default function Reports() {
     fetchData();
   }, []);
 
-  // analytics / aggregated values
-  const totalBookings = bookings.length;
-  const completedBookings = bookings.filter((b) => b.status === "completed").length;
-  const totalRevenue = bookings.reduce((s, b) => s + (Number(b.estimatedCost) || 0), 0);
-  const avgFlightTime =
-    bookings.length > 0 ? Math.round(bookings.reduce((s, b) => s + (Number(b.estimatedFlightTime) || 0), 0) / bookings.length) : 0;
-
-  // filtered bookings (search + filters)
   const filteredBookings = useMemo(() => {
-    const q = (searchTerm || "").toLowerCase();
     return bookings.filter((b) => {
-      const matchesSearch = !q || (b.id || "").toString().toLowerCase().includes(q);
-      const matchesStatus = statusFilter === "all" || b.status === statusFilter;
-      const matchesUrgency = urgencyFilter === "all" || b.urgency === urgencyFilter;
-      return matchesSearch && matchesStatus && matchesUrgency;
+      const bId = (b.booking_id || b.id || "").toString().toLowerCase();
+      const matchSearch = bId.includes(searchTerm.toLowerCase());
+      const matchStatus = statusFilter === "all" || b.status === statusFilter;
+      const matchUrgency = urgencyFilter === "all" || b.urgency === urgencyFilter;
+      return matchSearch && matchStatus && matchUrgency;
     });
   }, [bookings, searchTerm, statusFilter, urgencyFilter]);
+
+  // analytics / aggregated values
+  const summaryStats = useMemo(() => ({
+    totalBookings: bookings.length,
+    completedBookings: bookings.filter((b) => b.status === "completed").length,
+    totalRevenue: bookings.reduce((s, b) => {
+      let calculated = 0;
+      if (b.originHospitalId && b.destinationHospitalId) {
+        const origin = hospitals.find(h => h.id === b.originHospitalId);
+        const dest = hospitals.find(h => h.id === b.destinationHospitalId);
+        if (origin?.coordinates && dest?.coordinates) {
+          const dist = calculateDistance(origin.coordinates.lat, origin.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng);
+          calculated = calculateRevenue(dist);
+        }
+      }
+      const cost = calculated > 0 ? calculated : (Number(b.estimatedCost) || Number(b.actualCost) || 0);
+      return s + cost;
+    }, 0),
+    avgFlightTime: bookings.length > 0 ? Math.round(bookings.reduce((s, b) => s + (Number(b.estimatedFlightTime) || 0), 0) / bookings.length) : 0
+  }), [bookings, hospitals]);
+
+  const headerActions = (
+    <div className="flex items-center gap-3">
+      {/* Analytics Popover */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group" title="Operations Analytics">
+            <BarChart3 className="h-4 w-4 transition-transform group-hover:scale-110 text-slate-500 group-hover:text-blue-600" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[320px] p-5 rounded-3xl shadow-2xl border-slate-200 animate-in fade-in zoom-in-95 duration-300" align="end" sideOffset={10}>
+          <div className="flex items-center gap-3 mb-5 pb-3 border-b border-slate-100">
+            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100">
+              <CheckCircle className="h-4 w-4 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-black text-slate-800 uppercase tracking-tight">Ops Analytics</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">Fleet Performance</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl transition-all hover:border-blue-100 group/metric">
+              <div className="flex items-center gap-2 mb-1.5">
+                <ReceiptText className="h-3 w-3 text-blue-500" />
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-slate-800 tracking-tighter">{summaryStats.totalBookings}</span>
+                <span className="text-[8px] text-slate-400 font-bold uppercase">Apps</span>
+              </div>
+            </div>
+            <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl transition-all hover:border-emerald-200 group/metric">
+              <div className="flex items-center gap-2 mb-1.5">
+                <CheckCircle className="h-3 w-3 text-emerald-500" />
+                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Done</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-emerald-600 tracking-tighter">{summaryStats.completedBookings}</span>
+                <span className="text-[8px] text-emerald-400 font-bold uppercase">Flights</span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 p-4 bg-blue-600 rounded-2xl shadow-lg shadow-blue-100">
+            <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1">Estimated Net Revenue</p>
+            <p className="text-2xl font-black text-white tracking-tighter">${summaryStats.totalRevenue.toLocaleString()}</p>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {/* Unified Filter Dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="flex items-center justify-center h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group relative" title="Filters">
+            <Filter className={`h-4 w-4 transition-transform group-hover:rotate-12 ${statusFilter !== 'all' || urgencyFilter !== 'all' ? 'text-blue-600' : 'text-slate-500'}`} />
+            {(statusFilter !== 'all' || urgencyFilter !== 'all') && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center rounded-full bg-blue-600 text-white text-[8px] font-black border-2 border-white shadow-sm animate-in zoom-in duration-300">
+                {(statusFilter !== 'all' ? 1 : 0) + (urgencyFilter !== 'all' ? 1 : 0)}
+              </span>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56 p-2 rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200" align="end">
+          <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2 py-1.5">
+            Report Filters
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator className="my-1 bg-slate-100" />
+
+          <div className="px-2 py-2">
+            <p className="text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">Urgency</p>
+            <div className="flex flex-col gap-1">
+              {['all', 'routine', 'urgent', 'emergency'].map(u => (
+                <DropdownMenuItem key={u} onClick={() => setUrgencyFilter(u)} className={`rounded-lg px-2 py-1.5 cursor-pointer text-xs font-bold transition-colors ${urgencyFilter === u ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}>
+                  <span className="capitalize">{u.replace('all', 'All Urgency')}</span>
+                </DropdownMenuItem>
+              ))}
+            </div>
+          </div>
+
+          <DropdownMenuSeparator className="my-1 bg-slate-100" />
+
+          <div className="px-2 py-2">
+            <p className="text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">Status</p>
+            <div className="flex flex-col gap-1 max-h-[200px] overflow-y-auto scrollbar-thin">
+              {['all', 'requested', 'clinical_review', 'dispatch_review', 'airline_confirmed', 'crew_assigned', 'in_transit', 'completed', 'cancelled'].map(s => (
+                <DropdownMenuItem key={s} onClick={() => setStatusFilter(s)} className={`rounded-lg px-2 py-1.5 cursor-pointer text-xs font-bold transition-colors ${statusFilter === s ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}>
+                  <span className="capitalize">{s.replace('_', ' ').replace('all', 'All Status')}</span>
+                </DropdownMenuItem>
+              ))}
+            </div>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Global Search */}
+      <div className="relative group max-w-[200px]">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+        <Input
+          placeholder="Global search..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="h-10 pl-9 pr-3 bg-slate-50 border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all w-full"
+        />
+      </div>
+
+      <Button
+        className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-wider rounded-xl shadow-lg shadow-blue-100 flex items-center gap-2 transition-all active:scale-95 group border-b-4 border-blue-800"
+        onClick={openAdd}
+      >
+        <Plus className="h-4 w-4 stroke-[3px] group-hover:rotate-90 transition-transform" />
+        New Booking
+      </Button>
+    </div>
+  );
 
   // PAGINATION LOGIC FOR BOOKING REPORTS
   const totalPagesBookings = Math.ceil(filteredBookings.length / itemsPerPage);
@@ -286,7 +432,7 @@ export default function Reports() {
       if (lower.includes("filter completed")) {
         aiResponseText = "Use the Status dropdown and select 'Completed' to filter.";
       } else if (lower.includes("revenue")) {
-        aiResponseText = `Total revenue is $${totalRevenue.toLocaleString()}.`;
+        aiResponseText = `Total revenue is $${summaryStats.totalRevenue.toLocaleString()}.`;
       }
 
       const aiMessage = { id: Date.now() + 1, text: aiResponseText, sender: "ai", time: format(new Date(), "h:mm a") };
@@ -393,12 +539,23 @@ export default function Reports() {
       doc.setFontSize(18);
       doc.text("Booking Invoice", 40, 40);
 
+      let calculated = 0;
+      if (b.originHospitalId && b.destinationHospitalId) {
+        const origin = hospitals.find(o => o.id === b.originHospitalId);
+        const dest = hospitals.find(d => d.id === b.destinationHospitalId);
+        if (origin?.coordinates && dest?.coordinates) {
+          const dist = calculateDistance(origin.coordinates.lat, origin.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng);
+          calculated = calculateRevenue(dist);
+        }
+      }
+      const finalRevenue = calculated > 0 ? calculated : (Number(b.estimatedCost) || Number(b.actualCost) || 0);
+
       const rows: [string, string][] = [
-        ["Booking ID", b.id || "N/A"],
+        ["Booking ID", b.booking_id || b.id || "N/A"],
         ["Date", b.requestedAt ? format(new Date(b.requestedAt), "PPpp") : "N/A"],
         ["Status", b.status || "N/A"],
         ["Urgency", b.urgency || "N/A"],
-        ["Estimated Cost", `$${(b.estimatedCost ?? 0).toLocaleString()}`],
+        ["Estimated Revenue", `$${finalRevenue.toLocaleString()}`],
         ["Flight Time", `${b.estimatedFlightTime ?? 0} min`],
       ];
 
@@ -428,7 +585,18 @@ export default function Reports() {
     for (const b of bookings) {
       const dt = b.requestedAt ? new Date(b.requestedAt) : new Date();
       const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
-      map.set(key, (map.get(key) ?? 0) + (Number(b.estimatedCost) || 0));
+
+      let calculated = 0;
+      if (b.originHospitalId && b.destinationHospitalId) {
+        const origin = hospitals.find(h => h.id === b.originHospitalId);
+        const dest = hospitals.find(h => h.id === b.destinationHospitalId);
+        if (origin?.coordinates && dest?.coordinates) {
+          const dist = calculateDistance(origin.coordinates.lat, origin.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng);
+          calculated = calculateRevenue(dist);
+        }
+      }
+      const cost = calculated > 0 ? calculated : (Number(b.estimatedCost) || Number(b.actualCost) || 0);
+      map.set(key, (map.get(key) ?? 0) + cost);
     }
     return Array.from(map.entries())
       .sort((a, b) => (a[0] > b[0] ? 1 : -1))
@@ -438,37 +606,81 @@ export default function Reports() {
   const flightTimeTrend = bookings.map((b, i) => ({
     index: i + 1,
     flightTime: Number(b.estimatedFlightTime) || 0,
-    cost: Number(b.estimatedCost) || 0,
+    revenue: Number(b.estimatedCost) || 0,
+    ratio: Number(b.estimatedFlightTime) > 0 ? Math.round(Number(b.estimatedCost) / Number(b.estimatedFlightTime)) : Number(b.estimatedCost) || 0,
   }));
 
+  const revenueByHospital = useMemo(() => {
+    const map = new Map<string, number>();
+    bookings.forEach(b => {
+      const h = hospitals.find(h => h.id === b.originHospitalId);
+      const name = h?.name || "Unknown";
+
+      let calculated = 0;
+      if (b.originHospitalId && b.destinationHospitalId) {
+        const origin = hospitals.find(o => o.id === b.originHospitalId);
+        const dest = hospitals.find(d => d.id === b.destinationHospitalId);
+        if (origin?.coordinates && dest?.coordinates) {
+          const dist = calculateDistance(origin.coordinates.lat, origin.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng);
+          calculated = calculateRevenue(dist);
+        }
+      }
+      const cost = calculated > 0 ? calculated : (Number(b.estimatedCost) || Number(b.actualCost) || 0);
+      map.set(name, (map.get(name) || 0) + cost);
+    });
+    return Array.from(map.entries()).map(([name, revenue]) => ({ name, revenue }));
+  }, [bookings, hospitals]);
+
   return (
-    <Layout>
+    <Layout isFullHeight={true} subTitle="Operational Logs & Network Analytics" headerActions={headerActions}>
       {loading ? (
         <LoadingSpinner />
       ) : (
         <TooltipProvider>
-          <div>
-            {/* Header - neutral, no background */}
-            <div className="space-y-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h1 className="text-3xl font-extrabold">Reports &amp; Analytics</h1>
-                  <p className="mt-1 text-sm text-gray-600">Operational reports, utilization and billing</p>
-                </div>
+          <div className="flex-1 flex flex-col min-h-0 space-y-6">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+                System <span className="text-slate-400 font-bold ml-2">Intelligence</span>
+              </h1>
+            </div>
 
+            {/* Stat cards - standardized premium feel */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
                 <div>
-                  <Button onClick={openAdd} className="px-4 py-2 rounded-lg font-semibold">
-                    <Plus size={16} className="mr-2" /> Add Booking
-                  </Button>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Network Ops</p>
+                  <p className="text-2xl font-black text-slate-800 tracking-tighter">{summaryStats.totalBookings}</p>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-xl">
+                  <BarChart3 className="h-5 w-5 text-blue-600" />
                 </div>
               </div>
-
-              {/* Stat cards - neutral background */}
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                <StatCard title="Total Bookings" value={totalBookings} icon={BarChart3} iconBgColor="transparent" valueColor="text-gray-900" />
-                <StatCard title="Completed" value={completedBookings} icon={CheckCircle} iconBgColor="transparent" valueColor="text-gray-900" />
-                <StatCard title="Total Revenue" value={`$${totalRevenue.toLocaleString()}`} icon={DollarSign} iconBgColor="transparent" valueColor="text-gray-900" />
-                <StatCard title="Avg Flight Time" value={`${avgFlightTime} min`} icon={Clock} iconBgColor="transparent" valueColor="text-gray-900" />
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Successful Transits</p>
+                  <p className="text-2xl font-black text-emerald-600 tracking-tighter">{summaryStats.completedBookings}</p>
+                </div>
+                <div className="bg-emerald-50 p-3 rounded-xl">
+                  <CheckCircle className="h-5 w-5 text-emerald-600" />
+                </div>
+              </div>
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Est. Managed Revenue</p>
+                  <p className="text-2xl font-black text-blue-600 tracking-tighter">${summaryStats.totalRevenue.toLocaleString()}</p>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-xl">
+                  <DollarSign className="h-5 w-5 text-blue-600" />
+                </div>
+              </div>
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Avg Transit Velocity</p>
+                  <p className="text-2xl font-black text-amber-600 tracking-tighter">{summaryStats.avgFlightTime} min</p>
+                </div>
+                <div className="bg-amber-50 p-3 rounded-xl">
+                  <Clock className="h-5 w-5 text-amber-600" />
+                </div>
               </div>
             </div>
 
@@ -493,7 +705,7 @@ export default function Reports() {
                       value="billing"
                       className="px-4 py-2 rounded-md font-semibold text-sm data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=inactive]:hover:bg-gray-100 transition-all duration-200"
                     >
-                      Billing &amp; Invoices
+                      Revenue &amp; Invoices
                     </TabsTrigger>
                     <TabsTrigger
                       value="analytics"
@@ -558,9 +770,9 @@ export default function Reports() {
                                 <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">ID</TableHead>
                                 <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">DATE</TableHead>
                                 <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">STATUS</TableHead>
-                                <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">URGENCY</TableHead>
-                                <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">COST</TableHead>
-                                <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">ACTIONS</TableHead>
+                                <TableHead className="p-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">URGENCY</TableHead>
+                                <TableHead className="p-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">REVENUE</TableHead>
+                                <TableHead className="p-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">ACTIONS</TableHead>
                               </TableRow>
                             </TableHeader>
 
@@ -574,13 +786,27 @@ export default function Reports() {
                               ) : (
                                 paginatedBookings.map((b, index) => (
                                   <TableRow key={b.id}>
-                                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{b.id}</TableCell>
+                                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{b.booking_id || b.id}</TableCell>
                                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                       {b.requestedAt ? format(new Date(b.requestedAt), "MMM dd, yyyy") : "N/A"}
                                     </TableCell>
                                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm">{getStatusBadge(b.status, "status")}</TableCell>
                                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm">{getStatusBadge(b.urgency, "urgency")}</TableCell>
-                                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">${(b.estimatedCost ?? 0).toLocaleString()}</TableCell>
+                                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
+                                      {(() => {
+                                        let calculated = 0;
+                                        if (b.originHospitalId && b.destinationHospitalId) {
+                                          const origin = hospitals.find(o => o.id === b.originHospitalId);
+                                          const dest = hospitals.find(d => d.id === b.destinationHospitalId);
+                                          if (origin?.coordinates && dest?.coordinates) {
+                                            const dist = calculateDistance(origin.coordinates.lat, origin.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng);
+                                            calculated = calculateRevenue(dist);
+                                          }
+                                        }
+                                        const cost = calculated > 0 ? calculated : (Number(b.estimatedCost) || Number(b.actualCost) || 0);
+                                        return `$${cost.toLocaleString()}`;
+                                      })()}
+                                    </TableCell>
 
                                     <TableCell className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex gap-2 justify-end">
                                       <div className="inline-flex gap-2 p-1 rounded-md">
@@ -636,42 +862,20 @@ export default function Reports() {
                           </Table>
                         </div>
 
-                        {/* PAGINATION CONTROLS FOR BOOKING REPORTS */}
-                        {filteredBookings.length > itemsPerPage && (
-                          <div className="flex justify-center items-center gap-2 mt-6 pb-4">
-                            <Button
-                              variant="outline"
-                              disabled={currentPageBookings === 1}
-                              onClick={() => handlePageChangeBookings(currentPageBookings - 1)}
-                              className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
-                            >
-                              Previous
-                            </Button>
-
-                            <div className="flex gap-1">
-                              {Array.from({ length: totalPagesBookings }, (_, i) => i + 1).map((page) => (
-                                <Button
-                                  key={page}
-                                  variant={currentPageBookings === page ? "default" : "outline"}
-                                  onClick={() => handlePageChangeBookings(page)}
-                                  className={`w-10 h-10 p-0 font-bold ${currentPageBookings === page
-                                    ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
-                                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
-                                    }`}
-                                >
-                                  {page}
-                                </Button>
-                              ))}
-                            </div>
-
-                            <Button
-                              variant="outline"
-                              disabled={currentPageBookings === totalPagesBookings}
-                              onClick={() => handlePageChangeBookings(currentPageBookings + 1)}
-                              className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
-                            >
-                              Next
-                            </Button>
+                        {totalPagesBookings > 1 && (
+                          <div className="flex justify-center items-center gap-3 mt-6 pb-4">
+                            {Array.from({ length: totalPagesBookings }, (_, i) => i + 1).map((page) => (
+                              <button
+                                key={page}
+                                onClick={() => handlePageChangeBookings(page)}
+                                className={`w-3 h-3 rounded-full transition-all duration-300 ${currentPageBookings === page
+                                  ? "bg-blue-600 scale-125 shadow-sm"
+                                  : "bg-gray-300 hover:bg-gray-400"
+                                  }`}
+                                title={`Page ${page}`}
+                                aria-label={`Go to page ${page}`}
+                              />
+                            ))}
                           </div>
                         )}
                       </CardContent>
@@ -682,7 +886,7 @@ export default function Reports() {
                   <TabsContent value="billing" className="mt-6">
                     <Card className="rounded-lg border-none">
                       <CardHeader>
-                        <CardTitle className="text-xl font-bold text-gray-800">Billing &amp; Invoices</CardTitle>
+                        <CardTitle className="text-xl font-bold text-gray-800">Revenue &amp; Invoices</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="overflow-x-auto border rounded-lg">
@@ -691,7 +895,7 @@ export default function Reports() {
                               <TableRow>
                                 <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">BOOKING</TableHead>
                                 <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">DATE</TableHead>
-                                <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">COST</TableHead>
+                                <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">REVENUE</TableHead>
                                 <TableHead className="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">INVOICE</TableHead>
                               </TableRow>
                             </TableHeader>
@@ -699,9 +903,23 @@ export default function Reports() {
                             <TableBody>
                               {paginatedBilling.map((b, index) => (
                                 <TableRow key={b.id}>
-                                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{b.id}</TableCell>
+                                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{b.booking_id || b.id}</TableCell>
                                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{b.requestedAt ? format(new Date(b.requestedAt), "MMM dd, yyyy") : "N/A"}</TableCell>
-                                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">${(b.estimatedCost ?? 0).toLocaleString()}</TableCell>
+                                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
+                                    {(() => {
+                                      let calculated = 0;
+                                      if (b.originHospitalId && b.destinationHospitalId) {
+                                        const origin = hospitals.find(o => o.id === b.originHospitalId);
+                                        const dest = hospitals.find(d => d.id === b.destinationHospitalId);
+                                        if (origin?.coordinates && dest?.coordinates) {
+                                          const dist = calculateDistance(origin.coordinates.lat, origin.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng);
+                                          calculated = calculateRevenue(dist);
+                                        }
+                                      }
+                                      const cost = calculated > 0 ? calculated : (Number(b.estimatedCost) || Number(b.actualCost) || 0);
+                                      return `$${cost.toLocaleString()}`;
+                                    })()}
+                                  </TableCell>
 
                                   <TableCell className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                     <div className="inline-flex items-center justify-center gap-2">
@@ -724,42 +942,20 @@ export default function Reports() {
                           </Table>
                         </div>
 
-                        {/* PAGINATION CONTROLS FOR BILLING */}
-                        {bookings.length > itemsPerPage && (
-                          <div className="flex justify-center items-center gap-2 mt-6 pb-4">
-                            <Button
-                              variant="outline"
-                              disabled={currentPageBilling === 1}
-                              onClick={() => handlePageChangeBilling(currentPageBilling - 1)}
-                              className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
-                            >
-                              Previous
-                            </Button>
-
-                            <div className="flex gap-1">
-                              {Array.from({ length: totalPagesBilling }, (_, i) => i + 1).map((page) => (
-                                <Button
-                                  key={page}
-                                  variant={currentPageBilling === page ? "default" : "outline"}
-                                  onClick={() => handlePageChangeBilling(page)}
-                                  className={`w-10 h-10 p-0 font-bold ${currentPageBilling === page
-                                    ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
-                                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
-                                    }`}
-                                >
-                                  {page}
-                                </Button>
-                              ))}
-                            </div>
-
-                            <Button
-                              variant="outline"
-                              disabled={currentPageBilling === totalPagesBilling}
-                              onClick={() => handlePageChangeBilling(currentPageBilling + 1)}
-                              className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
-                            >
-                              Next
-                            </Button>
+                        {totalPagesBilling > 1 && (
+                          <div className="flex justify-center items-center gap-3 mt-6 pb-4">
+                            {Array.from({ length: totalPagesBilling }, (_, i) => i + 1).map((page) => (
+                              <button
+                                key={page}
+                                onClick={() => handlePageChangeBilling(page)}
+                                className={`w-3 h-3 rounded-full transition-all duration-300 ${currentPageBilling === page
+                                  ? "bg-blue-600 scale-125 shadow-sm"
+                                  : "bg-gray-300 hover:bg-gray-400"
+                                  }`}
+                                title={`Page ${page}`}
+                                aria-label={`Go to page ${page}`}
+                              />
+                            ))}
                           </div>
                         )}
                       </CardContent>
@@ -797,7 +993,7 @@ export default function Reports() {
                       <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div>
-                            <h3 className="font-semibold mb-3 text-gray-700">Revenue Trend</h3>
+                            <h3 className="font-semibold mb-3 text-gray-700">Revenue Trend (Monthly)</h3>
                             <div className="h-56">
                               <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={revenueByMonth}>
@@ -813,6 +1009,21 @@ export default function Reports() {
                           </div>
 
                           <div>
+                            <h3 className="font-semibold mb-3 text-gray-700">Revenue by Hospital</h3>
+                            <div className="h-56">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={revenueByHospital}>
+                                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                                  <YAxis axisLine={false} tickLine={false} />
+                                  <RechartsTooltip contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }} />
+                                  <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+
+                          <div>
                             <h3 className="font-semibold mb-3 text-gray-700">Flight Time Trend</h3>
                             <div className="h-56">
                               <ResponsiveContainer width="100%" height="100%">
@@ -823,6 +1034,21 @@ export default function Reports() {
                                   <RechartsTooltip contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }} />
                                   <Line type="monotone" dataKey="flightTime" stroke="#60a5fa" strokeWidth={2} activeDot={{ r: 6 }} />
                                 </LineChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+
+                          <div>
+                            <h3 className="font-semibold mb-3 text-gray-700">Profitability Ratio (Revenue/Time)</h3>
+                            <div className="h-56">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={flightTimeTrend}>
+                                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                  <XAxis dataKey="index" axisLine={false} tickLine={false} />
+                                  <YAxis axisLine={false} tickLine={false} />
+                                  <RechartsTooltip contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }} />
+                                  <Bar dataKey="ratio" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                </BarChart>
                               </ResponsiveContainer>
                             </div>
                           </div>
@@ -844,7 +1070,9 @@ export default function Reports() {
                   {/* Chat Header */}
                   <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex justify-between items-center border-b border-blue-400">
                     <div className="flex items-center gap-3">
-                      <MessageSquare className="h-6 w-6 text-white" />
+                      <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden shadow-inner flex-shrink-0">
+                        <img src={chatBotImage} alt="AI Reports Assistant" className="w-full h-full object-cover" />
+                      </div>
                       <div>
                         <h3 className="font-bold text-white">📊 Reports Assistant</h3>
                         <p className="text-xs text-blue-100">Online & Ready</p>
@@ -906,7 +1134,7 @@ export default function Reports() {
 
             {/* Edit dialog */}
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
-              <DialogContent className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+              <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
                 <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
                   <DialogTitle className="text-white text-xl">Edit Booking</DialogTitle>
                 </DialogHeader>
@@ -950,7 +1178,7 @@ export default function Reports() {
 
                   <div className="grid grid-cols-4 gap-4">
                     <div className="col-span-2 space-y-1.5">
-                      <label className="text-sm font-medium">Estimated Cost ($)</label>
+                      <label className="text-sm font-medium">Estimated Revenue ($)</label>
                       <Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-9" />
                     </div>
                     <div className="col-span-2 space-y-1.5">
@@ -969,7 +1197,7 @@ export default function Reports() {
 
             {/* View dialog */}
             <Dialog open={!!viewBooking} onOpenChange={() => setViewBooking(null)}>
-              <DialogContent className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+              <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
                 <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
                   <DialogTitle className="text-white text-xl">Booking Details</DialogTitle>
                 </DialogHeader>
@@ -1011,7 +1239,7 @@ export default function Reports() {
                           </tr>
 
                           <tr className="border-b">
-                            <td className="p-3 font-semibold">Cost</td>
+                            <td className="p-3 font-semibold">Revenue</td>
                             <td className="p-3">
                               <span className="text-green-600 font-bold">
                                 ${(viewBooking.estimatedCost ?? 0).toLocaleString()}
@@ -1035,7 +1263,7 @@ export default function Reports() {
 
             {/* Add dialog */}
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
-              <DialogContent className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+              <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
                 <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
                   <DialogTitle className="text-white text-xl">Add New Booking</DialogTitle>
                 </DialogHeader>
@@ -1078,7 +1306,7 @@ export default function Reports() {
 
                   <div className="grid grid-cols-4 gap-4">
                     <div className="col-span-2 space-y-1.5">
-                      <label className="text-sm font-medium">Estimated Cost ($)</label>
+                      <label className="text-sm font-medium">Estimated Revenue ($)</label>
                       <Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-9" />
                     </div>
                     <div className="col-span-2 space-y-1.5">

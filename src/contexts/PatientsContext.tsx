@@ -28,7 +28,7 @@ export const PatientsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIsLoading(true);
       try {
         const data = await PatientsService.list();
-        setPatients(data);
+        setPatients(data.filter(Boolean));
       } catch (error: any) {
         console.error("Failed to fetch patients", error);
         toast({
@@ -86,7 +86,7 @@ export const PatientsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const getPatientById = (id: string) => patients.find(p => p.id === id);
+  const getPatientById = (id: string) => patients.find(p => p.id === id || p.patient_id === id);
 
 
   return (

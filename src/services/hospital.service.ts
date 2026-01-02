@@ -28,6 +28,7 @@ export const HospitalService = {
       address: hospital.address,
       levelOfCare: reverseLevelOfCareMap[hospital.level_of_care] || 'Primary',
       icuCapacity: hospital.icu_capacity,
+      occupiedBeds: hospital.occupied_beds || 0,
       coordinates: { lat: hospital.latitude, lng: hospital.longitude },
       contactPerson: hospital.contact_information?.name || '',
       email: hospital.contact_information?.email || '',
@@ -45,6 +46,7 @@ export const HospitalService = {
         longitude: hospital.coordinates?.lng || 0,
         level_of_care: levelOfCareMap[hospital.levelOfCare || 'Primary'] || 'basic',
         icu_capacity: hospital.icuCapacity || 0,
+        occupied_beds: hospital.occupiedBeds || 0,
         contact_information: {
           name: hospital.contactPerson || '',
           phone: hospital.phone || '',
@@ -63,6 +65,7 @@ export const HospitalService = {
         address: response.address,
         levelOfCare: reverseLevelOfCareMap[response.level_of_care] || 'Primary',
         icuCapacity: response.icu_capacity,
+        occupiedBeds: response.occupied_beds || 0,
         coordinates: { lat: response.latitude, lng: response.longitude },
         contactPerson: response.contact_information?.name || '',
         email: response.contact_information?.email || '',
@@ -85,6 +88,7 @@ export const HospitalService = {
       if (hospital.coordinates?.lng !== undefined) hospitalData.longitude = hospital.coordinates.lng;
       if (hospital.levelOfCare) hospitalData.level_of_care = levelOfCareMap[hospital.levelOfCare] || 'basic';
       if (hospital.icuCapacity !== undefined) hospitalData.icu_capacity = hospital.icuCapacity;
+      if (hospital.occupiedBeds !== undefined) hospitalData.occupied_beds = hospital.occupiedBeds;
       if (hospital.address) hospitalData.preferred_pickup_location = hospital.address;
 
       return apiClient.put(`/api/hospitals/${id}`, hospitalData);

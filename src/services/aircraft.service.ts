@@ -68,6 +68,8 @@ export const AircraftService = {
                     .map((name: string) => ({ name: name.trim(), quantity: 1, operational: true }))
                 : [],
             status: mapFrontendStatus(payload.status || 'available'),
+            latitude: Number(payload.latitude) || 0,
+            longitude: Number(payload.longitude) || 0,
         };
 
         console.log('Sending to backend:', backendPayload); // Debug log
@@ -113,6 +115,8 @@ export const AircraftService = {
                 : [];
         }
         if (payload.status) backendPayload.status = mapFrontendStatus(payload.status);
+        if (payload.latitude !== undefined) backendPayload.latitude = Number(payload.latitude);
+        if (payload.longitude !== undefined) backendPayload.longitude = Number(payload.longitude);
 
         return apiClient.put(`/api/aircraft/${id}`, backendPayload);
     },

@@ -7,6 +7,7 @@ export const PatientsService = {
     return response.map((p: any) => ({
       ...p,
       id: p.id || p._id,
+      patient_id: p.patient_id,
       name: p.full_name || p.name,
       dob: p.date_of_birth || p.dob,
       weight: p.weight_kg || p.weight
@@ -26,13 +27,15 @@ export const PatientsService = {
       current_vitals: patient.current_vitals || {},
       special_equipment_needed: patient.special_equipment_needed || [],
       insurance_details: patient.insurance_details || { provider: "N/A", policy_number: "N/A" },
-      next_of_kin: patient.next_of_kin || { name: "N/A", relationship: "N/A", phone: "N/A" }
+      next_of_kin: patient.next_of_kin || { name: "N/A", relationship: "N/A", phone: "N/A" },
+      assigned_hospital_id: patient.assigned_hospital_id
     };
 
     const response = await apiClient.post('/api/patients', payload);
     return {
       ...response,
       id: response.id || response._id,
+      patient_id: response.patient_id,
       name: response.full_name || response.name,
       dob: response.date_of_birth || response.dob,
       weight: response.weight_kg || response.weight
@@ -58,6 +61,7 @@ export const PatientsService = {
     return {
       ...response,
       id: response.id || response._id,
+      patient_id: response.patient_id,
       name: response.full_name || response.name,
       dob: response.date_of_birth || response.dob,
       weight: response.weight_kg || response.weight

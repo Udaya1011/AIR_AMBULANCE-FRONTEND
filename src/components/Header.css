@@ -1,77 +1,82 @@
 /* 🔵 FULL NAVBAR */
 .header-container {
   width: 100%;
-  background-color: #4a90e2;
-  padding: 16px 24px; /* reduced padding */
+  background-color: #2563eb; /* Standard blue-600 */
+  padding: 10px 20px; /* Further reduced padding */
   display: flex;
   justify-content: space-between;
   align-items: center;
   color: white;
+  height: 64px; /* Fixed height for consistency with sidebar top */
 }
 
 /* LEFT SIDE */
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px; /* reduced gap */
+  gap: 10px;
 }
 
 .header-logo {
-  font-size: 30px; /* reduced from 55px */
+  font-size: 24px;
 }
 
 .header-title {
-  font-size: 26px; /* reduced from 55px */
+  font-size: 20px;
   font-weight: 700;
   margin: 0;
+  line-height: 1.2;
 }
 
 .header-sub {
-  font-size: 14px; /* reduced from 25px */
-  margin-top: -4px;
+  font-size: 12px;
+  margin-top: -2px;
+  opacity: 0.9;
 }
 
 /* RIGHT SIDE */
 .header-right {
   display: flex;
   align-items: center;
-  gap: 16px; /* reduced from 30px */
+  gap: 16px;
   text-align: right;
 }
 
 .header-user-name {
-  font-size: 18px; /* reduced from 45px */
+  font-size: 14px;
   font-weight: 600;
   margin: 0;
 }
 
 .header-user-role {
-  font-size: 14px; /* reduced from 35px */
-  margin-top: -2px;
-  font-weight: 600;
+  font-size: 11px;
+  margin-top: -1px;
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 /* LOGOUT BUTTON */
 .header-logout-btn {
-  background-color: white;
-  color: red;
-  padding: 8px 18px; /* reduced from 18px 45px */
-  border-radius: 8px; /* reduced */
-  border: none;
-  font-size: 14px; /* reduced from 38px */
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: 0.2s ease;
 }
 
 .header-logout-btn:hover {
-  opacity: 0.9;
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 /* MOBILE ICON */
 .header-mobile-icon {
   color: white;
 }
+
 /* NOTIFICATION BUTTON */
 .header-notification-btn {
   background: none;

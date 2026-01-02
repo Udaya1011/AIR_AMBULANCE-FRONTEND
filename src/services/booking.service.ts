@@ -5,28 +5,34 @@ export const BookingService = {
     async list(): Promise<Booking[]> {
         const response = await apiClient.get('/api/bookings/');
 
-        // Transform backend response to frontend format
-        return response.map((booking: any) => ({
-            id: booking.id || booking._id,
-            patientId: booking.patient_id,
-            originHospitalId: booking.origin_hospital_id || '',
-            destinationHospitalId: booking.destination_hospital_id || '',
-            status: mapBackendStatus(booking.status),
-            urgency: booking.urgency || 'routine',
-            preferredPickupWindow: combineDateTime(booking.preferred_date, booking.preferred_time),
-            requiredEquipment: booking.required_equipment || [],
-            requestedBy: booking.created_by || 'Unknown',
-            requestedAt: booking.created_at || new Date().toISOString(),
-            approvals: [],
-            timeline: [
-                {
-                    id: '1',
-                    timestamp: booking.created_at || new Date().toISOString(),
-                    event: 'Booking Created',
-                    user: booking.created_by || 'System'
-                }
-            ]
-        }));
+        // Filter out invalid/empty records from backend
+        return response
+            .filter((booking: any) => booking && (booking.id || booking._id) && booking.patient_id)
+            .map((booking: any) => ({
+                id: booking.id || booking._id,
+                booking_id: booking.booking_id,
+                patientId: booking.patient_id,
+                originHospitalId: booking.origin_hospital_id || '',
+                destinationHospitalId: booking.destination_hospital_id || '',
+                status: mapBackendStatus(booking.status),
+                urgency: booking.urgency || 'routine',
+                preferredPickupWindow: combineDateTime(booking.preferred_date, booking.preferred_time),
+                requiredEquipment: booking.required_equipment || [],
+                requestedBy: booking.created_by || 'Unknown',
+                requestedAt: booking.created_at || new Date().toISOString(),
+                estimatedCost: booking.estimated_cost || 0,
+                actualCost: booking.actual_cost || 0,
+                estimatedFlightTime: booking.flight_duration || 0,
+                approvals: [],
+                timeline: [
+                    {
+                        id: '1',
+                        timestamp: booking.created_at || new Date().toISOString(),
+                        event: 'Booking Created',
+                        user: booking.created_by || 'System'
+                    }
+                ]
+            }));
     },
 
     async get(id: string): Promise<Booking> {
@@ -46,7 +52,8 @@ export const BookingService = {
             preferred_date: date,
             preferred_time: time,
             required_equipment: payload.requiredEquipment || [],
-            special_instructions: payload.specialInstructions || ''
+            special_instructions: payload.specialInstructions || '',
+            estimated_cost: payload.estimatedCost
         };
 
         const response = await apiClient.post('/api/bookings/', backendPayload);
@@ -65,6 +72,9 @@ export const BookingService = {
         if (date) backendPayload.preferred_date = date;
         if (time) backendPayload.preferred_time = time;
         if (payload.requiredEquipment) backendPayload.required_equipment = payload.requiredEquipment;
+        if (payload.estimatedCost !== undefined) backendPayload.estimated_cost = payload.estimatedCost;
+        if (payload.actualCost !== undefined) backendPayload.actual_cost = payload.actualCost;
+        if (payload.estimatedFlightTime !== undefined) backendPayload.flight_duration = payload.estimatedFlightTime;
 
         const response = await apiClient.put(`/api/bookings/${id}/`, backendPayload);
         return transformToFrontend(response);
@@ -139,6 +149,7 @@ function splitDateTime(dateTime: string): { date: string | null, time: string | 
 function transformToFrontend(booking: any): Booking {
     return {
         id: booking.id || booking._id,
+        booking_id: booking.booking_id,
         patientId: booking.patient_id,
         originHospitalId: booking.origin_hospital_id || '',
         destinationHospitalId: booking.destination_hospital_id || '',
@@ -148,6 +159,9 @@ function transformToFrontend(booking: any): Booking {
         requiredEquipment: booking.required_equipment || [],
         requestedBy: booking.created_by || 'Unknown',
         requestedAt: booking.created_at || new Date().toISOString(),
+        estimatedCost: booking.estimated_cost || 0,
+        actualCost: booking.actual_cost || 0,
+        estimatedFlightTime: booking.flight_duration || 0,
         approvals: [],
         timeline: [
             {

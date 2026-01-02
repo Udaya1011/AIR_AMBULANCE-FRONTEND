@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,21 +10,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { mockBookings, mockAircraft } from '@/data/mockData';
 import { usePatients } from '@/contexts/PatientsContext';
 import { Booking, BookingStatus, Patient, Hospital } from '@/types';
 import { exportBookings } from '@/utils/exportBookings';
-import { Plus, FileText, Trash, Edit2, Eye, Clock, AlertCircle, CheckCircle2, Bot, MessageCircle, Send, X, Settings, Zap, Search } from 'lucide-react';
+import { Plus, FileText, Trash, Edit2, Eye, Clock, AlertCircle, CheckCircle2, Bot, MessageCircle, Send, X, Settings, Zap, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MapPin, Activity, DollarSign, Users, Filter, BarChart3, Heart } from 'lucide-react';
 import { format } from 'date-fns';
 import chatBotImage from '../emoji.jpeg';
 import { BookingService } from '@/services/booking.service';
 import { HospitalService } from '@/services/hospital.service';
 import { toast } from '@/components/ui/use-toast';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { calculateDistance, calculateRevenue } from '@/utils/revenueUtils';
 
 const Bookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +62,8 @@ const Bookings = () => {
   const getPatientName = (patientId: string) => {
     if (!patientId) return 'Unknown Patient';
     const patient = getPatientById(patientId);
-    return patient?.name || 'Unknown Patient';
+    if (!patient) return 'Unknown Patient';
+    return patient.name || 'Unknown Patient';
   };
 
   const getPatientAge = (patientId: string) => {
@@ -81,7 +97,7 @@ const Bookings = () => {
     try {
       setLoading(true);
       const data = await BookingService.list();
-      setBookings(data);
+      setBookings(data.filter(Boolean));
       setError(null);
     } catch (err) {
       console.error('Error fetching bookings:', err);
@@ -117,26 +133,33 @@ const Bookings = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<Booking & { patientName?: string }>>({});
+  const [patientSelectionMode, setPatientSelectionMode] = useState<'list' | 'id'>('list');
+  const [patientIdLookup, setPatientIdLookup] = useState('');
 
   // Search state
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [urgencyFilter, setUrgencyFilter] = useState<string>('all');
 
   // Filter logic
   const filteredBookings = bookings ? bookings.filter(booking => {
     if (!booking || !booking.patientId) return false;
 
     const matchesSearch = getPatientName(booking.patientId).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (booking.booking_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (booking.id || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+    const matchesUrgency = urgencyFilter === 'all' || booking.urgency === urgencyFilter;
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesUrgency;
   }) : [];
 
   const openNewBooking = () => {
     setEditingBookingId(null);
     setForm({});
+    setPatientSelectionMode('list');
+    setPatientIdLookup('');
     setIsDialogOpen(true);
   };
 
@@ -146,6 +169,8 @@ const Bookings = () => {
       ...booking,
       patientName: getPatientById(booking.patientId)?.name,
     });
+    setPatientSelectionMode('list');
+    setPatientIdLookup(booking.patientId);
     setIsDialogOpen(true);
   };
 
@@ -158,6 +183,37 @@ const Bookings = () => {
   const handleFormChange = (key: string, value: any) => {
     setForm(prev => ({ ...prev, [key]: value }));
   };
+
+
+  // Effect to calculate distance and cost when hospitals change
+  useEffect(() => {
+    if (form.originHospitalId && form.destinationHospitalId) {
+      const origin = hospitals.find(h => h.id === form.originHospitalId);
+      const dest = hospitals.find(h => h.id === form.destinationHospitalId);
+
+      if (origin?.coordinates && dest?.coordinates) {
+        const dist = calculateDistance(
+          origin.coordinates.lat,
+          origin.coordinates.lng,
+          dest.coordinates.lat,
+          dest.coordinates.lng
+        );
+
+        const calculatedCost = calculateRevenue(dist);
+
+        setForm(prev => {
+          // Only update if values actually changed to avoid infinite loop
+          if (prev.estimatedCost === calculatedCost) return prev;
+          return {
+            ...prev,
+            estimatedCost: calculatedCost,
+            // We can also store the distance if we want to show it
+            distance: dist
+          };
+        });
+      }
+    }
+  }, [form.originHospitalId, form.destinationHospitalId, hospitals]);
 
   const saveBooking = async () => {
     if (!(form.patientId || form.patientName) || !form.originHospitalId || !form.destinationHospitalId || !form.urgency || !form.preferredPickupWindow) {
@@ -206,6 +262,8 @@ const Bookings = () => {
           urgency: form.urgency,
           preferredPickupWindow: form.preferredPickupWindow as string,
           requiredEquipment,
+          estimatedCost: form.estimatedCost,
+          estimatedFlightTime: form.estimatedFlightTime,
         };
 
         await BookingService.update(editingBookingId, updateData);
@@ -219,6 +277,8 @@ const Bookings = () => {
           urgency: form.urgency,
           preferredPickupWindow: form.preferredPickupWindow as string,
           requiredEquipment,
+          estimatedCost: form.estimatedCost,
+          estimatedFlightTime: form.estimatedFlightTime,
         };
 
         await BookingService.create(newBooking);
@@ -274,7 +334,416 @@ const Bookings = () => {
     scheduled: bookings.filter(b => ['requested', 'clinical_review', 'dispatch_review', 'airline_confirmed', 'crew_assigned'].includes(b.status)).length,
     completed: bookings.filter(b => b.status === 'completed').length,
     cancelled: bookings.filter(b => b.status === 'cancelled').length,
+    emergency: bookings.filter(b => b.urgency === 'emergency').length,
+    urgent: bookings.filter(b => b.urgency === 'urgent').length,
   };
+
+  const headerActions = (
+    <div className="flex items-center gap-3">
+      {/* Analytics Popover */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group" title="View Booking Analytics">
+            <BarChart3 className="h-4 w-4 transition-transform group-hover:scale-110 text-slate-500 group-hover:text-blue-600" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[320px] p-5 rounded-3xl shadow-2xl border-slate-200 animate-in fade-in zoom-in-95 duration-300" align="end" sideOffset={10}>
+          <div className="flex items-center gap-3 mb-5 pb-3 border-b border-slate-100">
+            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100">
+              <Activity className="h-4 w-4 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-black text-slate-800 uppercase tracking-tight">Booking Analytics</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">Global Statistics</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl transition-all hover:border-blue-100 group/metric">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Users className="h-3 w-3 text-blue-500" />
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-slate-800 tracking-tighter">{summaryStats.total}</span>
+                <span className="text-[8px] text-slate-400 font-bold uppercase">Requests</span>
+              </div>
+            </div>
+            <div className="p-3 bg-rose-50/50 border border-rose-100 rounded-xl transition-all hover:border-rose-200 group/metric">
+              <div className="flex items-center gap-2 mb-1.5">
+                <AlertCircle className="h-3 w-3 text-rose-500" />
+                <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">Emergency</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-rose-600 tracking-tighter">{summaryStats.emergency}</span>
+                <span className="text-[8px] text-rose-400 font-bold uppercase font-black italic">Crit</span>
+              </div>
+            </div>
+            <div className="p-3 bg-amber-50/50 border border-amber-100 rounded-xl transition-all hover:border-amber-200 group/metric">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Heart className="h-3 w-3 text-amber-500" />
+                <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Urgent</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-amber-600 tracking-tighter">{summaryStats.urgent}</span>
+                <span className="text-[8px] text-amber-400 font-bold uppercase font-black italic">Urg</span>
+              </div>
+            </div>
+            <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl transition-all hover:border-emerald-200 group/metric">
+              <div className="flex items-center gap-2 mb-1.5">
+                <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Done</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-emerald-600 tracking-tighter">{summaryStats.completed}</span>
+                <span className="text-[8px] text-emerald-400 font-bold uppercase font-black italic">Comp</span>
+              </div>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {/* Unified Filter Dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="flex items-center justify-center h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group relative" title="Filters">
+            <Filter className={`h-4 w-4 transition-transform group-hover:rotate-12 ${(statusFilter !== 'all' || urgencyFilter !== 'all') ? 'text-blue-600' : 'text-slate-500'}`} />
+            {(statusFilter !== 'all' || urgencyFilter !== 'all') && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center rounded-full bg-blue-600 text-white text-[8px] font-black border-2 border-white shadow-sm animate-in zoom-in duration-300">
+                {(statusFilter !== 'all' ? 1 : 0) + (urgencyFilter !== 'all' ? 1 : 0)}
+              </span>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56 p-2 rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200" align="end">
+          <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2 py-1.5">
+            Booking Filters
+          </DropdownMenuLabel>
+
+          <DropdownMenuSeparator className="my-1 bg-slate-100" />
+
+          <DropdownMenuItem
+            onClick={() => { setStatusFilter('all'); setUrgencyFilter('all'); }}
+            className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${statusFilter === 'all' && urgencyFilter === 'all' ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}
+          >
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              <span className="text-xs font-bold uppercase tracking-wide">All Bookings</span>
+            </div>
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator className="my-1 bg-slate-100" />
+
+          <div className="px-2 py-1.5">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Status Flow</span>
+          </div>
+
+          {['requested', 'clinical_review', 'in_transit', 'completed', 'cancelled'].map(status => (
+            <DropdownMenuItem
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${statusFilter === status ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}
+            >
+              <span className="text-xs font-bold uppercase tracking-wide capitalize">{status.replace('_', ' ')}</span>
+              <span className="text-[10px] font-black bg-slate-100 px-1.5 py-0.5 rounded-md text-slate-500">
+                {bookings.filter(b => b.status === status).length}
+              </span>
+            </DropdownMenuItem>
+          ))}
+
+          <DropdownMenuSeparator className="my-1 bg-slate-100" />
+
+          <div className="px-2 py-1.5">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Urgency</span>
+          </div>
+
+          {['emergency', 'urgent', 'routine'].map(urg => (
+            <DropdownMenuItem
+              key={urg}
+              onClick={() => setUrgencyFilter(urg)}
+              className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${urgencyFilter === urg ? 'bg-amber-50 text-amber-700' : 'hover:bg-slate-50'}`}
+            >
+              <span className="text-xs font-bold uppercase tracking-wide capitalize">{urg}</span>
+              <span className="text-[10px] font-black bg-amber-100/50 px-1.5 py-0.5 rounded-md text-amber-600">
+                {bookings.filter(b => b.urgency === urg).length}
+              </span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <div className="relative w-72">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Input
+          placeholder="Search Bookings by ID or Patient..."
+          className="pl-10 h-10 bg-slate-50/50 border-slate-200 focus:bg-white transition-all rounded-xl text-xs font-medium"
+          value={searchTerm}
+          onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+        />
+      </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) closeDialog(); else setIsDialogOpen(open); }}>
+        <DialogTrigger asChild>
+          <Button
+            variant="outline"
+            className="h-10 px-6 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-bold rounded-xl shadow-sm flex items-center gap-2 transition-all active:scale-95 group"
+            onClick={openNewBooking}
+          >
+            <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
+            <span className="uppercase tracking-wider">New Booking</span>
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+          <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
+            <DialogTitle className="text-white text-xl">{editingBookingId ? 'Edit Booking' : 'Create New Booking'}</DialogTitle>
+            <DialogDescription className="text-blue-100">Request a new medical transfer</DialogDescription>
+          </DialogHeader>
+
+          <div className="p-6 space-y-4 overflow-y-auto flex-1">
+            <div className="grid grid-cols-4 gap-4">
+              <div className="space-y-1.5">
+                <Label>Selection Method</Label>
+                <Select
+                  value={patientSelectionMode}
+                  onValueChange={(v: any) => setPatientSelectionMode(v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="list">📝 Select from List</SelectItem>
+                    <SelectItem value="id">🔍 Search by ID</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {patientSelectionMode === 'list' ? (
+                <div className="space-y-1.5">
+                  <Label>Select Patient</Label>
+                  <Select
+                    value={form.patientId as string | undefined}
+                    onValueChange={(v) => {
+                      handleFormChange('patientId', v);
+                      const p = getPatientById(v);
+                      if (p) handleFormChange('patientName', p.name);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Search patients..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {patients.map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          <div className="flex items-center justify-between w-[250px] gap-2">
+                            <span className="truncate font-medium">{p.name}</span>
+                            <span className="text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 text-slate-600 shrink-0">
+                              {p.patient_id || p.id.slice(0, 8)}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <Label>Patient ID</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Patient ID..."
+                      value={patientIdLookup}
+                      onChange={(e) => setPatientIdLookup(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="px-2"
+                      onClick={() => {
+                        if (!patientIdLookup.trim()) return;
+                        const p = getPatientById(patientIdLookup.trim());
+                        if (p) {
+                          handleFormChange('patientId', p.id);
+                          handleFormChange('patientName', p.name);
+                          toast({
+                            title: 'Patient Found',
+                            description: `Name: ${p.name}`,
+                          });
+                        } else {
+                          toast({
+                            title: 'Not Found',
+                            description: 'Check ID and try again',
+                            variant: 'destructive'
+                          });
+                        }
+                      }}
+                    >
+                      Find
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label>Patient Name (Update/New)</Label>
+                <Input placeholder="Patient full name" value={form.patientName as string | undefined} onChange={(e) => handleFormChange('patientName', e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Urgency</Label>
+                <Select value={form.urgency as string | undefined} onValueChange={(v) => handleFormChange('urgency', v as any)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="routine">Routine</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                    <SelectItem value="emergency">Emergency</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Status</Label>
+                <Select value={form.status as string | undefined} onValueChange={(v) => handleFormChange('status', v as any)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="requested">Requested</SelectItem>
+                    <SelectItem value="clinical_review">Clinical Review</SelectItem>
+                    <SelectItem value="dispatch_review">Dispatch Review</SelectItem>
+                    <SelectItem value="airline_confirmed">Airline Confirmed</SelectItem>
+                    <SelectItem value="crew_assigned">Crew Assigned</SelectItem>
+                    <SelectItem value="in_transit">In Transit</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-4">
+              <div className="space-y-1.5">
+                <Label>Origin Hospital</Label>
+                <Select value={form.originHospitalId as string | undefined} onValueChange={(v) => handleFormChange('originHospitalId', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select origin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {hospitals.map(h => (
+                      <SelectItem key={h.id} value={h.id}>
+                        <div className="flex flex-col">
+                          <span>{h.name}</span>
+                          <span className="text-[10px] text-muted-foreground">Available: {h.icuCapacity - (h.occupiedBeds || 0)} Seats</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Destination Hospital</Label>
+                <Select value={form.destinationHospitalId as string | undefined} onValueChange={(v) => handleFormChange('destinationHospitalId', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select destination" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {hospitals.map(h => (
+                      <SelectItem key={h.id} value={h.id} disabled={(h.icuCapacity - (h.occupiedBeds || 0)) <= 0}>
+                        <div className="flex flex-col">
+                          <span>{h.name}</span>
+                          <span className={`text-[10px] ${(h.icuCapacity - (h.occupiedBeds || 0)) <= 2 ? 'text-red-500' : 'text-green-600'}`}>
+                            Available: {h.icuCapacity - (h.occupiedBeds || 0)} Seats
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 col-span-2">
+                <Label>Preferred Pickup Time</Label>
+                <Input type="datetime-local" value={form.preferredPickupWindow as string | undefined} onChange={(e) => handleFormChange('preferredPickupWindow', e.target.value)} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-4">
+              <div className="space-y-1.5">
+                <Label>Distance (km)</Label>
+                <Input
+                  type="number"
+                  readOnly
+                  className="bg-slate-50 font-semibold text-blue-700"
+                  value={(form as any).distance || 0}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Estimated Cost ($)</Label>
+                <Input
+                  type="number"
+                  placeholder="Calculating..."
+                  value={form.estimatedCost || ""}
+                  onChange={(e) => handleFormChange('estimatedCost', parseInt(e.target.value) || 0)}
+                  className="font-bold text-green-700"
+                />
+                <p className="text-[10px] text-muted-foreground">Rate: 1000/km</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Flight Time (mins)</Label>
+                <Input
+                  type="number"
+                  value={form.estimatedFlightTime || ""}
+                  onChange={(e) => handleFormChange('estimatedFlightTime', parseInt(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Required Equipment</Label>
+              <div className="flex flex-wrap gap-4 border p-3 rounded-md bg-slate-50">
+                {[
+                  { id: 'ventilator', label: 'Ventilator' },
+                  { id: 'ecg_monitor', label: 'ECG Monitor' },
+                  { id: 'defibrillator', label: 'Defibrillator' },
+                  { id: 'oxygen_supply', label: 'Oxygen Supply' },
+                  { id: 'infusion_pump', label: 'Infusion Pump' },
+                  { id: 'patient_monitor', label: 'Patient Monitor' },
+                ].map((item) => (
+                  <div key={item.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`equip-${item.id}`}
+                      checked={form.requiredEquipment?.includes(item.id)}
+                      onCheckedChange={(checked) => {
+                        const current = form.requiredEquipment || [];
+                        const updated = checked
+                          ? [...current, item.id]
+                          : current.filter(id => id !== item.id);
+                        handleFormChange('requiredEquipment', updated);
+                      }}
+                    />
+                    <label
+                      htmlFor={`equip-${item.id}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      {item.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-2 flex gap-2 justify-end">
+              <Button variant="ghost" onClick={closeDialog}>Cancel</Button>
+              <Button className="w-1/4" onClick={saveBooking}>{editingBookingId ? 'Save Changes' : 'Submit Request'}</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Button variant="secondary" className="h-10 px-6 border-2 border-slate-200 text-slate-600 hover:bg-slate-50 font-bold rounded-xl shadow-sm transition-all active:scale-95" onClick={handleExport}>
+        <FileText size={16} className="mr-2" />
+        EXPORT
+      </Button>
+    </div>
+  );
 
   // Chatbot state and helpers
   type ChatMessage = { id: string; sender: 'user' | 'assistant' | 'system'; text: string; timestamp: string };
@@ -324,13 +793,6 @@ const Bookings = () => {
     simulateAiReply(text);
   };
 
-  // Quick suggestion buttons
-  const quickPrompts = [
-    'Show urgent bookings',
-    'Export bookings for today',
-    'List cancelled bookings',
-    'Suggest equipment for ICU transfer'
-  ];
 
   // Optional: keep panel scrolled to bottom
   useEffect(() => {
@@ -340,7 +802,7 @@ const Bookings = () => {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -353,444 +815,369 @@ const Bookings = () => {
   };
 
   return (
-    <Layout>
-      {loading ? (
-        <LoadingSpinner />
-      ) : (
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Bookings & Transfers</h1>
-              <p className="text-muted-foreground">Manage all medical transport requests</p>
-            </div>
+    <Layout subTitle="Medical Transport Requests" isFullHeight={true} headerActions={headerActions}>
+      <div className="space-y-6 flex-1 flex flex-col min-h-0">
+        {/* Table */}
+        <div className="rounded-2xl border-2 border-slate-300 bg-white shadow-xl flex flex-1 flex-col min-h-0 overflow-hidden">
+          <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent flex-1">
+            <table className="w-full">
+              <thead className="sticky top-0 z-20">
+                <tr className="bg-[#f8fafc] border-b border-slate-200">
+                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Patient Name</th>
+                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Age</th>
+                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Date</th>
+                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Time</th>
+                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Urgency</th>
+                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Status</th>
+                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                      No bookings found
+                    </td>
+                  </tr>
+                ) : (
+                  currentItems.map((booking, idx) => (
+                    <React.Fragment key={booking.id}>
+                      <tr className={`border-b hover:bg-gray-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} ${expandedRowId === booking.id ? 'bg-blue-50/30' : ''}`}>
 
-            <div className="flex flex-col gap-3 items-end w-full md:w-auto">
-              {/* Row 1: Filters */}
-              <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-                <div className="relative w-full md:w-64">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <Input
-                    placeholder="Search by patient name..."
-                    className="pl-10"
-                    value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                  />
-                </div>
-
-                <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
-                  <SelectTrigger className="w-full md:w-[180px]">
-                    <SelectValue placeholder="Filter by Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="requested">Requested</SelectItem>
-                    <SelectItem value="clinical_review">Clinical Review</SelectItem>
-                    <SelectItem value="dispatch_review">Dispatch Review</SelectItem>
-                    <SelectItem value="airline_confirmed">Airline Confirmed</SelectItem>
-                    <SelectItem value="crew_assigned">Crew Assigned</SelectItem>
-                    <SelectItem value="in_transit">In Transit</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Row 2: Actions */}
-              <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto justify-end">
-                <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) closeDialog(); else setIsDialogOpen(open); }}>
-                  <DialogTrigger asChild>
-                    <Button className="gap-2 w-full md:w-auto" onClick={openNewBooking}>
-                      <Plus className="h-4 w-4" />
-                      New Booking
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-                    <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-                      <DialogTitle className="text-white text-xl">{editingBookingId ? 'Edit Booking' : 'Create New Booking'}</DialogTitle>
-                      <DialogDescription className="text-blue-100">Request a new medical transfer</DialogDescription>
-                    </DialogHeader>
-
-                    <div className="p-6 space-y-4 overflow-y-auto flex-1">
-                      <div className="grid grid-cols-4 gap-4">
-                        <div className="space-y-1.5">
-                          <Label>Patient Name</Label>
-                          <Input placeholder="Patient full name" value={form.patientName as string | undefined} onChange={(e) => handleFormChange('patientName', e.target.value)} />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label>Urgency</Label>
-                          <Select value={form.urgency as string | undefined} onValueChange={(v) => handleFormChange('urgency', v as any)}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="routine">Routine</SelectItem>
-                              <SelectItem value="urgent">Urgent</SelectItem>
-                              <SelectItem value="emergency">Emergency</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label>Status</Label>
-                          <Select value={form.status as string | undefined} onValueChange={(v) => handleFormChange('status', v as any)}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="requested">Requested</SelectItem>
-                              <SelectItem value="clinical_review">Clinical Review</SelectItem>
-                              <SelectItem value="dispatch_review">Dispatch Review</SelectItem>
-                              <SelectItem value="airline_confirmed">Airline Confirmed</SelectItem>
-                              <SelectItem value="crew_assigned">Crew Assigned</SelectItem>
-                              <SelectItem value="in_transit">In Transit</SelectItem>
-                              <SelectItem value="completed">Completed</SelectItem>
-                              <SelectItem value="cancelled">Cancelled</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-4 gap-4">
-                        <div className="space-y-1.5">
-                          <Label>Origin Hospital</Label>
-                          <Select value={form.originHospitalId as string | undefined} onValueChange={(v) => handleFormChange('originHospitalId', v)}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select origin" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {hospitals.map(h => (
-                                <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label>Destination Hospital</Label>
-                          <Select value={form.destinationHospitalId as string | undefined} onValueChange={(v) => handleFormChange('destinationHospitalId', v)}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select destination" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {hospitals.map(h => (
-                                <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1.5 col-span-2">
-                          <Label>Preferred Pickup Time</Label>
-                          <Input type="datetime-local" value={form.preferredPickupWindow as string | undefined} onChange={(e) => handleFormChange('preferredPickupWindow', e.target.value)} />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label>Required Equipment</Label>
-                        <div className="flex flex-wrap gap-4 border p-3 rounded-md bg-slate-50">
-                          {[
-                            { id: 'ventilator', label: 'Ventilator' },
-                            { id: 'ecg_monitor', label: 'ECG Monitor' },
-                            { id: 'defibrillator', label: 'Defibrillator' },
-                            { id: 'oxygen_supply', label: 'Oxygen Supply' },
-                            { id: 'infusion_pump', label: 'Infusion Pump' },
-                            { id: 'patient_monitor', label: 'Patient Monitor' },
-                          ].map((item) => (
-                            <div key={item.id} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`equip-${item.id}`}
-                                checked={form.requiredEquipment?.includes(item.id)}
-                                onCheckedChange={(checked) => {
-                                  const current = form.requiredEquipment || [];
-                                  const updated = checked
-                                    ? [...current, item.id]
-                                    : current.filter(id => id !== item.id);
-                                  handleFormChange('requiredEquipment', updated);
-                                }}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10 border-2 border-purple-100 bg-gradient-to-tr from-purple-200 via-purple-100 to-purple-50 shadow-sm shrink-0">
+                              <AvatarImage
+                                src={`/avatars/${(getPatientById(booking.patientId)?.gender?.toLowerCase() === 'male') ? 'male.png' : (getPatientById(booking.patientId)?.gender?.toLowerCase() === 'female') ? 'female.png' : ''}`}
+                                alt="Patient Avatar"
                               />
-                              <label
-                                htmlFor={`equip-${item.id}`}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                              <AvatarFallback className="bg-purple-50 text-purple-600 font-bold">
+                                {getPatientInitials(booking.patientId)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col">
+                              <p
+                                className="font-bold text-slate-900 cursor-pointer hover:text-blue-600 transition-all leading-tight text-base"
+                                onClick={() => setExpandedRowId(expandedRowId === booking.id ? null : booking.id)}
                               >
-                                {item.label}
-                              </label>
+                                {getPatientName(booking.patientId)}
+                              </p>
+                              <p className="text-[11px] font-medium text-slate-500 tracking-tight">{booking.booking_id}</p>
                             </div>
-                          ))}
-                        </div>
-                      </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm text-gray-900">{getPatientAge(booking.patientId)}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm text-gray-900">{format(new Date(booking.preferredPickupWindow), 'yyyy-MM-dd')}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm text-gray-900">{format(new Date(booking.preferredPickupWindow), 'HH:mm')}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm text-gray-900 capitalize">{booking.urgency}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <Badge className={getStatusColor(booking.status)}>
+                            {booking.status.replace(/_/g, ' ')}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex justify-center gap-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent
+                                className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl"
+                              >
+                                <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
+                                  <DialogTitle className="text-white text-xl">
+                                    Booking Details - #{(booking.booking_id || booking.id).toUpperCase()}
+                                  </DialogTitle>
+                                </DialogHeader>
+                                <div className="p-6 space-y-4 overflow-y-auto flex-1">
 
-                      <div className="pt-2 flex gap-2 justify-end">
-                        <Button variant="ghost" onClick={closeDialog}>Cancel</Button>
-                        <Button className="w-1/4" onClick={saveBooking}>{editingBookingId ? 'Save Changes' : 'Submit Request'}</Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-                <Button variant="secondary" className="w-full md:w-auto" onClick={handleExport}>Export to Excel</Button>
-              </div>
-            </div>
-          </div>
+                                  <div className="space-y-6 px-6 py-4">
+                                    <div className="grid grid-cols-2 gap-6">
+                                      <div>
+                                        <h4 className="font-semibold mb-2">Patient</h4>
+                                        <p className="text-sm">{getPatientName(booking.patientId)}</p>
+                                      </div>
+                                      <div>
+                                        <h4 className="font-semibold mb-2">Status</h4>
+                                        <Badge className={getStatusColor(booking.status)}>
+                                          {booking.status.replace(/_/g, ' ')}
+                                        </Badge>
+                                      </div>
+                                    </div>
 
-          {/* Summary Statistics */}
-          <div className="grid grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">Total</p>
-                    <p className="text-3xl font-bold">{summaryStats.total}</p>
-                  </div>
-                  <FileText className="h-8 w-8" />
-                </div>
-              </CardContent>
-            </Card>
+                                    <div>
+                                      <h4 className="font-semibold mb-2">Timeline</h4>
+                                      <div className="overflow-x-auto max-h-[60vh] px-2">
+                                        <table className="w-full text-left border border-gray-300">
+                                          <thead className="bg-gray-100 sticky top-0">
+                                            <tr>
+                                              <th className="px-4 py-2 text-sm font-medium border-b">Event</th>
+                                              <th className="px-4 py-2 text-sm font-medium border-b">User</th>
+                                              <th className="px-4 py-2 text-sm font-medium border-b">Timestamp</th>
+                                              <th className="px-4 py-2 text-sm font-medium border-b">Details</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {booking.timeline.map((event) => (
+                                              <tr key={event.id} className="border-b hover:bg-gray-50">
+                                                <td className="px-4 py-2 text-sm">{event.event}</td>
+                                                <td className="px-4 py-2 text-sm">{event.user}</td>
+                                                <td className="px-4 py-2 text-sm">
+                                                  {format(new Date(event.timestamp), 'MMM dd, yyyy HH:mm')}
+                                                </td>
+                                                <td className="px-4 py-2 text-sm">{event.details || '-'}</td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    </div>
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">Scheduled</p>
-                    <p className="text-3xl font-bold">{summaryStats.scheduled}</p>
-                  </div>
-                  <Clock className="h-8 w-8" />
-                </div>
-              </CardContent>
-            </Card>
+                                  </div>
+                                </div>
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">Completed</p>
-                    <p className="text-3xl font-bold">{summaryStats.completed}</p>
-                  </div>
-                  <CheckCircle2 className="h-8 w-8" />
-                </div>
-              </CardContent>
-            </Card>
+                              </DialogContent>
+                            </Dialog>
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">Cancelled</p>
-                    <p className="text-3xl font-bold">{summaryStats.cancelled}</p>
-                  </div>
-                  <AlertCircle className="h-8 w-8" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50"
+                              onClick={() => openEditBooking(booking)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
 
-
-          {/* Table */}
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b bg-gradient-to-r from-slate-50 to-slate-100">
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Patient Name</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Age</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Date</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Time</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Reason</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Status</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentItems.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
-                          No bookings found
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+                              onClick={() => deleteBooking(booking.id)}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
-                    ) : (
-                      currentItems.map((booking, idx) => (
-                        <tr key={booking.id} className={`border-b hover:bg-gray-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              {/* <Avatar className="h-8 w-8">
-                              <AvatarFallback className="bg-blue-200 text-blue-800 text-xs">
-                                {getPatientInitials(booking.patientId)} 
-                              </AvatarFallback>
-                            </Avatar> */}
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">{getPatientName(booking.patientId)}</p>
-                                <p className="text-xs text-muted-foreground">{booking.id}</p>
+
+                      {expandedRowId === booking.id && (
+                        <tr className="bg-blue-50/20 border-b">
+                          <td colSpan={7} className="px-10 py-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                              {/* Column 1: Transfer Info */}
+                              <div className="space-y-4">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-2">
+                                  <MapPin className="h-3 w-3" /> Transport Path
+                                </h4>
+                                <div className="flex items-center gap-3">
+                                  <div className="w-1 h-12 bg-blue-200 rounded-full relative">
+                                    <div className="absolute top-0 -left-1 w-3 h-3 rounded-full bg-blue-600 border-2 border-white shadow-sm" />
+                                    <div className="absolute bottom-0 -left-1 w-3 h-3 rounded-full bg-blue-400 border-2 border-white shadow-sm" />
+                                  </div>
+                                  <div className="space-y-3">
+                                    <div>
+                                      <p className="text-[10px] text-gray-500 uppercase">From</p>
+                                      <p className="text-sm font-semibold">{hospitals.find(h => h.id === booking.originHospitalId)?.name || 'Unknown Hospital'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-[10px] text-gray-500 uppercase">To</p>
+                                      <p className="text-sm font-semibold">{hospitals.find(h => h.id === booking.destinationHospitalId)?.name || 'Unknown Hospital'}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Column 2: Equipment & Cost */}
+                              <div className="space-y-4">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-2">
+                                  <Activity className="h-3 w-3" /> Clinical & Billing
+                                </h4>
+                                <div className="space-y-3">
+                                  <div>
+                                    <p className="text-[10px] text-gray-500 uppercase mb-1">Required Equipment</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {booking.requiredEquipment && booking.requiredEquipment.length > 0 ? (
+                                        booking.requiredEquipment.map(eq => (
+                                          <Badge key={eq} variant="outline" className="text-[10px] py-0 h-5 bg-white border-blue-100 text-blue-700 capitalize">
+                                            {eq.replace(/_/g, ' ')}
+                                          </Badge>
+                                        ))
+                                      ) : (
+                                        <span className="text-xs text-gray-400">No special equipment listed</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col gap-3 pt-2 border-t border-blue-100/50">
+                                    {(() => {
+                                      const origin = hospitals.find(h => h.id === booking.originHospitalId);
+                                      const dest = hospitals.find(h => h.id === booking.destinationHospitalId);
+                                      const dist = (origin?.coordinates && dest?.coordinates)
+                                        ? calculateDistance(origin.coordinates.lat, origin.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng)
+                                        : 0;
+
+                                      const displayCost = Math.round(dist * 1000) || (Number(booking.estimatedCost) || Number(booking.actualCost) || 0);
+                                      const displayTime = (Number(booking.estimatedFlightTime) || (dist > 0 ? Math.round(dist / 8 + 15) : 0));
+
+                                      return (
+                                        <div className="flex items-center justify-between w-full">
+                                          <div className="flex items-center gap-1.5">
+                                            <MapPin className="h-4 w-4 text-blue-600" />
+                                            <div>
+                                              <p className="text-[10px] text-gray-500 uppercase">Est. Distance</p>
+                                              <p className="text-sm font-bold text-blue-700">{Math.round(dist * 100) / 100} km</p>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-1.5 px-4 border-l border-r border-blue-100/30">
+                                            <DollarSign className="h-4 w-4 text-green-600" />
+                                            <div>
+                                              <p className="text-[10px] text-gray-500 uppercase">Est. Cost</p>
+                                              <p className="text-sm font-bold text-green-700">${displayCost.toLocaleString()}</p>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-1.5">
+                                            <Clock className="h-4 w-4 text-orange-600" />
+                                            <div>
+                                              <p className="text-[10px] text-gray-500 uppercase">Est. Time</p>
+                                              <p className="text-sm font-bold text-orange-700">{displayTime} mins</p>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Column 3: Recent Activity */}
+                              <div className="space-y-4">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-2">
+                                  <Clock className="h-3 w-3" /> Recent Activity
+                                </h4>
+                                <div className="space-y-2">
+                                  {booking.timeline.slice(-2).reverse().map((log, i) => (
+                                    <div key={log.id} className={`p-2 rounded-md ${i === 0 ? 'bg-white shadow-sm border border-blue-100' : 'bg-transparent text-gray-500 opacity-70'}`}>
+                                      <div className="flex justify-between items-start">
+                                        <p className="text-[11px] font-bold text-blue-900">{log.event}</p>
+                                        <p className="text-[10px] opacity-60">{format(new Date(log.timestamp), 'HH:mm')}</p>
+                                      </div>
+                                      <p className="text-[10px] leading-tight mt-0.5 italic">"{log.details}"</p>
+                                      <p className="text-[9px] mt-1 text-gray-400">— {log.user}</p>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
-                            <p className="text-sm text-gray-900">{getPatientAge(booking.patientId)}</p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className="text-sm text-gray-900">{format(new Date(booking.preferredPickupWindow), 'yyyy-MM-dd')}</p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className="text-sm text-gray-900">{format(new Date(booking.preferredPickupWindow), 'HH:mm')}</p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className="text-sm text-gray-900 capitalize">{booking.urgency}</p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <Badge className={getStatusColor(booking.status)}>
-                              {booking.status.replace(/_/g, ' ')}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex justify-center gap-2">
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900">
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent
-                                  className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl"
-                                >
-                                  <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-                                    <DialogTitle className="text-white text-xl">
-                                      Booking Details - #{booking.id.toUpperCase()}
-                                    </DialogTitle>
-                                  </DialogHeader>
-                                  <div className="p-6 space-y-4 overflow-y-auto flex-1">
-
-                                    <div className="space-y-6 px-6 py-4"> {/* Added px-6 for left/right padding */}
-                                      {/* Patient & Status */}
-                                      <div className="grid grid-cols-2 gap-6"> {/* Increased gap for better spacing */}
-                                        <div>
-                                          <h4 className="font-semibold mb-2">Patient</h4>
-                                          <p className="text-sm">{getPatientName(booking.patientId)}</p>
-                                        </div>
-                                        <div>
-                                          <h4 className="font-semibold mb-2">Status</h4>
-                                          <Badge className={getStatusColor(booking.status)}>
-                                            {booking.status.replace(/_/g, ' ')}
-                                          </Badge>
-                                        </div>
-                                      </div>
-
-                                      {/* Timeline as Table */}
-                                      <div>
-                                        <h4 className="font-semibold mb-2">Timeline</h4>
-                                        <div className="overflow-x-auto max-h-[60vh] px-2"> {/* Slight padding inside table container */}
-                                          <table className="w-full text-left border border-gray-300">
-                                            <thead className="bg-gray-100 sticky top-0">
-                                              <tr>
-                                                <th className="px-4 py-2 text-sm font-medium border-b">Event</th>
-                                                <th className="px-4 py-2 text-sm font-medium border-b">User</th>
-                                                <th className="px-4 py-2 text-sm font-medium border-b">Timestamp</th>
-                                                <th className="px-4 py-2 text-sm font-medium border-b">Details</th>
-                                              </tr>
-                                            </thead>
-                                            <tbody>
-                                              {booking.timeline.map((event) => (
-                                                <tr key={event.id} className="border-b hover:bg-gray-50">
-                                                  <td className="px-4 py-2 text-sm">{event.event}</td>
-                                                  <td className="px-4 py-2 text-sm">{event.user}</td>
-                                                  <td className="px-4 py-2 text-sm">
-                                                    {format(new Date(event.timestamp), 'MMM dd, yyyy HH:mm')}
-                                                  </td>
-                                                  <td className="px-4 py-2 text-sm">{event.details || '-'}</td>
-                                                </tr>
-                                              ))}
-                                            </tbody>
-                                          </table>
-                                        </div>
-                                      </div>
-
-                                    </div>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
-
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50"
-                                onClick={() => openEditBooking(booking)}
-                              >
-                                <Edit2 className="h-4 w-4" />
-                              </Button>
-
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
-                                onClick={() => deleteBooking(booking.id)}
-                              >
-                                <Trash className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      )}
+                    </React.Fragment>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* 📊 PREMIUM PAGINATION FOOTER */}
+          <div className="bg-[#f8fafc] border-t border-slate-200 px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Show:</span>
+                <Select value={itemsPerPage.toString()} onValueChange={(v) => setItemsPerPage(parseInt(v))}>
+                  <SelectTrigger className="h-9 w-20 bg-white border-slate-200 rounded-xl text-xs font-black text-slate-700 shadow-sm focus:ring-2 focus:ring-blue-100">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                    {[5, 10, 25, 50].map(val => (
+                      <SelectItem key={val} value={val.toString()} className="text-xs font-black text-slate-600">{val}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredBookings.length)} <span className="text-slate-300 mx-1">/</span> {filteredBookings.length} Bookings
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage === 1}
+                title="First Page"
+              >
+                <ChevronLeft className="h-4 w-4" /> {/* Note: ChevronsLeft not imported, using ChevronLeft for now or checking imports */}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                title="Previous Page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              <div className="bg-white border-2 border-blue-100 px-4 py-1.5 rounded-xl shadow-inner mx-1">
+                <span className="text-xs font-black text-blue-600 uppercase tracking-tight">
+                  Page {currentPage} <span className="text-blue-200 mx-1.5">OF</span> {totalPages || 1}
+                </span>
               </div>
 
-              {/* Pagination */}
-              {/* Pagination Controls (Matching Hospitals Style) */}
-              {bookings.length > itemsPerPage && (
-                <div className="flex justify-center items-center gap-2 mt-6 pb-8">
-                  <Button
-                    variant="outline"
-                    disabled={currentPage === 1}
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
-                  >
-                    Previous
-                  </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages || totalPages === 0}
+                title="Next Page"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                onClick={() => handlePageChange(totalPages)}
+                disabled={currentPage === totalPages || totalPages === 0}
+                title="Last Page"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
 
-                  <div className="flex gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        onClick={() => handlePageChange(page)}
-                        className={`w-10 h-10 p-0 font-bold ${currentPage === page
-                          ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
-                          : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
-                          }`}
-                      >
-                        {page}
-                      </Button>
-                    ))}
-                  </div>
+        {/* Chatbot floating button */}
+        < div >
+          <button
+            onClick={() => setChatOpen(true)}
+            className="fixed bottom-8 right-8 z-50 flex items-center justify-center w-16 h-16 rounded-full shadow-2xl hover:scale-110 transition-all bg-transparent border-4 border-white animate-bounce overflow-hidden"
+          >
+            <img src={chatBotImage} alt="Chatbot" className="w-full h-full object-cover" />
+          </button>
 
-                  <Button
-                    variant="outline"
-                    disabled={currentPage === totalPages}
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
-                  >
-                    Next
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Chatbot floating button */}
-          <div>
-            <button
-              onClick={() => setChatOpen(true)}
-              className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-16 h-16 rounded-full shadow-2xl hover:scale-105 transition-transform bg-transparent"
-            >
-              <img src={chatBotImage} alt="Chatbot" className="w-14 h-14 rounded-full object-cover" />
-            </button>
-
-            {/* Chat panel */}
-            {chatOpen && (
+          {/* Chat panel */}
+          {
+            chatOpen && (
               <div className="fixed right-6 bottom-20 z-50 w-[380px] max-h-[75vh] bg-white rounded-lg shadow-2xl ring-1 ring-slate-200 overflow-hidden flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b">
                   <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-md bg-gradient-to-br from-indigo-100 to-pink-100 flex items-center justify-center">
-                      <Bot className="h-5 w-5 text-indigo-600" />
+                    <div className="w-10 h-10 rounded-full border-2 border-slate-200 overflow-hidden shadow-sm flex-shrink-0">
+                      <img src={chatBotImage} alt="AI Assistant" className="w-full h-full object-cover" />
                     </div>
                     <div>
                       <div className="text-sm font-semibold">Smart Assistant</div>
@@ -834,20 +1221,6 @@ const Bookings = () => {
                     </div>
                   ))}
 
-                  {/* Quick prompts */}
-                  {suggestionsEnabled && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {quickPrompts.map(q => (
-                        <button
-                          key={q}
-                          onClick={() => { setChatInput(q); sendChat(); }}
-                          className="text-xs px-2 py-1 bg-gradient-to-r from-slate-50 to-slate-100 rounded-full border text-slate-700 hover:brightness-95"
-                        >
-                          {q}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 {/* Footer controls */}
@@ -887,11 +1260,10 @@ const Bookings = () => {
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-
+            )
+          }
         </div>
-      )}
+      </div>
     </Layout>
   );
 };

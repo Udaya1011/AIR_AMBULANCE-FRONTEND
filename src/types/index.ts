@@ -14,6 +14,7 @@ export type Gender = 'male' | 'female' | 'other';
 
 export interface Patient {
     id: string;
+    patient_id?: string;
     full_name: string;      // Backend uses full_name, mapped from name in UI? No, backend expects 'full_name'
     name?: string;          // Optional alias for UI compatibility
     date_of_birth: string;  // Backend expects 'date_of_birth'
@@ -24,6 +25,7 @@ export interface Patient {
     diagnosis: string;
     acuity_level: AcuityLevel; // Backend uses snake_case 'acuity_level'
     blood_group?: string;
+    assigned_hospital_id?: string;
     allergies: string[];    // Backend expects list of strings
 
     current_vitals?: {
@@ -60,14 +62,17 @@ export interface Hospital {
     address: string;
     levelOfCare: string;
     icuCapacity: number;
+    occupiedBeds: number;
     coordinates?: { lat: number; lng: number };
     contactPerson?: string;
     email?: string;
     phone?: string;
+    preferredPickupLocation?: string;
 }
 
 export interface Booking {
     id: string;
+    booking_id?: string;
     patientId: string;
     originHospitalId: string;
     destinationHospitalId: string;
@@ -91,12 +96,14 @@ export interface Booking {
         notes?: string;
     }>;
     requestedAt?: string;
+    requestedBy?: string;
     estimatedFlightTime?: number;
+    estimatedCost?: number;
+    actualCost?: number;
 
     // Optional expanded fields for UI convenience
     patient?: { name: string };
     originHospital?: { name: string };
-    destinationHospital?: { name: string };
     destinationHospital?: { name: string };
 }
 
@@ -115,4 +122,6 @@ export interface Aircraft {
     medicalEquipment?: string[] | string;
     hoursFlown?: number;
     hours?: number;
+    airlineId?: string;
+    airlineName?: string;
 }

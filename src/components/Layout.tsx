@@ -11,18 +11,37 @@ import {
   LogOut,
   Menu,
   X,
-  Bell
+  Bell,
+  Search,
+  UserCircle
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import "../components/Header.css";
 
-export const Layout = ({ children }) => {
+interface LayoutProps {
+  children: React.ReactNode;
+  headerActions?: React.ReactNode;
+  subTitle?: string;
+  isFullHeight?: boolean;
+}
+
+export const Layout = ({ children, headerActions, subTitle, isFullHeight }: LayoutProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+
+  // Persist sidebar state across navigations
+  const [isMinimized, setIsMinimized] = useState(() => {
+    const saved = localStorage.getItem('sidebar-minimized');
+    return saved === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('sidebar-minimized', String(isMinimized));
+  }, [isMinimized]);
   type NotificationItem = {
     id: number;
     title: string;
@@ -36,32 +55,13 @@ export const Layout = ({ children }) => {
     navigate('/login');
   };
 
-  /** 🔔 Generate dynamic sample notifications (N3) */
   useEffect(() => {
     const sample = [
-      {
-        id: 1,
-        title: "New booking created",
-        message: "A new booking B102 was added.",
-        time: "2 mins ago"
-      },
-      {
-        id: 2,
-        title: "Aircraft status updated",
-        message: "Aircraft A1 is now available.",
-        time: "10 mins ago"
-      },
-      {
-        id: 3,
-        title: "Patient record updated",
-        message: "Patient John Doe's details were modified.",
-        time: "20 mins ago"
-      }
+      { id: 1, title: "New booking created", message: "A new booking B102 was added.", time: "2 mins ago" },
+      { id: 2, title: "Aircraft status updated", message: "Aircraft A1 is now available.", time: "10 mins ago" },
+      { id: 3, title: "Patient record updated", message: "Patient John Doe's details were modified.", time: "20 mins ago" }
     ];
-
-    // Shuffle for randomness
-    const randomList = sample.sort(() => Math.random() - 0.5);
-    setNotifications(randomList);
+    setNotifications(sample);
   }, []);
 
   const navItems = [
@@ -76,166 +76,298 @@ export const Layout = ({ children }) => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  // Get avatar image path based on gender (using public folder)
+  const getAvatarImage = () => {
+    const gender = user?.gender?.toLowerCase() || 'male'; // Default to male for testing
+    if (gender === 'male') return '/avatars/male.png';
+    if (gender === 'female') return '/avatars/female.png';
+    return null;
+  };
+
+  const avatarImage = getAvatarImage();
+
   return (
-    <div className="min-h-screen">
+    <div className="h-screen flex bg-slate-50 font-sans overflow-hidden">
 
-      {/* 🔵 TOP HEADER */}
-      {/* 🔵 TOP HEADER */}
-      <header className="header-container sticky top-0 z-50 bg-blue-600 shadow-md text-white">
+      {/* 🔵 SIDEBAR */}
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200
+          transition-all duration-300 ease-in-out flex flex-col
+          lg:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${isMinimized ? 'lg:w-14' : 'lg:w-48'} w-56
+        `}
+      >
+        {/* Sidebar Header / Logo */}
+        <div className={`h-20 flex items-center gap-3 border-b border-slate-100 shrink-0 px-3 transition-all duration-300 ${isMinimized ? 'justify-center' : 'justify-start'}`}>
+          {/* Toggle Button for Desktop (Toggle Icon) */}
+          <button
+            onClick={() => setIsMinimized(!isMinimized)}
+            className={`
+              hidden lg:flex items-center justify-center p-2 rounded-xl border border-slate-100
+              transition-all duration-300 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 group/toggle
+              ${isMinimized ? 'w-8 h-8' : 'w-9 h-9'} text-slate-400
+            `}
+            title={isMinimized ? 'Expand sidebar' : 'Minimize sidebar'}
+          >
+            <Menu size={18} className="group-hover/toggle:scale-110 transition-transform" />
+          </button>
 
-        {/* Left */}
-        <div className="header-left">
-          <span className="header-logo">✈️</span>
-          <div>
-            <h1 className="header-title text-white">Airswift</h1>
-            <div className="header-sub text-blue-100">Medical Transport</div>
+          <div className={`flex items-center gap-2 overflow-hidden transition-all duration-300 ${isMinimized ? 'lg:hidden' : 'flex'}`}>
+            <div className="w-9 h-9 flex items-center justify-center overflow-hidden shrink-0">
+              <img
+                src="/plane-logo.png"
+                alt="Airswift Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            {!isMinimized && (
+              <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-300">
+                <span className="text-lg font-bold text-slate-800 tracking-tight whitespace-nowrap leading-none">Airswift</span>
+              </div>
+            )}
           </div>
+
+          {/* Close for Mobile */}
+          <button
+            className={`lg:hidden p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-600 rounded-lg transition-colors ${isMinimized ? 'hidden' : 'ml-auto'}`}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <X size={20} />
+          </button>
         </div>
 
-        {/* Right */}
-        <div className="header-right">
-          {/* User Info */}
-          <div>
-            <div className="header-user-name text-white">{user?.name}</div>
-            <div className="header-user-role text-blue-100">
-              {user?.role?.replace("_", " ")}
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto px-2 py-6 space-y-1.5 scrollbar-none">
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => setMobileMenuOpen(false)}
+              className={`
+                flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative
+                ${isActive(item.path)
+                  ? 'bg-blue-50 text-blue-600 shadow-sm shadow-blue-100/50'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}
+                ${isMinimized ? 'lg:justify-center lg:px-0' : ''}
+              `}
+            >
+              <item.icon className={`w-5 h-5 transition-transform duration-300 ${isActive(item.path) ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600 group-hover:scale-110'}`} />
+
+              {!isMinimized ? (
+                <span className="font-semibold text-[13px] whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300">
+                  {item.label}
+                </span>
+              ) : (
+                <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 group-hover:opacity-100 translate-x-[-10px] group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-[100] shadow-xl border border-slate-700">
+                  {item.label}
+                  <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-900 border-l border-b border-slate-700 rotate-45" />
+                </div>
+              )}
+
+              {isActive(item.path) && !isMinimized && (
+                <div className="absolute left-0 w-1 h-5 bg-blue-600 rounded-r-full" />
+              )}
+              {isActive(item.path) && isMinimized && (
+                <div className="absolute left-0 bottom-1.5 top-1.5 w-1 bg-blue-600 rounded-r-full lg:block hidden" />
+              )}
+            </Link>
+          ))}
+        </nav>
+
+        {/* User Profile Footer */}
+        <div className={`p-3 border-t border-slate-100 bg-white transition-all ${isMinimized ? 'lg:px-1' : ''}`}>
+          <div className={`flex items-center justify-between px-1 py-3 ${isMinimized ? 'lg:flex-col lg:gap-4 lg:px-0' : ''}`}>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-blue-200 shrink-0 bg-white">
+                {avatarImage ? (
+                  <img src={avatarImage} alt="User avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center">
+                    <UserCircle className="w-5 h-5 text-slate-400" />
+                  </div>
+                )}
+              </div>
+              {!isMinimized && (
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-bold text-slate-800 truncate">{user?.name || "Admin"}</span>
+                  <span className="text-[10px] text-slate-500 truncate">{user?.email || "admin@hms.com"}</span>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleLogout}
+              className={`p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors ${isMinimized ? 'lg:w-full lg:flex lg:justify-center' : ''}`}
+              title="Logout"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* 🔵 MAIN SECTION */}
+      <div
+        className={`
+          flex-1 flex flex-col h-screen overflow-hidden
+          transition-all duration-300 ease-in-out
+          ${isMinimized ? 'lg:ml-14' : 'lg:ml-48'}
+        `}
+      >
+        {/* Top Bar - Page Title & Notifications */}
+        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-sm border-b border-slate-100 px-4 lg:px-8 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {/* Mobile Menu Toggle */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-2.5 -ml-2 text-slate-500 hover:bg-slate-100 hover:text-blue-600 rounded-xl transition-all active:scale-95"
+            >
+              <Menu size={22} />
+            </button>
+
+            {/* Page Title */}
+            <div className="flex flex-col">
+              <h1 className="text-xl lg:text-2xl font-black text-slate-800 tracking-tight capitalize leading-none">
+                {location.pathname === '/' ? 'Dashboard' : location.pathname.split('/')[1].replace('-', ' ')}
+              </h1>
+              {subTitle && (
+                <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-widest leading-none">
+                  {subTitle}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* 🔔 Notification Bell */}
-          <button
-            onClick={() => setNotifOpen(true)}
-            className="relative"
-          >
-            <Bell size={24} className="text-white cursor-pointer" />
+          <div className="flex items-center gap-4">
+            {headerActions ? (
+              <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                {headerActions}
+              </div>
+            ) : (
+              /* Search - Decorative for premium feel */
+              <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-400 focus-within:border-blue-300 focus-within:bg-white transition-all group">
+                <Search size={16} className="group-focus-within:text-blue-500" />
+                <input type="text" placeholder="Quick search..." className="bg-transparent border-none outline-none text-sm font-medium text-slate-600 placeholder:text-slate-400 w-32 focus:w-48 transition-all" />
+                <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-white px-1.5 font-mono text-[10px] font-medium text-slate-400 opacity-100">
+                  <span className="text-xs">⌘</span>K
+                </kbd>
+              </div>
+            )}
 
-            {/* Notification Badge */}
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full border border-blue-600">
-              {notifications.length}
-            </span>
-          </button>
-
-          {/* Logout button */}
-          <button className="header-logout-btn bg-white/10 hover:bg-white/20 text-white border-white/20" onClick={handleLogout}>
-            Logout
-          </button>
-
-          {/* Mobile Menu Toggle */}
-          <button
-            className="lg:hidden header-mobile-icon text-white"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X size={30} /> : <Menu size={30} />}
-          </button>
-        </div>
-      </header>
-
-      <div className="flex">
-
-        {/* 🔵 SIDEBAR */}
-        <aside
-          className={`
-            fixed lg:sticky lg:top-[80px] lg:h-[calc(100vh-80px)] inset-y-0 left-0 z-40 w-64 bg-white/90 backdrop-blur-md 
-            border-r border-border shadow-md overflow-y-auto
-            transform transition-transform duration-200 ease-in-out
-            mt-[80px] lg:mt-0
-            ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          `}
-        >
-          <nav className="p-4 space-y-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`
-                  flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
-                  ${isActive(item.path)
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-gray-700 hover:bg-gray-100'}
-                `}
-              >
-                <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-              </Link>
-            ))}
-          </nav>
-        </aside>
-
-        {/* 🔵 MAIN CONTENT */}
-        <main className="flex-1 p-6 lg:p-8 bg-white/80 backdrop-blur-md rounded-xl m-4 shadow-xl">
-          {children}
-        </main>
-
-        {/* Chatbot */}
-        {/* <Chatbot /> */}
-      </div>
-
-      {/* MOBILE OVERLAY */}
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* 🔔 NOTIFICATION DRAWER (Right Side) */}
-      <div
-        className={`
-    fixed top-0 right-0 h-full w-80 bg-white shadow-2xl 
-    transform transition-transform duration-300 z-50
-    ${notifOpen ? "translate-x-0" : "translate-x-full"}
-  `}
-      >
-        {/* Header */}
-        <div className="flex justify-between items-center px-5 py-4 border-b">
-          <h2 className="text-lg font-semibold">Notifications</h2>
-
-          {/* Close Button */}
-          <div className="flex items-center gap-3">
-            {/* 🧹 Clear All Notifications */}
+            {/* Notification Bell */}
             <button
-              onClick={() => setNotifications([])}
-              className="text-sm text-red-600 hover:underline"
+              onClick={() => setNotifOpen(true)}
+              className="relative p-2.5 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-blue-600 transition-all active:scale-95 group"
             >
-              Clear All
-            </button>
-
-            <button onClick={() => setNotifOpen(false)}>
-              <X size={22} />
+              <Bell size={22} className="group-hover:animate-swing" />
+              {notifications.length > 0 && (
+                <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
+              )}
             </button>
           </div>
         </div>
 
-        {/* Notification List */}
-        <div className="p-4 space-y-4 overflow-y-auto h-full">
-          {notifications.length === 0 ? (
-            <p className="text-center text-muted-foreground mt-10">
-              No notifications available.
-            </p>
-          ) : (
-            notifications.map((item) => (
-              <div
-                key={item.id}
-                className="p-4 bg-gray-100 rounded-xl shadow-sm border border-gray-200"
-              >
-                <h3 className="font-semibold text-gray-900">{item.title}</h3>
-                <p className="text-sm text-gray-700 mt-1">{item.message}</p>
-                <span className="text-xs text-gray-500 mt-2 block">{item.time}</span>
+        {/* CONTENT AREA */}
+        <main className={`flex-1 w-full ${isFullHeight ? 'overflow-hidden' : 'overflow-y-auto'} overflow-x-hidden p-4 lg:p-8 scrollbar-none bg-slate-50/50`}>
+          <div className={`max-w-[1600px] mx-auto ${isFullHeight ? 'h-full flex flex-col' : 'min-h-full flex flex-col'}`}>
+            <div className={`flex-1 ${isFullHeight ? 'min-h-0 flex flex-col' : ''}`}>
+              {children}
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* 🔔 NOTIFICATION DRAWER */}
+      <div
+        className={`
+          fixed inset-y-0 right-0 z-[60] w-85 bg-white shadow-2xl 
+          transform transition-transform duration-500 border-l border-slate-100
+          ${notifOpen ? "translate-x-0" : "translate-x-full"}
+        `}
+      >
+        <div className="flex flex-col h-full">
+          <div className="flex justify-between items-center px-6 py-6 border-b border-slate-100">
+            <div>
+              <h2 className="text-xl font-black text-slate-800 tracking-tight">System Alerts</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Recent updates from the network</p>
+            </div>
+            <button onClick={() => setNotifOpen(false)} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors">
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
+            {notifications.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-dashed border-slate-200">
+                  <Bell size={24} className="text-slate-300" />
+                </div>
+                <p className="text-slate-400 font-medium">No new alerts found</p>
               </div>
-            ))
-          )}
+            ) : (
+              notifications.map((item) => (
+                <div key={item.id} className="p-4 bg-white rounded-2xl border border-slate-100 hover:border-blue-200 hover:shadow-md hover:shadow-blue-50/50 transition-all cursor-pointer group">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-bold text-slate-800 text-sm group-hover:text-blue-600 transition-colors">{item.title}</h3>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full shadow-sm shadow-blue-200"></div>
+                  </div>
+                  <p className="text-xs text-slate-500 leading-relaxed font-medium">{item.message}</p>
+                  <div className="flex items-center gap-1.5 mt-4">
+                    <div className="w-1 h-1 rounded-full bg-slate-300"></div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.time}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="p-6 border-t border-slate-100 bg-slate-50/30">
+            <button
+              onClick={() => setNotifications([])}
+              className="w-full py-3.5 text-xs font-black text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/80 rounded-xl transition-all uppercase tracking-widest"
+            >
+              Mark all system alerts as cleared
+            </button>
+          </div>
         </div>
       </div>
 
-
-      {/* Notification overlay */}
-      {notifOpen && (
+      {/* OVERLAYS */}
+      {(mobileMenuOpen || notifOpen) && (
         <div
-          className="fixed inset-0 bg-black/40 z-40"
-          onClick={() => setNotifOpen(false)}
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[45] transition-opacity duration-300"
+          onClick={() => { setMobileMenuOpen(false); setNotifOpen(false); }}
         />
       )}
+
+      {/* GLOBAL STYLES */}
+      <style>{`
+        /* Hide scrollbars but keep functionality */
+        .scrollbar-none::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-none {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+        
+        @keyframes swing {
+          0% { transform: rotate(0deg); }
+          20% { transform: rotate(15deg); }
+          40% { transform: rotate(-10deg); }
+          60% { transform: rotate(5deg); }
+          80% { transform: rotate(-5deg); }
+          100% { transform: rotate(0deg); }
+        }
+        .animate-swing {
+          animation: swing 0.6s ease-in-out;
+        }
+      `}</style>
 
     </div>
   );

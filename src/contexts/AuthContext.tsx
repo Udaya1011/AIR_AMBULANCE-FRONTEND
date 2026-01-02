@@ -113,6 +113,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  gender?: string;
 }
 
 interface AuthContextType {

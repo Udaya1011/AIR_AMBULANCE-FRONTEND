@@ -1,5 +1,9 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import type { LatLngExpression } from "leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import chatBotImage from '../emoji.jpeg';
 import {
   Card,
@@ -14,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 
 import { Input } from "@/components/ui/input";
@@ -28,18 +33,19 @@ import {
 } from "@/components/ui/select";
 
 import {
-  Edit,
-  Trash2,
-  Search,
-  Map,
-  Plus,
-  PlaneTakeoff,
-  PlaneLanding,
-  Activity,
-  MessageSquare,
-  Send,
-  List,
-} from "lucide-react";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { FileText, BarChart3, Edit, Trash2, Search, Map, Plus, PlaneTakeoff, PlaneLanding, Activity, MessageSquare, Send, List, Eye, Building2, Users, Clock, MapPin, Calendar, AlertCircle, ChevronLeft, ChevronRight, Loader2, Navigation, Filter } from "lucide-react";
 
 import {
   Tooltip,
@@ -54,6 +60,27 @@ import { AircraftService } from "@/services/aircraft.service";
 import { Aircraft as AircraftType } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+
+// Fix Leaflet marker icons
+const iconRetinaUrl = "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png";
+const iconUrl = "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png";
+const shadowUrl = "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png";
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl,
+  iconUrl,
+  shadowUrl,
+});
+
+// Map Click Handler Component
+const MapClickHandler = ({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number) => void }) => {
+  useMapEvents({
+    click: (e) => {
+      onLocationSelect(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+};
 
 // -------------------- Types --------------------
 type AircraftStatus = "available" | "in_flight" | "maintenance";
@@ -82,6 +109,7 @@ const statusColorClass = (s: AircraftStatus) =>
 // -------------------- Component --------------------
 const Aircraft: React.FC = () => {
   const [aircraft, setAircraft] = useState<AircraftType[]>([]);
+  const [selectedAircraft, setSelectedAircraft] = useState<AircraftType | null>(null);
   const [view, setView] = useState<"list" | "map">("list");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,6 +121,8 @@ const Aircraft: React.FC = () => {
   const [editItem, setEditItem] = useState<AircraftType | null>(null);
 
   const [form, setForm] = useState<Partial<AircraftType> & { medicalEquipment?: string | string[] }>({});
+  const [isSearchingMap, setIsSearchingMap] = useState(false);
+  const [mapSearch, setMapSearch] = useState("");
 
   // Chatbot
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -111,7 +141,7 @@ const Aircraft: React.FC = () => {
     try {
       setLoading(true);
       const data = await AircraftService.getAircrafts();
-      setAircraft(data);
+      setAircraft(data.filter(Boolean));
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch aircraft");
@@ -126,22 +156,22 @@ const Aircraft: React.FC = () => {
     return aircraft.filter((a) => {
       const matchesSearch =
         !s ||
-        a.registration.toLowerCase().includes(s) ||
-        a.type.toLowerCase().includes(s) ||
-        a.operator.toLowerCase().includes(s) ||
-        a.baseLocation.toLowerCase().includes(s);
+        a.registration?.toLowerCase().includes(s) ||
+        a.type?.toLowerCase().includes(s) ||
+        a.operator?.toLowerCase().includes(s) ||
+        a.baseLocation?.toLowerCase().includes(s);
 
       const matchesStatus = statusFilter === "all" ? true : a.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [aircraft, searchTerm, statusFilter]);
 
-  // Counts
-  const counts = useMemo(
+  // Summary Stats
+  const summaryStats = useMemo(
     () => ({
       total: aircraft.length,
       available: aircraft.filter((a) => a.status === "available").length,
-      inflight: aircraft.filter((a) => a.status === "in_flight").length,
+      inFlight: aircraft.filter((a) => a.status === "in_flight").length,
       maintenance: aircraft.filter((a) => a.status === "maintenance").length,
     }),
     [aircraft]
@@ -149,7 +179,7 @@ const Aircraft: React.FC = () => {
 
   // PAGINATION
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginatedAircraft = useMemo(() => {
@@ -197,6 +227,31 @@ const Aircraft: React.FC = () => {
     (e.currentTarget as HTMLImageElement).src = DEFAULT_IMAGES[0];
   };
 
+  const handleMapLocationSelect = (lat: number, lng: number) => {
+    setForm(prev => ({ ...prev, latitude: lat, longitude: lng }));
+  };
+
+  const handleMapSearch = async () => {
+    if (!mapSearch.trim()) return;
+    setIsSearchingMap(true);
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(mapSearch)}`);
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        setForm(prev => ({ ...prev, latitude: Number(lat), longitude: Number(lon) }));
+        toast({ title: "Success", description: "Location found and map centered." });
+      } else {
+        toast({ title: "Not Found", description: "Could not find that location on the map.", variant: "destructive" });
+      }
+    } catch (err) {
+      console.error("Map search error:", err);
+      toast({ title: "Error", description: "Failed to search location.", variant: "destructive" });
+    } finally {
+      setIsSearchingMap(false);
+    }
+  };
+
   const startEdit = (a: AircraftType) => {
     setEditItem(a);
     setForm(a);
@@ -232,7 +287,16 @@ const Aircraft: React.FC = () => {
         toast({ title: 'Success', description: 'Aircraft updated successfully' });
         setEditItem(null);
       } else {
-        await AircraftService.createAircraft(form);
+        const payload = {
+          ...form,
+          registration: form.registration || "",
+          type: form.type || "fixed_wing",
+          status: form.status || "available",
+          medicalEquipment: typeof form.medicalEquipment === 'string'
+            ? form.medicalEquipment.split(',').map(s => s.trim()).filter(Boolean)
+            : form.medicalEquipment
+        };
+        await AircraftService.createAircraft(payload);
         toast({ title: 'Success', description: 'Aircraft created successfully' });
       }
 
@@ -282,381 +346,682 @@ const Aircraft: React.FC = () => {
     setTimeout(() => {
       const lower = userMsg.text.toLowerCase();
       let reply = "How can I help with the fleet?";
-      if (lower.includes("maintenance")) reply = `There are ${counts.maintenance} aircraft in maintenance.`;
-      if (lower.includes("available")) reply = `There are ${counts.available} aircraft available for dispatch.`;
+      if (lower.includes("maintenance")) reply = `There are ${summaryStats.maintenance} aircraft in maintenance.`;
+      if (lower.includes("available")) reply = `There are ${summaryStats.available} aircraft available for dispatch.`;
       const aiMsg = { id: Date.now() + 1, text: reply, sender: "ai", time: format(new Date(), "h:mm a") };
       setMessages((m) => [...m, aiMsg]);
     }, 700);
   };
 
+  const headerActions = (
+    <div className="flex items-center gap-3">
+      {/* Analytics Popover */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group" title="Fleet Analytics">
+            <BarChart3 className="h-4 w-4 transition-transform group-hover:scale-110 text-slate-500 group-hover:text-blue-600" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[320px] p-5 rounded-3xl shadow-2xl border-slate-200 animate-in fade-in zoom-in-95 duration-300" align="end" sideOffset={10}>
+          <div className="flex items-center gap-3 mb-5 pb-3 border-b border-slate-100">
+            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100">
+              <Activity className="h-4 w-4 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-black text-slate-800 uppercase tracking-tight">Fleet Analytics</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">Global Assets</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl transition-all hover:border-blue-100 group/metric">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Activity className="h-3 w-3 text-blue-500" />
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-slate-800 tracking-tighter">{summaryStats.total}</span>
+                <span className="text-[8px] text-slate-400 font-bold uppercase">Aircraft</span>
+              </div>
+            </div>
+            <div className="p-3 bg-rose-50/50 border border-rose-100 rounded-xl transition-all hover:border-rose-200 group/metric">
+              <div className="flex items-center gap-2 mb-1.5">
+                <PlaneTakeoff className="h-3 w-3 text-emerald-500" />
+                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Ready</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-emerald-600 tracking-tighter">{summaryStats.available}</span>
+                <span className="text-[8px] text-emerald-400 font-bold uppercase font-black italic">Avail</span>
+              </div>
+            </div>
+            <div className="p-3 bg-amber-50/50 border border-amber-100 rounded-xl transition-all hover:border-amber-200 group/metric">
+              <div className="flex items-center gap-2 mb-1.5">
+                <PlaneLanding className="h-3 w-3 text-amber-500" />
+                <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Active</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-amber-600 tracking-tighter">{summaryStats.inFlight}</span>
+                <span className="text-[8px] text-amber-400 font-bold uppercase font-black italic">Flight</span>
+              </div>
+            </div>
+            <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl transition-all hover:border-emerald-200 group/metric">
+              <div className="flex items-center gap-2 mb-1.5">
+                <AlertCircle className="h-3 w-3 text-rose-500" />
+                <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">Maint.</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-rose-600 tracking-tighter">{summaryStats.maintenance}</span>
+                <span className="text-[8px] text-rose-400 font-bold uppercase font-black italic">Down</span>
+              </div>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {/* Unified Filter Dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="flex items-center justify-center h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group relative" title="Filters">
+            <Filter className={`h-4 w-4 transition-transform group-hover:rotate-12 ${statusFilter !== 'all' ? 'text-blue-600' : 'text-slate-500'}`} />
+            {statusFilter !== 'all' && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center rounded-full bg-blue-600 text-white text-[8px] font-black border-2 border-white shadow-sm animate-in zoom-in duration-300">
+                1
+              </span>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56 p-2 rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200" align="end">
+          <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2 py-1.5">
+            Fleet Status Filters
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator className="my-1 bg-slate-100" />
+          <DropdownMenuItem onClick={() => setStatusFilter('all')} className={`rounded-lg px-2 py-2 mb-1 cursor-pointer transition-colors ${statusFilter === 'all' ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}>
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${statusFilter === 'all' ? 'bg-blue-600' : 'bg-slate-300'}`} />
+                <span className="font-bold text-xs capitalize">All Status</span>
+              </div>
+              {statusFilter === 'all' && <Activity className="h-3 w-3 text-blue-600" />}
+            </div>
+          </DropdownMenuItem>
+          {(['available', 'in_flight', 'maintenance'] as const).map((status) => (
+            <DropdownMenuItem key={status} onClick={() => setStatusFilter(status)} className={`rounded-lg px-2 py-2 mb-1 cursor-pointer transition-colors ${statusFilter === status ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}>
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${status === 'available' ? 'bg-emerald-500' : status === 'in_flight' ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                  <span className="font-bold text-xs capitalize">{statusLabel(status)}</span>
+                </div>
+                {statusFilter === status && <Activity className="h-3 w-3 text-blue-600" />}
+              </div>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Global Search */}
+      <div className="relative group flex-1 max-w-[200px]">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+        <Input
+          placeholder="Search fleet..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="h-10 pl-9 pr-4 bg-slate-50 border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all w-full"
+        />
+      </div>
+
+      {/* Add Aircraft Button */}
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogTrigger asChild>
+          <Button
+            className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-wider rounded-xl shadow-lg shadow-blue-100 flex items-center gap-2 transition-all active:scale-95 group border-b-4 border-blue-800"
+            onClick={() => {
+              setEditItem(null);
+              setForm({
+                registration: "",
+                type: "fixed_wing",
+                status: "available",
+                latitude: 0,
+                longitude: 0,
+                operator: "",
+                baseLocation: "",
+                medicalEquipment: []
+              });
+            }}
+          >
+            <Plus className="h-4 w-4 stroke-[3px] group-hover:rotate-90 transition-transform" />
+            Add Aircraft
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+          <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
+            <DialogTitle className="text-white text-xl">{editItem ? 'Edit Aircraft' : 'Add New Aircraft'}</DialogTitle>
+            <DialogDescription className="text-blue-100">Maintain fleet records and operational status</DialogDescription>
+          </DialogHeader>
+
+          <div className="p-6 space-y-4 overflow-y-auto flex-1 text-black">
+            {/* ROW 1: Reg, Type, Operator, Status */}
+            <div className="grid grid-cols-4 gap-4">
+              <div className="col-span-1 space-y-1.5">
+                <Label className="font-semibold">Registration *</Label>
+                <Input
+                  placeholder="e.g., C-GFAH"
+                  value={form.registration || ''}
+                  onChange={(e) => setForm({ ...form, registration: e.target.value })}
+                  className="h-9"
+                />
+              </div>
+              <div className="col-span-1 space-y-1.5">
+                <Label className="font-semibold">Type</Label>
+                <Select
+                  value={form.type || 'fixed_wing'}
+                  onValueChange={(v) => setForm({ ...form, type: v as any })}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fixed_wing">Fixed Wing</SelectItem>
+                    <SelectItem value="rotary_wing">Rotary Wing</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-1 space-y-1.5">
+                <Label className="font-semibold">Operator</Label>
+                <Input
+                  placeholder="e.g., AirSwift"
+                  value={form.operator || ''}
+                  onChange={(e) => setForm({ ...form, operator: e.target.value })}
+                  className="h-9"
+                />
+              </div>
+              <div className="col-span-1 space-y-1.5">
+                <Label className="font-semibold">Status</Label>
+                <Select
+                  value={form.status || 'available'}
+                  onValueChange={(v) => setForm({ ...form, status: v as AircraftStatus })}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="available">Available</SelectItem>
+                    <SelectItem value="in_flight">In Flight</SelectItem>
+                    <SelectItem value="maintenance"> Maintenance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* ROW 2: Base Location, Latitude, Longitude */}
+            <div className="grid grid-cols-4 gap-4">
+              <div className="col-span-2 space-y-1.5">
+                <Label className="font-semibold">Base Location</Label>
+                <Input
+                  placeholder="e.g., Toronto Pearson (CYYZ)"
+                  value={form.baseLocation || ''}
+                  onChange={(e) => setForm({ ...form, baseLocation: e.target.value })}
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-semibold">Latitude</Label>
+                <Input
+                  type="number"
+                  placeholder="e.g., 19.07"
+                  value={form.latitude ?? ''}
+                  onChange={(e) => setForm({ ...form, latitude: Number(e.target.value) })}
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-semibold">Longitude</Label>
+                <Input
+                  type="number"
+                  placeholder="e.g., 72.87"
+                  value={form.longitude ?? ''}
+                  onChange={(e) => setForm({ ...form, longitude: Number(e.target.value) })}
+                  className="h-9"
+                />
+              </div>
+            </div>
+
+            {/* MAP PICKER */}
+            <div className="space-y-3 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+              <div className="flex flex-col gap-2">
+                <div className="flex justify-between items-center">
+                  <p className="text-xs font-bold text-blue-800 flex items-center gap-2">
+                    <Navigation className="h-3 w-3" /> Click on the map or search to select aircraft location
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      placeholder="🔍 Search for airport or location..."
+                      value={mapSearch}
+                      onChange={(e) => setMapSearch(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleMapSearch()}
+                      className="h-8 text-xs pl-8 bg-white border-blue-200 focus:border-blue-500"
+                    />
+                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-blue-400" />
+                  </div>
+                  <Button
+                    size="sm"
+                    className="h-8 bg-blue-600 hover:bg-blue-700 text-xs px-3 gap-1"
+                    onClick={handleMapSearch}
+                    disabled={isSearchingMap}
+                  >
+                    {isSearchingMap ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+                    Search
+                  </Button>
+                </div>
+              </div>
+              <div className="h-[250px] w-full relative rounded-md overflow-hidden border border-blue-200">
+                <MapContainer
+                  {...{
+                    key: form.latitude !== undefined ? `map-${form.latitude}-${form.longitude}` : 'map-default',
+                    center: (form.latitude !== undefined && form.longitude !== undefined ? [form.latitude, form.longitude] : [20.5937, 78.9629]) as LatLngExpression,
+                    zoom: form.latitude !== undefined ? 16 : 5,
+                    scrollWheelZoom: true,
+                    style: { height: "100%", width: "100%" }
+                  } as any}
+                >
+                  <TileLayer
+                    {...{
+                      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    } as any}
+                  />
+                  <MapClickHandler onLocationSelect={handleMapLocationSelect} />
+                  {form.latitude !== undefined && form.longitude !== undefined && (
+                    <Marker position={[form.latitude, form.longitude] as LatLngExpression} />
+                  )}
+                </MapContainer>
+              </div>
+            </div>
+
+            {/* ROW 3: Medical Equipment */}
+            <div className="grid grid-cols-4 gap-4">
+              <div className="col-span-4 space-y-1.5">
+                <Label className="font-semibold">Medical Equipment</Label>
+                <Textarea
+                  placeholder="List equipment..."
+                  value={
+                    typeof form.medicalEquipment === 'string'
+                      ? form.medicalEquipment
+                      : Array.isArray(form.medicalEquipment)
+                        ? form.medicalEquipment.join(', ')
+                        : ''
+                  }
+                  onChange={(e) => setForm({ ...form, medicalEquipment: e.target.value })}
+                  className="h-20 min-h-[80px]"
+                />
+              </div>
+            </div>
+
+            {/* ACTION BUTTONS */}
+            <div className="flex justify-end gap-3 pt-4 border-t mt-2">
+              <Button variant="ghost" onClick={() => { setIsAddOpen(false); setEditItem(null); setForm({}); }}>
+                Cancel
+              </Button>
+              <Button onClick={saveAdd} className="bg-blue-600 hover:bg-blue-700 text-white">
+                {editItem ? 'Save Changes' : 'Add Aircraft'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+
   return (
-    <Layout>
+    <Layout isFullHeight={true} subTitle="Fleet Tracking & Dispatch" headerActions={headerActions}>
       <TooltipProvider>
-        <div className="space-y-4">
+        <div className="space-y-4 flex-1 flex flex-col min-h-0">
           {loading ? (
             <LoadingSpinner />
           ) : (
-            <>
-              {/* Header */}
-              <div className="space-y-6">
-                <div className="flex items-start justify-between py-3">
-                  <div>
-                    <h1 className="text-3xl font-bold">✈️ Aircraft Fleet</h1>
-                    <p className="mt-0.5 text-xs opacity-90">Manage dispatch and aircraft</p>
-                  </div>
-
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Aircraft Details</h2>
+                <div className="flex items-center gap-2">
                   <Button
-                    className="px-4 py-2 rounded-lg font-semibold h-10 flex items-center"
-                    onClick={() => {
-                      setEditItem(null);
-                      setForm({});
-                      setIsAddOpen(true);
-                    }}
+                    variant="outline"
+                    className={`h-9 ${view === "list" ? "bg-blue-600 text-white" : ""}`}
+                    onClick={() => setView("list")}
                   >
-                    <Plus /> Add Aircraft
+                    <List className="w-4 h-4 mr-2" /> List
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className={`h-9 ${view === "map" ? "bg-blue-600 text-white" : ""}`}
+                    onClick={() => setView("map")}
+                  >
+                    <Map className="w-4 h-4 mr-2" /> Map
                   </Button>
                 </div>
-
-                {/* Stats */}
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[
-                    { label: "Total Aircraft", value: counts.total, icon: <Activity /> },
-                    { label: "Available", value: counts.available, icon: <PlaneTakeoff /> },
-                    { label: "In Flight", value: counts.inflight, icon: <PlaneLanding /> },
-                    { label: "Maintenance", value: counts.maintenance, icon: <Map /> },
-                  ].map((item, i) => (
-                    <div
-                      key={i}
-                      className="rounded-lg p-4 flex items-center justify-between border border-gray-200"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">{item.label}</p>
-                        <p className="text-3xl font-bold text-gray-900">{item.value}</p>
-                      </div>
-                      <div >{item.icon}</div>
-                    </div>
-                  ))}
-                </div>
               </div>
 
-              {/* Main Container */}
-              <div className="mt-6 rounded-xl p-6 border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold">Aircraft Details</h2>
+              {view === "list" ? (
+                <div className="flex-1 flex flex-col min-h-0">
+                  {/* TABLE */}
+                  <div className="rounded-2xl border-2 border-slate-300 bg-white shadow-xl flex flex-col flex-1 min-h-0 overflow-hidden">
+                    <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent flex-1">
+                      <table className="w-full border-collapse text-sm">
+                        <thead className="sticky top-0 z-20">
+                          <tr className="bg-[#f8fafc] border-b border-slate-200">
+                            <th className="px-6 py-2 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Registration</th>
+                            <th className="px-6 py-2 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Operator</th>
+                            <th className="px-6 py-2 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Base</th>
+                            <th className="px-6 py-2 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Crew</th>
+                            <th className="px-6 py-2 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Status</th>
+                            <th className="px-6 py-2 text-center font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
+                          </tr>
+                        </thead>
 
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      className={`h-9 ${view === "list" ? "bg-blue-600 text-white" : ""}`}
-                      onClick={() => setView("list")}
-                    >
-                      <List className="w-4 h-4 mr-2" /> List
-                    </Button>
+                        <tbody>
+                          {paginatedAircraft.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground font-semibold">
+                                No aircraft records found.
+                              </td>
+                            </tr>
+                          ) : (
+                            paginatedAircraft.map((ac, idx) => (
+                              <tr key={ac.id} className={`border-b border-slate-200 hover:bg-slate-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/20'}`}>
+                                <td className="px-6 py-2 font-black text-blue-800 tracking-tight">{ac.registration}</td>
+                                <td className="px-6 py-2 text-slate-600 font-semibold">{ac.operator}</td>
+                                <td className="px-6 py-2 text-slate-600 font-semibold">{ac.baseLocation}</td>
+                                <td className="px-6 py-2 text-slate-600 font-semibold">{ac.crewAssigned} Pax</td>
+                                <td className="px-6 py-2">
+                                  <span className={statusColorClass(ac.status)}>
+                                    {statusLabel(ac.status)}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-2 text-center">
+                                  <div className="flex flex-col items-center gap-2">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setSelectedAircraft(ac)}
+                                        className="h-8 w-8 text-blue-600 hover:bg-blue-50 border border-slate-100 shadow-sm"
+                                        title="View Details"
+                                      >
+                                        <Eye className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => startEdit(ac)}
+                                        className="h-8 w-8 text-amber-600 hover:bg-amber-50 border border-slate-100 shadow-sm"
+                                        title="Edit Aircraft"
+                                      >
+                                        <Edit className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => remove(ac.id)}
+                                        className="h-8 w-8 text-red-600 hover:bg-red-50 border border-slate-100 shadow-sm"
+                                        title="Delete Aircraft"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </div>
 
-                    <Button
-                      variant="outline"
-                      className={`h-9 ${view === "map" ? "bg-blue-600 text-white" : ""}`}
-                      onClick={() => setView("map")}
-                    >
-                      <Map className="w-4 h-4 mr-2" /> Map
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Filters */}
-                <div className="mt-4 flex flex-col md:flex-row items-start md:items-center gap-4">
-                  <div className="relative w-full md:w-1/2">
-                    <Search className="absolute left-3 top-3 text-gray-400" />
-                    <Input
-                      placeholder="Search by registration, type, operator or base..."
-                      className="pl-10"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="flex gap-2">
-                    {(["all", "available", "in_flight", "maintenance"] as const).map((s) => (
-                      <Button
-                        key={s}
-                        className={`px-4 py-2 rounded-full border font-semibold h-10 ${statusFilter === s ? "bg-blue-600 text-white" : "bg-transparent text-gray-700"
-                          }`}
-                        onClick={() => setStatusFilter(s)}
-                      >
-                        {s === "all" ? "All" : statusLabel(s)}
-                      </Button>
-                    ))}
-
-                  </div>
-                </div>
-
-                {/* List or Map */}
-                <div className="mt-6">
-                  {view === "list" ? (
-                    <>
-                      <Card className="p-0 border border-gray-200 overflow-hidden">
-                        <div>
-                          <table className="w-full border-collapse text-sm">
-                            <thead className="bg-gray-50 border-b">
-                              <tr>
-                                <th className="p-4 text-left font-semibold text-gray-700">Aircraft</th>
-                                <th className="p-4 text-left font-semibold text-gray-700">Registration</th>
-                                <th className="p-4 text-left font-semibold text-gray-700">Operator</th>
-                                <th className="p-4 text-left font-semibold text-gray-700">Base</th>
-                                <th className="p-4 text-left font-semibold text-gray-700">Crew</th>
-                                <th className="p-4 text-left font-semibold text-gray-700">Maintenance</th>
-                                <th className="p-4 text-left font-semibold text-gray-700">Status</th>
-                                <th className="p-4 text-center font-semibold text-gray-700">Actions</th>
+                                    <Button
+                                      className="h-7 w-full px-2 text-[9px] font-black uppercase tracking-tighter bg-slate-900 text-white hover:bg-slate-800 shadow-md"
+                                      onClick={() => {
+                                        setView("map");
+                                        setTimeout(() => {
+                                          window.dispatchEvent(
+                                            new CustomEvent("flyToAircraft", {
+                                              detail: {
+                                                id: ac.id,
+                                                lat: ac.latitude,
+                                                lng: ac.longitude,
+                                              },
+                                            })
+                                          );
+                                        }, 250);
+                                      }}
+                                    >
+                                      <Map className="h-3 w-3 mr-1" /> Track Live
+                                    </Button>
+                                  </div>
+                                </td>
                               </tr>
-                            </thead>
-
-                            <tbody>
-                              {paginatedAircraft.length === 0 ? (
-                                <tr>
-                                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
-                                    No records found.
-                                  </td>
-                                </tr>
-                              ) : (
-                                paginatedAircraft.map((ac, idx) => (
-                                  <tr key={ac.id} className={`border-b hover:bg-gray-50/50 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
-                                    <td className="p-4">
-                                      <div>
-                                        <p className="font-semibold text-gray-900">{ac.type}</p>
-                                        <p className="text-xs text-gray-500">Crew: {ac.crewAssigned}</p>
-                                      </div>
-                                    </td>
-                                    <td className="p-4 font-medium text-gray-700">{ac.registration}</td>
-                                    <td className="p-4 text-gray-600">{ac.operator}</td>
-                                    <td className="p-4 text-gray-600">{ac.baseLocation}</td>
-                                    <td className="p-4 text-gray-600">{ac.crewAssigned} persons</td>
-                                    <td className="p-4 text-sm text-gray-600">{ac.nextMaintenanceDue || "None"}</td>
-                                    <td className="p-4">
-                                      <span className={statusColorClass(ac.status)}>
-                                        {statusLabel(ac.status)}
-                                      </span>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                      <div className="flex items-center justify-center gap-2">
-                                        <Button variant="ghost" size="icon" onClick={() => startEdit(ac)} className="h-8 w-8 text-blue-600 hover:bg-blue-50">
-                                          <Edit className="w-4 h-4" />
-                                        </Button>
-
-                                        <Button variant="ghost" size="icon" onClick={() => remove(ac.id)} className="h-8 w-8 text-red-600 hover:bg-red-50">
-                                          <Trash2 className="w-4 h-4" />
-                                        </Button>
-
-                                        <Button
-                                          className="h-8 px-3 text-xs"
-                                          variant="secondary"
-                                          onClick={() => {
-                                            setView("map");
-                                            setTimeout(() => {
-                                              window.dispatchEvent(
-                                                new CustomEvent("flyToAircraft", {
-                                                  detail: {
-                                                    id: ac.id,
-                                                    lat: ac.latitude,
-                                                    lng: ac.longitude,
-                                                  },
-                                                })
-                                              );
-                                            }, 250);
-                                          }}
-                                        >
-                                          <Map className="h-3 w-3 mr-1.5" /> Track
-                                        </Button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </Card>
-
-                      {/* PAGINATION CONTROLS */}
-                      {filtered.length > itemsPerPage && (
-                        <div className="flex justify-center items-center gap-2 mt-6 pb-8">
-                          <Button
-                            variant="outline"
-                            disabled={currentPage === 1}
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
-                          >
-                            Previous
-                          </Button>
-
-                          <div className="flex gap-1">
-                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                              <Button
-                                key={page}
-                                variant={currentPage === page ? "default" : "outline"}
-                                onClick={() => handlePageChange(page)}
-                                className={`w-10 h-10 p-0 font-bold ${currentPage === page
-                                  ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
-                                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
-                                  }`}
-                              >
-                                {page}
-                              </Button>
-                            ))}
-                          </div>
-
-                          <Button
-                            variant="outline"
-                            disabled={currentPage === totalPages}
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
-                          >
-                            Next
-                          </Button>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="h-[70vh] rounded-lg border border-gray-200">
-                      <LiveMapComponent aircraftData={aircraft} />
+                            ))
+                          )}
+                        </tbody>
+                      </table>
                     </div>
-                  )}
+
+                    {/* 📊 PREMIUM PAGINATION FOOTER */}
+                    <div className="bg-[#f8fafc] border-t border-slate-200 px-6 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Show:</span>
+                          <select
+                            value={itemsPerPage.toString()}
+                            onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
+                            className="h-9 w-20 bg-white border-slate-200 rounded-xl text-xs font-black text-slate-700 shadow-sm focus:ring-2 focus:ring-blue-100 outline-none px-2"
+                          >
+                            {[5, 10, 25, 50].map(val => (
+                              <option key={val} value={val}>{val}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filtered.length)} <span className="text-slate-300 mx-1">/</span> {filtered.length} Aircraft
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                          onClick={() => handlePageChange(1)}
+                          disabled={currentPage === 1}
+                          title="First Page"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          title="Previous Page"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+
+                        <div className="bg-white border-2 border-blue-100 px-4 py-1.5 rounded-xl shadow-inner mx-1">
+                          <span className="text-xs font-black text-blue-600 uppercase tracking-tight">
+                            Page {currentPage} <span className="text-blue-200 mx-1.5">OF</span> {totalPages || 1}
+                          </span>
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages || totalPages === 0}
+                          title="Next Page"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                          onClick={() => handlePageChange(totalPages)}
+                          disabled={currentPage === totalPages || totalPages === 0}
+                          title="Last Page"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </>
+              ) : (
+                <div className="flex-1 rounded-2xl border-2 border-slate-300 bg-white shadow-xl overflow-hidden relative min-h-0">
+                  <LiveMapComponent aircraftData={aircraft} />
+                </div>
+              )}
+            </div>
           )}
 
-          <Dialog
-            open={isAddOpen}
-            onOpenChange={() => {
-              setIsAddOpen(false);
-              setEditItem(null);
-              setForm({});
-            }}
-          >
-            <DialogContent className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+          {/* Aircraft Detail View Dialog */}
+          <Dialog open={Boolean(selectedAircraft)} onOpenChange={(open) => { if (!open) setSelectedAircraft(null); }}>
+            <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
               <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-                <DialogTitle className="text-white text-xl">{editItem ? "✏️ Edit Aircraft" : "➕ Add Aircraft"}</DialogTitle>
+                <DialogTitle className="text-white text-xl">
+                  Aircraft Detail View - {selectedAircraft?.registration} ({selectedAircraft?.operator})
+                </DialogTitle>
                 <DialogDescription className="text-blue-100">
-                  {editItem ? "Update aircraft details." : "Register a new aircraft to the fleet."}
+                  Comprehensive status and configuration for {selectedAircraft?.registration}
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="p-6 space-y-4 overflow-y-auto flex-1 text-black">
-                {/* ROW 1: Registration, Type, Operator, Status */}
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="font-semibold">🔖 Registration *</Label>
-                    <Input
-                      placeholder="e.g., N12345"
-                      value={form.registration || ''}
-                      onChange={(e) => setForm({ ...form, registration: e.target.value })}
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="font-semibold">✈️ Type *</Label>
-                    <Select
-                      value={form.type || 'fixed_wing'}
-                      onValueChange={(v) => setForm({ ...form, type: v })}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="helicopter">🚁 Helicopter</SelectItem>
-                        <SelectItem value="fixed_wing">✈️ Fixed Wing</SelectItem>
-                        <SelectItem value="jet">🛩️ Jet</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="font-semibold">🏢 Operator</Label>
-                    <Input
-                      placeholder="e.g., SkyMedic"
-                      value={form.operator || ''}
-                      onChange={(e) => setForm({ ...form, operator: e.target.value })}
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="font-semibold"> Status</Label>
-                    <Select
-                      value={form.status || 'available'}
-                      onValueChange={(v) => setForm({ ...form, status: v as AircraftStatus })}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="available">✅ Available</SelectItem>
-                        <SelectItem value="in_flight">🛫 In Flight</SelectItem>
-                        <SelectItem value="maintenance"> Maintenance</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+              <div className="p-8 space-y-8 overflow-y-auto flex-1 text-black">
+                {selectedAircraft && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                    {/* Left Col: Aircraft Image and Primary Info */}
+                    <div className="md:col-span-1 space-y-6">
+                      <div className="aspect-video rounded-xl overflow-hidden border-2 border-slate-100 shadow-sm">
+                        <img
+                          src={selectedAircraft.imageUrl || DEFAULT_IMAGES[Math.floor(Math.random() * DEFAULT_IMAGES.length)]}
+                          alt={selectedAircraft.registration}
+                          className="w-full h-full object-cover"
+                          onError={handleImgError}
+                        />
+                      </div>
+                      <div className="space-y-4">
+                        <div className="p-4 bg-slate-50 rounded-lg space-y-2">
+                          <Label className="text-xs text-slate-500 uppercase font-bold tracking-wider">Status</Label>
+                          <div className="flex items-center gap-3">
+                            <span className={statusColorClass(selectedAircraft.status)}>
+                              {statusLabel(selectedAircraft.status)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="p-4 bg-slate-50 rounded-lg space-y-2">
+                          <Label className="text-xs text-slate-500 uppercase font-bold tracking-wider">Operator</Label>
+                          <p className="font-bold flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-blue-500" />
+                            {selectedAircraft.operator}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
-                {/* ROW 2: Base Location, Latitude, Longitude */}
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="col-span-2 space-y-1.5">
-                    <Label className="font-semibold">📍 Base Location</Label>
-                    <Input
-                      placeholder="e.g., Toronto Pearson (CYYZ)"
-                      value={form.baseLocation || ''}
-                      onChange={(e) => setForm({ ...form, baseLocation: e.target.value })}
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="font-semibold">🗺️ Latitude</Label>
-                    <Input
-                      type="number"
-                      placeholder="e.g., 19.07"
-                      value={form.latitude ?? ''}
-                      onChange={(e) => setForm({ ...form, latitude: Number(e.target.value) })}
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="font-semibold">🗺️ Longitude</Label>
-                    <Input
-                      type="number"
-                      placeholder="e.g., 72.87"
-                      value={form.longitude ?? ''}
-                      onChange={(e) => setForm({ ...form, longitude: Number(e.target.value) })}
-                      className="h-9"
-                    />
-                  </div>
-                </div>
+                    {/* Middle Col: Technical Specs & Configuration */}
+                    <div className="md:col-span-1 space-y-6">
+                      <h4 className="text-sm font-black uppercase text-slate-400 border-b pb-2">Technical Specifications</h4>
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Type</p>
+                          <p className="text-sm font-bold capitalize">{selectedAircraft.type?.replace('_', ' ')}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Base Location</p>
+                          <p className="text-sm font-bold flex items-center gap-1">
+                            <MapPin className="h-3 w-3 text-red-500" />
+                            {selectedAircraft.baseLocation}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Crew Capacity</p>
+                          <p className="text-sm font-bold flex items-center gap-1">
+                            <Users className="h-3 w-3 text-blue-500" />
+                            {selectedAircraft.crewAssigned} persons
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Registration</p>
+                          <p className="text-sm font-mono font-bold">{selectedAircraft.registration}</p>
+                        </div>
+                      </div>
 
-                {/* ROW 3: Medical Equipment */}
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="col-span-4 space-y-1.5">
-                    <Label className="font-semibold">🏥 Medical Equipment</Label>
-                    <Textarea
-                      placeholder="List equipment..."
-                      value={
-                        typeof form.medicalEquipment === 'string'
-                          ? form.medicalEquipment
-                          : Array.isArray(form.medicalEquipment)
-                            ? form.medicalEquipment.join(', ')
-                            : ''
-                      }
-                      onChange={(e) => setForm({ ...form, medicalEquipment: e.target.value })}
-                      className="h-20 min-h-[80px]"
-                    />
-                  </div>
-                </div>
+                      <div className="pt-4 space-y-4">
+                        <h4 className="text-sm font-black uppercase text-slate-400 border-b pb-2">Medical Equipment</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {(() => {
+                            const eq = selectedAircraft.medicalEquipment;
+                            if (Array.isArray(eq)) {
+                              return eq.map((item, i) => (
+                                <Badge key={i} variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100 font-medium whitespace-nowrap">
+                                  {item}
+                                </Badge>
+                              ));
+                            } else if (typeof eq === 'string' && eq.trim()) {
+                              return eq.split(',').map((item, i) => (
+                                <Badge key={i} variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100 font-medium whitespace-nowrap">
+                                  {item.trim()}
+                                </Badge>
+                              ));
+                            }
+                            return <p className="text-xs text-slate-400 italic">No equipment listed</p>;
+                          })()}
+                        </div>
+                      </div>
+                    </div>
 
-                {/* ACTION BUTTONS */}
-                <div className="flex justify-end gap-3 pt-4 border-t mt-2">
-                  <Button variant="ghost" onClick={() => { setIsAddOpen(false); setEditItem(null); setForm({}); }}>
-                    Cancel
-                  </Button>
-                  <Button onClick={saveAdd} className="bg-blue-600 hover:bg-blue-700 text-white">
-                    {editItem ? 'Save Changes' : 'Add Aircraft'}
-                  </Button>
-                </div>
+                    {/* Right Col: Maintenance & Tracking */}
+                    <div className="md:col-span-1 space-y-6">
+                      <h4 className="text-sm font-black uppercase text-slate-400 border-b pb-2">Operational Status</h4>
+                      <div className="space-y-4">
+                        <div className="bg-slate-50 p-4 rounded-lg flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-white p-2 rounded-md shadow-sm">
+                              <Calendar className="h-4 w-4 text-orange-500" />
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-slate-400 uppercase font-bold">Next Maintenance</p>
+                              <p className="text-sm font-bold">{selectedAircraft.nextMaintenanceDue || "Not Scheduled"}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-blue-50 p-4 rounded-lg space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Activity className="h-4 w-4 text-blue-600" />
+                            <p className="text-xs font-bold text-blue-800 uppercase">Live Location</p>
+                          </div>
+                          <div className="text-[11px] font-mono text-blue-600 bg-white/50 p-2 rounded border border-blue-100">
+                            Lat: {selectedAircraft.latitude?.toFixed(4) || "0.00"} | Lng: {selectedAircraft.longitude?.toFixed(4) || "0.00"}
+                          </div>
+                          <Button
+                            className="w-full h-8 text-[11px] font-bold"
+                            variant="default"
+                            onClick={() => {
+                              setSelectedAircraft(null);
+                              setView("map");
+                              setTimeout(() => {
+                                window.dispatchEvent(new CustomEvent("flyToAircraft", {
+                                  detail: { id: selectedAircraft.id, lat: selectedAircraft.latitude, lng: selectedAircraft.longitude }
+                                }));
+                              }, 250);
+                            }}
+                          >
+                            TRACK IN LIVE MAP
+                          </Button>
+                        </div>
+
+                        <div className="p-2 border-2 border-dashed border-slate-200 rounded-lg">
+                          <p className="text-[10px] text-slate-400 italic text-center">Last updated: {new Date().toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </DialogContent>
           </Dialog>
@@ -671,9 +1036,11 @@ const Aircraft: React.FC = () => {
                 {/* Chat Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex justify-between items-center border-b border-blue-400">
                   <div className="flex items-center gap-3">
-                    <MessageSquare className="h-6 w-6 text-white" />
+                    <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden shadow-inner flex-shrink-0">
+                      <img src={chatBotImage} alt="AI Aircraft Assistant" className="w-full h-full object-cover" />
+                    </div>
                     <div>
-                      <h3 className="font-bold text-white">✈️ Aircraft Assistant</h3>
+                      <h3 className="font-bold text-white">Aircraft Assistant</h3>
                       <p className="text-xs text-blue-100">Online & Ready</p>
                     </div>
                   </div>
@@ -730,9 +1097,9 @@ const Aircraft: React.FC = () => {
               </Button>
             )}
           </div>
-        </div>
-      </TooltipProvider>
-    </Layout>
+        </div >
+      </TooltipProvider >
+    </Layout >
   );
 };
 

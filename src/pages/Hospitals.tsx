@@ -1,4 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import type { LatLngExpression } from "leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
 import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +19,20 @@ import { mockHospitals, mockBookings } from '@/data/mockData';
 import { usePatients } from '@/contexts/PatientsContext';
 import { Hospital } from '@/types';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Search, Trash2, Calendar, CheckCircle2, XCircle, Building2, AlertCircle, Download, Bed, MessageCircle, X, Send, Zap, Users, Phone, MapPin, Clock, ChevronRight, Smile, Lightbulb, BookOpen, TrendingUp } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Plus, Search, Filter, Edit, Trash2, Heart, Activity, User, Calendar, MapPin, Hash, Phone, AlertCircle, FileText, Download, MoreVertical, MessageCircle, X, Send, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Bed, XCircle, CheckCircle2, Building2, Users, Clock, Smile, Lightbulb, BookOpen, TrendingUp, Zap, Navigation, Loader2, Eye, BarChart3 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/components/ui/use-toast';
 import { ToastAction } from '@/components/ui/toast';
@@ -22,6 +40,88 @@ import { HospitalService } from '@/services/hospital.service';
 import { exportHospitals } from '@/utils/exportHospitals';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import chatBotImage from '../emoji.jpeg';
+
+// Fix Leaflet marker icons
+const iconRetinaUrl = "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png";
+const iconUrl = "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png";
+const shadowUrl = "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png";
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl,
+  iconUrl,
+  shadowUrl,
+});
+
+// Map Click Handler Component
+const MapClickHandler = ({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number) => void }) => {
+  useMapEvents({
+    click: (e) => {
+      onLocationSelect(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+};
+
+// KPI Card Component
+const KpiCard = ({
+  title,
+  value,
+  icon,
+  trend = "+2.4%",
+  isPositive = true,
+  color = "blue"
+}: {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  trend?: string;
+  isPositive?: boolean;
+  color?: string;
+}) => {
+  const colorClasses: any = {
+    blue: "bg-blue-600 hover:shadow-blue-200",
+    rose: "bg-rose-600 hover:shadow-rose-200",
+    amber: "bg-amber-600 hover:shadow-amber-200",
+    emerald: "bg-emerald-600 hover:shadow-emerald-200",
+  };
+
+  return (
+    <Card className="group relative overflow-hidden border-none bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 rounded-2xl">
+      <CardContent className="p-6">
+        <div className="flex justify-between items-start">
+          <div className="space-y-2">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+              {title}
+            </p>
+            <h3 className="text-2xl font-black text-slate-900 tracking-tighter">
+              {value}
+            </h3>
+            <div className="flex items-center gap-1.5 pt-1">
+              <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black ${isPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                {isPositive ? <TrendingUp size={10} /> : <Activity size={10} />}
+                {trend}
+              </div>
+              <span className="text-[9px] text-slate-400 font-bold uppercase">Health Check</span>
+            </div>
+          </div>
+          <div className={`p-3 rounded-xl bg-slate-50 text-slate-400 group-hover:text-white transition-all duration-300 shadow-sm group-hover:scale-110 ${colorClasses[color] || colorClasses.blue}`}>
+            {icon}
+          </div>
+        </div>
+        <div className="absolute bottom-0 left-0 h-1 w-0 bg-blue-600 group-hover:w-full transition-all duration-500" />
+      </CardContent>
+    </Card>
+  );
+};
+
+const getCapacityStatus = (occupied: number = 0, total: number = 1) => {
+  const ratio = occupied / (total || 1);
+  if (ratio >= 0.9) return { label: 'CRITICAL', color: 'bg-red-100 text-red-800 border-red-200' };
+  if (ratio >= 0.7) return { label: 'HIGH', color: 'bg-orange-100 text-orange-800 border-orange-200' };
+  if (ratio >= 0.4) return { label: 'NORMAL', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+  return { label: 'OPTIMAL', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+};
+
 
 type LevelOfCare = 'Primary' | 'Secondary' | 'Tertiary' | 'Quaternary';
 
@@ -51,6 +151,14 @@ const Hospitals = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Hospital>>({});
+  const [isMapVisible, setIsMapVisible] = useState(false);
+  const [reverseGeocoding, setReverseGeocoding] = useState(false);
+  const [mapSearch, setMapSearch] = useState('');
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
+  const [isSearchingMap, setIsSearchingMap] = useState(false);
+  const [levelFilter, setLevelFilter] = useState<'all' | LevelOfCare>('all');
+
 
   // Chatbot state
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -76,22 +184,6 @@ const Hospitals = () => {
   const CHAT_INACTIVITY_TIME = 2 * 60 * 1000; // 2 minutes in milliseconds
   const { addPatient, patients, removePatient, updatePatient } = usePatients();
   const navigate = useNavigate();
-  const [recentPatients, setRecentPatients] = useState<any[]>([]);
-  const [deleteCandidate, setDeleteCandidate] = useState<any | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [lastDeleted, setLastDeleted] = useState<any | null>(null);
-  const [editCandidate, setEditCandidate] = useState<any | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editForm, setEditForm] = useState<any>({});
-  const [approvedIds, setApprovedIds] = useState<string[]>(() => {
-    try { const raw = localStorage.getItem('asf:approvedPatients:v1'); return raw ? JSON.parse(raw) : []; } catch (e) { return []; }
-  });
-  const [hospitalPatients, setHospitalPatients] = useState<{ [hospitalId: string]: string[] }>(() => {
-    try { const raw = localStorage.getItem('asf:hospitalPatients:v1'); return raw ? JSON.parse(raw) : {}; } catch (e) { return {}; }
-  });
-  const [isAddToHospitalDialogOpen, setIsAddToHospitalDialogOpen] = useState(false);
-  const [approvedPatientToAdd, setApprovedPatientToAdd] = useState<any | null>(null);
-  const [selectedHospitalId, setSelectedHospitalId] = useState<string>('');
 
   // Booking approval state
   const [bookings, setBookings] = useState<any[]>(() => {
@@ -104,32 +196,9 @@ const Hospitals = () => {
   const [selectedBookingForApproval, setSelectedBookingForApproval] = useState<string | null>(null);
   const [approvalNotes, setApprovalNotes] = useState('');
 
-  // New patients awaiting approval state
-  const [newPatients, setNewPatients] = useState<any[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('airswift_new_patients_pending') || '[]');
-    } catch {
-      return [];
-    }
-  });
-  const [patientApprovalNotes, setPatientApprovalNotes] = useState('');
-  const [selectedPatientForApproval, setSelectedPatientForApproval] = useState<string | null>(null);
-
   useEffect(() => {
     fetchHospitals();
-    // Initialize recently added patients with the most recent patients from context
-    if (patients && patients.length > 0) {
-      setRecentPatients(patients.slice(0, 5));
-    }
   }, []);
-
-  useEffect(() => {
-    try { localStorage.setItem('asf:approvedPatients:v1', JSON.stringify(approvedIds)); } catch (e) { }
-  }, [approvedIds]);
-
-  useEffect(() => {
-    try { localStorage.setItem('asf:hospitalPatients:v1', JSON.stringify(hospitalPatients)); } catch (e) { }
-  }, [hospitalPatients]);
 
   // Chatbot inactivity timer effect
   useEffect(() => {
@@ -178,45 +247,12 @@ const Hospitals = () => {
     };
   }, [isChatOpen, chatInactivityTimer, CHAT_INACTIVITY_TIME]);
 
-  useEffect(() => {
-    const handleNewPatient = (e: any) => {
-      const patient = e?.detail;
-      if (patient) {
-        setRecentPatients(prev => [patient, ...prev].slice(0, 5));
-        // Add to pending approvals
-        setNewPatients(prev => {
-          const updated = [{ ...patient, status: 'pending_approval', createdAt: new Date().toISOString() }, ...prev];
-          try { localStorage.setItem('airswift_new_patients_pending', JSON.stringify(updated)); } catch (e) { }
-          return updated;
-        });
-      }
-    };
-    const handlePatientUpdate = (e: any) => {
-      const updatedPatient = e?.detail;
-      if (updatedPatient) {
-        setRecentPatients(prev => {
-          const exists = prev.some(p => p.id === updatedPatient.id);
-          if (exists) {
-            return prev.map(p => p.id === updatedPatient.id ? updatedPatient : p);
-          }
-          // If not present, prepend so edits to older patients become visible
-          return [updatedPatient, ...prev].slice(0, 5);
-        });
-      }
-    };
-    window.addEventListener('new-patient', handleNewPatient as EventListener);
-    window.addEventListener('patient-updated', handlePatientUpdate as EventListener);
-    return () => {
-      window.removeEventListener('new-patient', handleNewPatient as EventListener);
-      window.removeEventListener('patient-updated', handlePatientUpdate as EventListener);
-    };
-  }, []);
 
   const fetchHospitals = async () => {
     try {
       setLoading(true);
       const data = await HospitalService.getHospitals();
-      setHospitals(data);
+      setHospitals(data.filter(Boolean));
       setError(null);
     } catch (err) {
       console.error("Error fetching hospitals:", err);
@@ -241,26 +277,24 @@ const Hospitals = () => {
   };
 
 
-  const summaryStats = useMemo(() => {
-    const total = hospitals.length;
-    const totalICUCapacity = hospitals.reduce((sum, h) => sum + (h.icuCapacity || 0), 0);
-    const primary = hospitals.filter(h => h.levelOfCare === 'Primary').length;
-    const secondary = hospitals.filter(h => h.levelOfCare === 'Secondary').length;
-    const tertiary = hospitals.filter(h => h.levelOfCare === 'Tertiary').length;
-    const quaternary = hospitals.filter(h => h.levelOfCare === 'Quaternary').length;
-    return { total, totalICUCapacity, primary, secondary, tertiary, quaternary };
-  }, [hospitals]);
 
   /* PAGINATION STATE */
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   const visible = useMemo(() => {
     return hospitals.filter((h) => {
       const q = query.trim().toLowerCase();
-      return q === '' || h.name.toLowerCase().includes(q) || h.address.toLowerCase().includes(q) || h.contactPerson.toLowerCase().includes(q);
+      const matchesSearch = q === '' ||
+        (h.name?.toLowerCase().includes(q)) ||
+        (h.address?.toLowerCase().includes(q)) ||
+        (h.contactPerson?.toLowerCase().includes(q));
+
+      const matchesLevel = levelFilter === 'all' || h.levelOfCare === levelFilter;
+
+      return matchesSearch && matchesLevel;
     });
-  }, [hospitals, query]);
+  }, [hospitals, query, levelFilter]);
 
   const totalPages = Math.ceil(visible.length / itemsPerPage);
   const paginatedHospitals = useMemo(() => {
@@ -283,6 +317,7 @@ const Hospitals = () => {
         address: hospital.address,
         levelOfCare: hospital.levelOfCare,
         icuCapacity: hospital.icuCapacity,
+        occupiedBeds: hospital.occupiedBeds,
         coordinates: hospital.coordinates,
         contactPerson: hospital.contactPerson,
         email: hospital.email,
@@ -296,6 +331,63 @@ const Hospitals = () => {
   const handleCloseDialog = () => {
     setDialog({ mode: 'Add', isOpen: false });
     setFormData({});
+    setIsMapVisible(false);
+  };
+
+  const handleMapLocationSelect = async (lat: number, lng: number) => {
+    setFormData(prev => ({
+      ...prev,
+      coordinates: { lat, lng }
+    }));
+
+    setReverseGeocoding(true);
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+      const data = await response.json();
+      if (data && data.display_name) {
+        setFormData(prev => ({
+          ...prev,
+          address: data.display_name,
+          // Extract house number/street if possible for hospital name if empty
+          name: prev.name || data.address.hospital || data.address.amenity || data.address.building || ""
+        }));
+      }
+    } catch (err) {
+      console.error("Reverse geocoding failed:", err);
+    } finally {
+      setReverseGeocoding(false);
+    }
+  };
+
+  const handleMapSearch = async () => {
+    if (!mapSearch.trim()) return;
+    setIsSearchingMap(true);
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(mapSearch)}&limit=1`);
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const { lat, lon, display_name } = data[0];
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lon);
+
+        setFormData(prev => ({
+          ...prev,
+          address: display_name,
+          coordinates: { lat: latitude, lng: longitude },
+          // Try to set hospital name if empty
+          name: prev.name || data[0].address?.hospital || data[0].address?.amenity || ""
+        }));
+
+        toast({ title: "Location Found", description: "Map center updated to searched location." });
+      } else {
+        toast({ title: "No results", description: "Could not find that location on the map.", variant: "destructive" });
+      }
+    } catch (err) {
+      console.error("Map search failed:", err);
+      toast({ title: "Search Error", description: "Failed to search for location.", variant: "destructive" });
+    } finally {
+      setIsSearchingMap(false);
+    }
   };
 
   const handleSave = async () => {
@@ -451,11 +543,12 @@ const Hospitals = () => {
         const stats = {
           total: hospitals.length,
           icu: hospitals.reduce((sum, h) => sum + h.icuCapacity, 0),
+          occupied: hospitals.reduce((sum, h) => sum + (h.occupiedBeds || 0), 0),
           tertiary: hospitals.filter(h => h.levelOfCare === 'Tertiary').length,
           secondary: hospitals.filter(h => h.levelOfCare === 'Secondary').length,
           primary: hospitals.filter(h => h.levelOfCare === 'Primary').length,
         };
-        botResponse = `🏥 Hospital Network Overview\n━━━━━━━━━━━━━━━━━━━━━━━━\n🔢 Total Hospitals: ${stats.total}\n🛏️ Combined ICU Beds: ${stats.icu}\n⭐ Tertiary Centers: ${stats.tertiary}\n📍 Secondary Centers: ${stats.secondary}\n📌 Primary Centers: ${stats.primary}\n\n💡 What would you like to explore?`;
+        botResponse = `🏥 Hospital Network Overview\n━━━━━━━━━━━━━━━━━━━━━━━━\n🔢 Total Hospitals: ${stats.total}\n🛏️ Total Seats: ${stats.icu}\n📉 Occupied Seats: ${stats.occupied}\n✨ Available Seats: ${stats.icu - stats.occupied}\n⭐ Tertiary Centers: ${stats.tertiary}\n📍 Secondary Centers: ${stats.secondary}\n📌 Primary Centers: ${stats.primary}\n\n💡 What would you like to explore?`;
         suggestions = ['⭐ Tertiary hospitals', '❤️ Cardiac centers', '🛏️ ICU availability', '📍 By location'];
       }
 
@@ -472,11 +565,11 @@ const Hospitals = () => {
       }
 
       // ICU Capacity Queries
-      else if (userText.includes('icu') || userText.includes('capacity') || userText.includes('bed') || userText.includes('available')) {
+      else if (userText.includes('icu') || userText.includes('capacity') || userText.includes('bed') || userText.includes('seat') || userText.includes('available')) {
         const availableHospitals = hospitals
-          .sort((a, b) => b.icuCapacity - a.icuCapacity)
+          .sort((a, b) => (b.icuCapacity - (b.occupiedBeds || 0)) - (a.icuCapacity - (a.occupiedBeds || 0)))
           .slice(0, 5);
-        botResponse = `🛏️ ICU Bed Availability Report\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n${availableHospitals.map((h, i) => `${i + 1}. ${h.name}\n   🛏️ ${h.icuCapacity} ICU beds | ⭐ ${h.levelOfCare} | 📍 ${h.address.substring(0, 30)}...`).join('\n\n')}\n\n✅ Last updated: Just now\n🔄 Refresh for latest data`;
+        botResponse = `🛏️ Seat Availability Report\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n${availableHospitals.map((h, i) => `${i + 1}. ${h.name}\n   🛏️ ${h.icuCapacity - (h.occupiedBeds || 0)} Available / ${h.icuCapacity} Total Seats\n   ⭐ ${h.levelOfCare} | 📍 ${h.address.substring(0, 25)}...`).join('\n\n')}\n\n✅ Last updated: Just now\n🔄 Refresh for latest data`;
         suggestions = ['🚁 Create transfer', '📊 All hospitals', '🔍 Search hospital'];
       }
 
@@ -609,36 +702,340 @@ const Hospitals = () => {
     });
   };
 
-  // Patient Approval Functions
-  const approvePatient = (patientId: string) => {
-    const updatedPatients = newPatients.map(p =>
-      p.id === patientId
-        ? { ...p, status: 'approved', approvedAt: new Date().toISOString(), approvalNotes: patientApprovalNotes }
-        : p
-    );
-    setNewPatients(updatedPatients.filter(p => p.status === 'pending_approval'));
-    localStorage.setItem('airswift_new_patients_pending', JSON.stringify(updatedPatients.filter(p => p.status === 'pending_approval')));
-    setSelectedPatientForApproval(null);
-    setPatientApprovalNotes('');
-    toast({
-      title: "Patient Approved",
-      description: "The new patient has been approved for transfer.",
-      action: <ToastAction altText="Close">Close</ToastAction>,
-    });
-  };
 
-  const rejectPatient = (patientId: string) => {
-    const updatedPatients = newPatients.filter(p => p.id !== patientId);
-    setNewPatients(updatedPatients);
-    localStorage.setItem('airswift_new_patients_pending', JSON.stringify(updatedPatients));
-    setSelectedPatientForApproval(null);
-    setPatientApprovalNotes('');
-    toast({
-      title: "Patient Rejected",
-      description: "The new patient record has been rejected.",
-      variant: "destructive",
-    });
-  };
+  const summaryStats = useMemo(() => ({
+    total: hospitals.length,
+    totalICUCapacity: hospitals.reduce((sum, h) => sum + (h.icuCapacity || 0), 0),
+    totalOccupiedBeds: hospitals.reduce((sum, h) => sum + (h.occupiedBeds || 0), 0),
+    primary: hospitals.filter(h => h.levelOfCare === 'Primary').length,
+    secondary: hospitals.filter(h => h.levelOfCare === 'Secondary').length,
+    tertiary: hospitals.filter(h => h.levelOfCare === 'Tertiary').length,
+    quaternary: hospitals.filter(h => h.levelOfCare === 'Quaternary').length,
+  }), [hospitals]);
+
+  const summaryStatsArray = useMemo(() => [
+    { title: "Total Centres", value: summaryStats.total, icon: <Building2 className="h-5 w-5" />, color: "blue", trend: "+1 new" },
+    { title: "Total Capacity", value: summaryStats.totalICUCapacity, icon: <Bed className="h-5 w-5" />, color: "rose", trend: "100% Active" },
+    { title: "Available Seats", value: summaryStats.totalICUCapacity - summaryStats.totalOccupiedBeds, icon: <Activity className="h-5 w-5" />, color: "amber", trend: `${Math.round(((summaryStats.totalICUCapacity - summaryStats.totalOccupiedBeds) / (summaryStats.totalICUCapacity || 1)) * 100)}% Free`, isPositive: (summaryStats.totalICUCapacity - summaryStats.totalOccupiedBeds) > 10 },
+    { title: "Tertiary Hubs", value: summaryStats.tertiary, icon: <CheckCircle2 className="h-5 w-5" />, color: "emerald", trend: "High Priority" },
+  ], [summaryStats]);
+
+  const headerActions = (
+    <div className="flex items-center gap-2 md:gap-3">
+      {/* Analytics Popover - Hidden on extra small mobile */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="h-9 w-9 md:h-10 md:w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group shrink-0" title="Hospital Network Analytics">
+            <BarChart3 className="h-4 w-4 transition-transform group-hover:scale-110 text-slate-500 group-hover:text-blue-600" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[calc(100vw-32px)] sm:w-[320px] p-5 rounded-3xl shadow-2xl border-slate-200 animate-in fade-in zoom-in-95 duration-300" align="end" sideOffset={10}>
+          <div className="flex items-center gap-3 mb-5 pb-3 border-b border-slate-100">
+            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100">
+              <Building2 className="h-4 w-4 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-black text-slate-800 uppercase tracking-tight">Network Analytics</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">Global Infrastructure</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl transition-all hover:border-blue-100 group/metric">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Users className="h-3 w-3 text-blue-500" />
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-slate-800 tracking-tighter">{summaryStats.total}</span>
+                <span className="text-[8px] text-slate-400 font-bold uppercase">Centres</span>
+              </div>
+            </div>
+            <div className="p-3 bg-rose-50/50 border border-rose-100 rounded-xl transition-all hover:border-rose-200 group/metric">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Bed className="h-3 w-3 text-rose-500" />
+                <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">Capacity</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-rose-600 tracking-tighter">{summaryStats.totalICUCapacity}</span>
+                <span className="text-[8px] text-rose-400 font-bold uppercase font-black italic">Beds</span>
+              </div>
+            </div>
+            <div className="p-3 bg-amber-50/50 border border-amber-100 rounded-xl transition-all hover:border-amber-200 group/metric">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Activity className="h-3 w-3 text-amber-500" />
+                <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Available</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-amber-600 tracking-tighter">{summaryStats.totalICUCapacity - summaryStats.totalOccupiedBeds}</span>
+                <span className="text-[8px] text-amber-400 font-bold uppercase font-black italic">Seats</span>
+              </div>
+            </div>
+            <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl transition-all hover:border-emerald-200 group/metric">
+              <div className="flex items-center gap-2 mb-1.5">
+                <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Tertiary</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-emerald-600 tracking-tighter">{summaryStats.tertiary}</span>
+                <span className="text-[8px] text-emerald-400 font-bold uppercase font-black italic">Hubs</span>
+              </div>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {/* Unified Filter Dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="flex items-center justify-center h-9 w-9 md:h-10 md:w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group relative shrink-0" title="Filters">
+            <Filter className={`h-4 w-4 transition-transform group-hover:rotate-12 ${levelFilter !== 'all' ? 'text-blue-600' : 'text-slate-500'}`} />
+            {levelFilter !== 'all' && (
+              <span className="absolute -top-1 -right-1 h-3.5 w-3.5 md:h-4 md:w-4 flex items-center justify-center rounded-full bg-blue-600 text-white text-[8px] font-black border-2 border-white shadow-sm animate-in zoom-in duration-300">
+                1
+              </span>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56 p-2 rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200" align="end">
+          <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2 py-1.5">
+            Care Level Filters
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator className="my-1 bg-slate-100" />
+          <DropdownMenuItem
+            onClick={() => setLevelFilter('all')}
+            className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${levelFilter === 'all' ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}
+          >
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              <span className="text-xs font-bold uppercase tracking-wide">All Levels</span>
+            </div>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="my-1 bg-slate-100" />
+          {['Primary', 'Secondary', 'Tertiary', 'Quaternary'].map(level => (
+            <DropdownMenuItem
+              key={level}
+              onClick={() => setLevelFilter(level as any)}
+              className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${levelFilter === level ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}
+            >
+              <div className="flex items-center gap-2">
+                <div className={`w-1.5 h-1.5 rounded-full ${level === 'Primary' ? 'bg-emerald-500' : level === 'Secondary' ? 'bg-amber-500' : level === 'Tertiary' ? 'bg-orange-500' : 'bg-rose-500'}`} />
+                <span className="text-xs font-bold uppercase tracking-wide capitalize">{level}</span>
+              </div>
+              <span className="text-[10px] font-black bg-slate-100 px-1.5 py-0.5 rounded-md text-slate-500">
+                {hospitals.filter(h => h.levelOfCare === level).length}
+              </span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <div className="relative flex-1 max-w-[120px] sm:max-w-72">
+        <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+        <Input
+          placeholder="Search..."
+          className="pl-8 sm:pl-10 h-9 md:h-10 bg-slate-50/50 border-slate-200 focus:bg-white transition-all rounded-xl text-[11px] sm:text-xs font-medium"
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
+        />
+      </div>
+
+      <Dialog open={dialog.isOpen} onOpenChange={(open) => { if (open) handleOpenDialog('Add'); else handleCloseDialog(); }}>
+        <DialogTrigger asChild>
+          <Button
+            variant="outline"
+            className="h-9 md:h-10 px-3 md:px-6 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-bold rounded-xl shadow-sm flex items-center gap-2 transition-all active:scale-95 group shrink-0"
+            onClick={() => handleOpenDialog('Add')}
+          >
+            <Plus className="h-4 w-4 stroke-[3px] group-hover:rotate-90 transition-transform" />
+            <span className="uppercase tracking-wider hidden sm:inline">Add Hospital</span>
+            <span className="uppercase tracking-wider sm:hidden">Add</span>
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+          <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
+            <DialogTitle className="text-white text-xl">{dialog.mode === 'Add' ? '➕ Add New Hospital' : `✏️ Edit Hospital - ${formData.name}`}</DialogTitle>
+            <DialogDescription className="text-blue-100">Enter hospital details and capacity information</DialogDescription>
+          </DialogHeader>
+
+          <div className="p-6 space-y-4 overflow-y-auto flex-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label className="font-semibold">🏥 Hospital Name *</Label>
+                <Input
+                  value={formData.name || ""}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Hospital name"
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-semibold">⭐ Level of Care</Label>
+                <Select
+                  value={formData.levelOfCare || "Primary"}
+                  onValueChange={(v) => setFormData({ ...formData, levelOfCare: v as LevelOfCare })}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CARE_LEVELS.map((level) => (
+                      <SelectItem key={level} value={level}>{level}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-semibold">🛏️ Total Seats</Label>
+                <Input
+                  type="number"
+                  value={formData.icuCapacity || 0}
+                  onChange={(e) => setFormData({ ...formData, icuCapacity: parseInt(e.target.value) || 0 })}
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-semibold">📉 Occupied Seats</Label>
+                <Input
+                  type="number"
+                  value={formData.occupiedBeds || 0}
+                  onChange={(e) => setFormData({ ...formData, occupiedBeds: parseInt(e.target.value) || 0 })}
+                  className="h-9"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="sm:col-span-2 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <Label className="font-semibold">📍 Address *</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`h-7 text-[10px] gap-1 px-2 ${isMapVisible ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-blue-600'}`}
+                    onClick={() => setIsMapVisible(!isMapVisible)}
+                  >
+                    <MapPin className="h-3 w-3" />
+                  </Button>
+                </div>
+                <Input
+                  value={formData.address || ""}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="Physical address"
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-semibold">👤 Contact Person</Label>
+                <Input
+                  value={formData.contactPerson || ""}
+                  onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                  placeholder="Contact person"
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-semibold">📞 Phone</Label>
+                <Input
+                  value={formData.phone || ""}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="Phone number"
+                  className="h-9"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label className="font-semibold">✉️ Email</Label>
+                <Input
+                  value={formData.email || ""}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="Email address"
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-semibold">🌐 Lat</Label>
+                <Input
+                  type="number"
+                  value={formData.coordinates?.lat || 0}
+                  onChange={(e) => setFormData({ ...formData, coordinates: { ...formData.coordinates!, lat: parseFloat(e.target.value) } })}
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-semibold">🌐 Lng</Label>
+                <Input
+                  type="number"
+                  value={formData.coordinates?.lng || 0}
+                  onChange={(e) => setFormData({ ...formData, coordinates: { ...formData.coordinates!, lng: parseFloat(e.target.value) } })}
+                  className="h-9"
+                />
+              </div>
+            </div>
+
+            {isMapVisible && (
+              <div className="h-64 rounded-xl overflow-hidden border-2 border-slate-200 shadow-inner relative group">
+                <MapContainer
+                  center={[formData.coordinates?.lat || 37.7749, formData.coordinates?.lng || -122.4194] as LatLngExpression}
+                  zoom={13}
+                  className="h-full w-full"
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <MapClickHandler onLocationSelect={handleMapLocationSelect} />
+                  {formData.coordinates && <Marker position={[formData.coordinates.lat, formData.coordinates.lng] as LatLngExpression} />}
+                </MapContainer>
+                <div className="absolute top-2 right-2 z-[1000] flex gap-2">
+                  <div className="bg-white/90 backdrop-blur-md p-1 rounded-lg border shadow-sm flex items-center gap-2">
+                    <Search className="h-3 w-3 text-slate-400 ml-2" />
+                    <Input
+                      placeholder="Search location..."
+                      value={mapSearch}
+                      onChange={(e) => setMapSearch(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleMapSearch()}
+                      className="h-7 w-40 text-[10px] border-none bg-transparent focus-visible:ring-0 px-1"
+                    />
+                    <Button
+                      size="sm"
+                      className="h-6 px-3 bg-blue-600 hover:bg-blue-700 text-[10px] font-bold text-white"
+                      onClick={handleMapSearch}
+                      disabled={isSearchingMap}
+                    >
+                      {isSearchingMap ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Search'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-4 pt-6 mt-4 border-t border-slate-100">
+              <Button
+                className={`flex-1 h-12 text-base font-bold transition-all shadow-lg active:scale-95 ${submittingId ? 'bg-slate-400' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200'}`}
+                onClick={handleSave}
+                disabled={!!submittingId}
+              >
+                {submittingId ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : '💾 Save Hospital Configuration'}
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 h-12 text-base font-bold border-2 border-slate-200 hover:bg-slate-50 transition-all active:scale-95"
+                onClick={handleCloseDialog}
+              >
+                ❌ Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Button variant="secondary" className="h-9 md:h-10 px-3 md:px-6 border-2 border-slate-200 text-slate-600 hover:bg-slate-50 font-bold rounded-xl shadow-sm transition-all active:scale-95 flex items-center shrink-0" onClick={() => exportHospitals(hospitals)}>
+        <FileText size={16} className="md:mr-2" />
+        <span className="hidden md:inline">EXPORT</span>
+      </Button>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -649,240 +1046,110 @@ const Hospitals = () => {
   }
 
   return (
-    <Layout>
-      <div className="space-y-4">
-        {/* Header - Simple Clean */}
-        <div className="flex justify-between items-center py-3">
-          <div>
-            <h1 className="text-3xl font-bold text-black mb-0.5">🏥 Hospitals</h1>
-            <p className="text-gray-600 font-medium text-xs">Manage hospital networks and emergency resources</p>
-          </div>
-          <Dialog open={dialog.isOpen} onOpenChange={(open) => { if (open) handleOpenDialog('Add'); else handleCloseDialog(); }}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 bg-white hover:bg-gray-100 text-black font-bold shadow-lg border border-gray-300">
+    <Layout isFullHeight={true} subTitle="Hospital Network Operations" headerActions={headerActions}>
+      <div className="space-y-6 flex-1 flex flex-col min-h-0">
 
-                ➕ Add Hospital
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-              <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-                <DialogTitle className="text-white text-xl">{dialog.mode === 'Add' ? '➕ Add New Hospital' : `✏️ Edit Hospital - ${formData.name}`}</DialogTitle>
-                <DialogDescription className="text-blue-100">Enter hospital details and capacity information</DialogDescription>
-              </DialogHeader>
+        {/* Hospital Detail View Dialog */}
+        <Dialog open={Boolean(selectedHospital)} onOpenChange={(open) => { if (!open) setSelectedHospital(null); }}>
+          <DialogContent className="w-[85vw] max-w-none max-h-[85vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+            <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
+              <DialogTitle className="text-white text-xl">
+                🏥 Hospital Detail View - {selectedHospital?.name}
+              </DialogTitle>
+              <DialogDescription className="text-blue-100">
+                Full facility details and contact information for {selectedHospital?.name}
+              </DialogDescription>
+            </DialogHeader>
 
-              <div className="p-6 space-y-4 overflow-y-auto flex-1">
-                {/* ROW 1: Basic Info */}
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="col-span-2 space-y-1.5">
-                    <Label className="font-semibold">🏥 Hospital Name *</Label>
-                    <Input
-                      value={formData.name || ""}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Hospital name"
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="font-semibold">⭐ Level of Care</Label>
-                    <Select
-                      value={formData.levelOfCare || "Primary"}
-                      onValueChange={(v) => setFormData({ ...formData, levelOfCare: v as LevelOfCare })}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Select level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CARE_LEVELS.map((level) => (
-                          <SelectItem key={level} value={level}>{level}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="font-semibold">🛏️ ICU Capacity</Label>
-                    <Input
-                      type="number"
-                      value={formData.icuCapacity || 0}
-                      onChange={(e) => setFormData({ ...formData, icuCapacity: parseInt(e.target.value) || 0 })}
-                      className="h-9"
-                    />
-                  </div>
-                </div>
+            <div className="p-8 space-y-8 overflow-y-auto flex-1 text-black">
+              {selectedHospital && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-black uppercase text-slate-400 border-b pb-2">General Information</h4>
+                      <div className="grid grid-cols-2 gap-6">
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Level of Care</p>
+                          <p className="text-sm font-bold">{selectedHospital.levelOfCare}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">ICU Capacity</p>
+                          <p className="text-sm font-bold flex items-center gap-1">
+                            <Bed className="h-3 w-3 text-blue-500" />
+                            {selectedHospital.icuCapacity} Total Beds
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Occupied Beds</p>
+                          <p className="text-sm font-bold flex items-center gap-1">
+                            <Activity className="h-3 w-3 text-orange-500" />
+                            {selectedHospital.occupiedBeds || 0} Occupied
+                          </p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate-400 uppercase font-bold">Address</p>
+                        <p className="text-sm font-bold flex items-start gap-2">
+                          <MapPin className="h-4 w-4 text-red-500 shrink-0" />
+                          {selectedHospital.address}
+                        </p>
+                      </div>
+                    </div>
 
-                {/* ROW 2: Contact & Address */}
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="col-span-2 space-y-1.5">
-                    <Label className="font-semibold">📍 Address *</Label>
-                    <Input
-                      value={formData.address || ""}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      placeholder="Full address"
-                      className="h-9"
-                    />
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-black uppercase text-slate-400 border-b pb-2">Contact Details</h4>
+                      <div className="grid grid-cols-2 gap-6">
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Contact Person</p>
+                          <p className="text-sm font-bold flex items-center gap-2">
+                            <User className="h-3 w-3 text-slate-500" />
+                            {selectedHospital.contactPerson}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Phone</p>
+                          <p className="text-sm font-bold flex items-center gap-2">
+                            <Phone className="h-3 w-3 text-green-500" />
+                            {selectedHospital.phone}
+                          </p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Email</p>
+                          <p className="text-sm font-bold flex items-center gap-2">
+                            <MessageCircle className="h-3 w-3 text-blue-500" />
+                            {selectedHospital.email}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="font-semibold">👤 Contact Person</Label>
-                    <Input
-                      value={formData.contactPerson || ""}
-                      onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
-                      placeholder="Name"
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="font-semibold">📞 Phone</Label>
-                    <Input
-                      value={formData.phone || ""}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="Phone"
-                      className="h-9"
-                    />
-                  </div>
-                </div>
 
-                {/* ROW 3: Email & Coordinates (Optional) */}
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="col-span-2 space-y-1.5">
-                    <Label className="font-semibold">📧 Email</Label>
-                    <Input
-                      type="email"
-                      value={formData.email || ""}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="Email"
-                      className="h-9"
-                    />
-                  </div>
-                  {/* Placeholder for future fields or empty space */}
-                  <div className="col-span-2"></div>
-                </div>
-
-                {/* Footer */}
-                <div className="flex justify-end gap-3 pt-4 border-t mt-4">
-                  <Button variant="ghost" onClick={handleCloseDialog}>Cancel</Button>
-                  <Button onClick={handleSave} disabled={submittingId === "saving"} className="bg-blue-600 hover:bg-blue-700 text-white">
-                    {submittingId === "saving" ? "Saving..." : "Save Hospital"}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Summary Stats - Professional Cards */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card className="bg-white border-2 border-gray-200 shadow-md hover:shadow-lg transition-all duration-300">
-            <CardContent className="pt-6 pb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-3">🏢 Total Hospitals</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-3xl font-bold text-gray-900">{summaryStats.total}</p>
-                    <p className="text-xs text-gray-400 font-medium">facilities</p>
+                  <div className="space-y-6">
+                    <h4 className="text-sm font-black uppercase text-slate-400 border-b pb-2">Logistics</h4>
+                    <div className="p-4 bg-slate-50 rounded-xl space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Navigation className="h-4 w-4 text-blue-600" />
+                        <p className="text-xs font-bold text-blue-800 uppercase">Pickup Location</p>
+                      </div>
+                      <p className="text-sm font-medium italic text-slate-700">
+                        "{selectedHospital.preferredPickupLocation || "No specific instructions provided."}"
+                      </p>
+                      <div className="pt-4 space-y-2">
+                        <p className="text-[10px] text-slate-400 uppercase font-bold">Coordinates</p>
+                        <div className="bg-white p-2 rounded border border-slate-200 text-xs font-mono">
+                          LAT: {selectedHospital.coordinates?.lat.toFixed(6)} | LNG: {selectedHospital.coordinates?.lng.toFixed(6)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4 border-2 border-dashed border-slate-200 rounded-xl text-center">
+                      <p className="text-xs text-slate-500 italic">Facility ID: {selectedHospital.id}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Building2 className="h-6 w-6 text-gray-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-white border-2 border-gray-200 shadow-md hover:shadow-lg transition-all duration-300">
-            <CardContent className="pt-6 pb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-3">🛏️ Total ICU Beds</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-3xl font-bold text-gray-900">{summaryStats.totalICUCapacity}</p>
-                    <p className="text-xs text-gray-400 font-medium">beds</p>
-                  </div>
-                </div>
-                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Bed className="h-6 w-6 text-gray-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-white border-2 border-gray-200 shadow-md hover:shadow-lg transition-all duration-300">
-            <CardContent className="pt-6 pb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-3">📊 Care Levels</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-3xl font-bold text-gray-900">{summaryStats.primary + summaryStats.secondary + summaryStats.tertiary + summaryStats.quaternary}</p>
-                    <p className="text-xs text-gray-400 font-medium">levels</p>
-                  </div>
-                </div>
-                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Users className="h-6 w-6 text-gray-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-white border-2 border-gray-200 shadow-md hover:shadow-lg transition-all duration-300">
-            <CardContent className="pt-6 pb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-3">⭐ Primary Care</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-3xl font-bold text-gray-900">{summaryStats.primary}</p>
-                    <p className="text-xs text-gray-400 font-medium">facilities</p>
-                  </div>
-                </div>
-                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Building2 className="h-6 w-6 text-gray-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-white border-2 border-gray-200 shadow-md hover:shadow-lg transition-all duration-300">
-            <CardContent className="pt-6 pb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-3">🏥 Secondary Care</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-3xl font-bold text-gray-900">{summaryStats.secondary}</p>
-                    <p className="text-xs text-gray-400 font-medium">facilities</p>
-                  </div>
-                </div>
-                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <AlertCircle className="h-6 w-6 text-gray-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-white border-2 border-gray-200 shadow-md hover:shadow-lg transition-all duration-300">
-            <CardContent className="pt-6 pb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-3">✅ Tertiary Care</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-3xl font-bold text-gray-900">{summaryStats.tertiary}</p>
-                    <p className="text-xs text-gray-400 font-medium">facilities</p>
-                  </div>
-                </div>
-                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <CheckCircle2 className="h-6 w-6 text-gray-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Search Bar & Export - Enhanced */}
-        <div className="flex gap-4 bg-gradient-to-r from-gray-50 to-white p-6 rounded-2xl border-2 border-gray-300 shadow-lg hover:shadow-xl transition-all">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-4 h-5 w-5 text-gray-600 font-bold" />
-            <Input placeholder="🔍 Search hospitals by name, address, or contact..." value={query} onChange={(e) => setQuery(e.target.value)} className="pl-12 border-2 border-gray-300 focus:border-gray-500 focus:ring-2 focus:ring-gray-300 font-semibold text-black placeholder-gray-500 h-12 rounded-xl" />
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => exportHospitals(hospitals)}
-            className="p-2 h-10 w-10 rounded-lg hover:bg-blue-100 transition"
-            title="Export hospitals data"
-          >
-            <Download className="h-5 w-5" />
-          </Button>
-        </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Pending Booking Approvals */}
         {getPendingBookings().length > 0 && (
@@ -1001,452 +1268,7 @@ const Hospitals = () => {
           </Card>
         )}
 
-        {/* New Patients Awaiting Approval */}
-        {newPatients.filter(p => p.status === 'pending_approval').length > 0 && (
-          <Card className="border-2 border-gray-300 shadow-lg bg-white mb-6">
-            <CardContent className="pt-8">
-              <h2 className="text-3xl font-bold mb-6 flex items-center gap-3 text-black">
-                <Users className="h-8 w-8 text-gray-600" />
-                New Patients Awaiting Approval
-                <Badge className="ml-auto bg-gray-600 text-white text-lg px-3 py-1">
-                  {newPatients.filter(p => p.status === 'pending_approval').length}
-                </Badge>
-              </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {newPatients.filter(p => p.status === 'pending_approval').map((patient) => {
-                  const age = new Date().getFullYear() - new Date(patient.dob).getFullYear();
-                  const acuityColor = patient.acuityLevel === 'critical' ? 'border-gray-600' :
-                    patient.acuityLevel === 'urgent' ? 'border-gray-500' : 'border-gray-300';
-
-                  return (
-                    <div key={patient.id} className={`border-2 ${acuityColor} rounded-xl p-6 bg-white shadow-md hover:shadow-xl transition-all`}>
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="text-lg font-bold text-black">{patient.full_name || patient.name}</h3>
-                          <p className="text-xs text-gray-500">ID: {patient.id.slice(0, 8)}</p>
-                        </div>
-                        <Badge className={`bg-white text-black border ${acuityColor}`}>{patient.acuityLevel?.toUpperCase()}</Badge>
-                      </div>
-
-                      <div className="space-y-2 mb-4 bg-gray-50 p-3 rounded text-sm">
-                        <p><span className="font-semibold text-gray-700">Age:</span> <span className="text-gray-600">{age} years</span></p>
-                        <p><span className="font-semibold text-gray-700">Gender:</span> <span className="text-gray-600">{patient.gender?.toUpperCase()}</span></p>
-                        <p><span className="font-semibold text-gray-700">Weight:</span> <span className="text-gray-600">{patient.weight} kg</span></p>
-                        <p><span className="font-semibold">Diagnosis:</span> {patient.diagnosis || 'N/A'}</p>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Dialog open={selectedPatientForApproval === patient.id} onOpenChange={(open) => {
-                          if (open) setSelectedPatientForApproval(patient.id);
-                          else {
-                            setSelectedPatientForApproval(null);
-                            setPatientApprovalNotes('');
-                          }
-                        }}>
-                          <DialogTrigger asChild>
-                            <Button size="sm" className="gap-2 bg-white hover:bg-gray-100 text-black font-semibold flex-1 border border-gray-300">
-                              <CheckCircle2 className="h-4 w-4" />
-                              Approve
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-md">
-                            <DialogHeader>
-                              <DialogTitle>Approve Patient</DialogTitle>
-                              <DialogDescription>Patient: {patient.name}</DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <Label className="text-base font-semibold">Approval Notes (Optional)</Label>
-                              <Textarea
-                                placeholder="Add notes..."
-                                value={patientApprovalNotes}
-                                onChange={(e) => setPatientApprovalNotes(e.target.value)}
-                                className="min-h-20"
-                              />
-                            </div>
-                            <DialogFooter className="gap-2">
-                              <Button variant="outline" onClick={() => setSelectedPatientForApproval(null)}>Cancel</Button>
-                              <Button onClick={() => approvePatient(patient.id)} className="bg-white hover:bg-gray-100 text-black border border-gray-300">Approve</Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-
-                        <Button
-                          size="sm"
-                          className="gap-2 text-gray-600 font-semibold flex-1 bg-white hover:bg-gray-100 border border-gray-300"
-                          onClick={() => {
-                            if (confirm('Are you sure?')) rejectPatient(patient.id);
-                          }}
-                        >
-                          <XCircle className="h-4 w-4" />
-                          Reject
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Recent Patients Section */}
-        {recentPatients.length > 0 && (
-          <Card className="border-2 border-gray-300 bg-white shadow-2xl">
-            <CardContent className="pt-6">
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-black">
-                <Users className="h-6 w-6 text-gray-600" />
-                👥 Recently Added Patients
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-                {recentPatients.map((patient) => {
-                  const age = new Date().getFullYear() - new Date(patient.dob).getFullYear();
-                  const acuityColors: Record<string, string> = {
-                    critical: 'bg-white text-black border-gray-600',
-                    urgent: 'bg-white text-black border-gray-500',
-                    stable: 'bg-white text-black border-gray-300',
-                  };
-                  return (
-                    <div key={patient.id} className="border-2 border-gray-300 rounded-xl p-4 bg-white hover:shadow-2xl transition-all flex flex-col h-full">
-                      {/* Header: Name and Approved Badge */}
-                      <div className="flex items-start justify-between mb-3 gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-black truncate">👤 {patient.full_name || patient.name}</p>
-                          <p className="text-xs text-gray-600 truncate font-semibold">{patient.id}</p>
-                        </div>
-                        {approvedIds.includes(patient.id) && (
-                          <Badge className="text-xs bg-white text-black border-gray-400 border whitespace-nowrap flex-shrink-0 font-bold">
-                            ✅ Approved
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* Patient Details */}
-                      <div className="space-y-1 text-xs mb-3 flex-grow bg-gray-50 p-3 rounded-lg">
-                        <p><span className="font-bold text-gray-700">📅 Age:</span> <span className="text-gray-600">{age} yrs</span></p>
-                        <p><span className="font-bold text-gray-700">🎂 DOB:</span> <span className="text-gray-600">{new Date(patient.date_of_birth || patient.dob || Date.now()).toLocaleDateString()}</span></p>
-                        <p><span className="font-bold text-gray-700">👥 Gender:</span> <span className="text-gray-600">{patient.gender}</span></p>
-                        {patient.diagnosis && (
-                          <p className="truncate"><span className="font-bold text-gray-700">🩺 Diagnosis:</span> <span className="text-gray-600">{patient.diagnosis}</span></p>
-                        )}
-                      </div>
-
-                      {/* Acuity and Actions */}
-                      <div className="flex items-center justify-between pt-3 border-t-2 border-gray-300 mt-auto">
-                        <Badge className={`text-xs font-bold ${acuityColors[patient.acuityLevel] || acuityColors.stable}`}>
-                          {patient.acuityLevel === 'critical' && '🔴'} {patient.acuityLevel === 'urgent' && '🟡'} {patient.acuityLevel === 'stable' && '🟢'} {patient.acuityLevel}
-                        </Badge>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100" onClick={() => { setEditCandidate(patient); setEditForm({ ...patient }); setIsEditDialogOpen(true); }}>
-                            <Edit className="h-4 w-4 text-gray-600" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100" onClick={() => {
-                            // Check if patient is already approved to any hospital
-                            const isAlreadyAssigned = Object.values(hospitalPatients).some(patients => patients.includes(patient.id));
-                            if (isAlreadyAssigned) {
-                              toast({ title: 'Already Assigned', description: `${patient.name} is already assigned to a hospital`, variant: 'destructive' });
-                              return;
-                            }
-                            setApprovedIds(prev => Array.from(new Set([patient.id, ...prev])).slice(0, 50));
-                            try { window.dispatchEvent(new CustomEvent('patient-approved', { detail: { id: patient.id } })); } catch (e) { }
-                            toast({ title: 'Success', description: `${patient.name} approved`, variant: 'default' });
-                          }}>
-                            <CheckCircle2 className="h-4 w-4 text-gray-600" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100" onClick={() => { setDeleteCandidate(patient); setIsDeleteDialogOpen(true); }}>
-                            <Trash2 className="h-4 w-4 text-gray-600" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Delete Patient AlertDialog */}
-        <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => { if (!open) setDeleteCandidate(null); setIsDeleteDialogOpen(open); }}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Patient</AlertDialogTitle>
-              <AlertDialogDescription>Are you sure you want to delete {deleteCandidate?.name}? This action cannot be undone.</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => {
-                if (!deleteCandidate) return;
-                try {
-                  const deleted = deleteCandidate;
-                  // remove from context
-                  removePatient(deleted.id);
-                  // remove from local recent list
-                  setRecentPatients(prev => prev.filter(p => p.id !== deleted.id));
-                  // store for undo
-                  setLastDeleted(deleted);
-                  const name = deleted.name;
-                  setDeleteCandidate(null);
-                  setIsDeleteDialogOpen(false);
-                  toast({
-                    title: 'Patient deleted',
-                    description: `${name} was removed.`,
-                    action: (
-                      <ToastAction altText={`Undo delete ${deleted.name}`} onClick={() => {
-                        addPatient({ ...deleted, id: deleted.id });
-                        setLastDeleted(null);
-                      }}>
-                        Undo
-                      </ToastAction>
-                    ),
-                    variant: 'destructive'
-                  });
-                } catch (err) {
-                  console.error('Failed to delete patient', err);
-                  toast({ title: 'Delete failed', description: 'Could not delete patient', variant: 'destructive' });
-                }
-              }} className="bg-red-600 hover:bg-red-700">
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Edit / Approve Patient Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={(open) => { if (!open) { setEditCandidate(null); } setIsEditDialogOpen(open); }}>
-          <DialogContent className="w-[90vw] max-w-none bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-            <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-              <DialogTitle className="text-white text-xl">{editCandidate ? `✏️ Manage Patient - ${editCandidate.name}` : '👥 Patient Information'}</DialogTitle>
-              <DialogDescription className="text-blue-100">Update patient medical and personal details</DialogDescription>
-            </DialogHeader>
-            <div className="p-6 space-y-4">
-              {/* ROW 1: Name & DOB */}
-              <div className="grid grid-cols-4 gap-6">
-                <div className="col-span-2 space-y-2">
-                  <Label className="font-semibold">👤 Full Name</Label>
-                  <Input value={editForm.name ?? ''} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="bg-white text-black border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-10" />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label className="font-semibold">📅 Date of Birth</Label>
-                  <Input type="date" value={editForm.dob ?? ''} onChange={(e) => setEditForm({ ...editForm, dob: e.target.value })} className="bg-white text-black border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-10" />
-                </div>
-              </div>
-
-              {/* ROW 2: Gender & Weight */}
-              <div className="grid grid-cols-4 gap-6">
-                <div className="col-span-2 space-y-2">
-                  <Label className="font-semibold">⚧ Gender</Label>
-                  <Select value={editForm.gender ?? 'other'} onValueChange={(v) => setEditForm({ ...editForm, gender: v as any })}>
-                    <SelectTrigger className="bg-white text-black border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-10">
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">🧑 Male</SelectItem>
-                      <SelectItem value="female">👩 Female</SelectItem>
-                      <SelectItem value="other">⚧ Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label className="font-semibold">⚖️ Weight (kg)</Label>
-                  <Input type="number" value={editForm.weight ?? 0} onChange={(e) => setEditForm({ ...editForm, weight: parseFloat(e.target.value) || 0 })} className="bg-white text-black border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-10" />
-                </div>
-              </div>
-
-              {/* ROW 3: Diagnosis & Acuity */}
-              <div className="grid grid-cols-4 gap-6">
-                <div className="col-span-2 space-y-2">
-                  <Label className="font-semibold">🩺 Diagnosis</Label>
-                  <Input value={editForm.diagnosis ?? ''} onChange={(e) => setEditForm({ ...editForm, diagnosis: e.target.value })} className="bg-white text-black border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-10" />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label className="font-semibold">🚨 Acuity Level</Label>
-                  <Select value={editForm.acuityLevel ?? 'stable'} onValueChange={(v) => setEditForm({ ...editForm, acuityLevel: v as AcuityLevel })}>
-                    <SelectTrigger className="bg-white text-black border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-10">
-                      <SelectValue placeholder="Select acuity level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="critical">🔴 Critical</SelectItem>
-                      <SelectItem value="urgent">🟡 Urgent</SelectItem>
-                      <SelectItem value="stable">🟢 Stable</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* ROW 4: Allergies */}
-              <div className="space-y-2">
-                <Label className="font-semibold">🧬 Allergies</Label>
-                <Textarea value={editForm.allergies ?? ''} onChange={(e) => setEditForm({ ...editForm, allergies: e.target.value })} className="bg-white text-black border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-h-20 resize-none" />
-              </div>
-
-              {/* ACTION BUTTONS */}
-              <div className="flex gap-4 pt-6 border-t mt-8">
-                <Button
-                  className="flex-1 h-11 bg-green-600 hover:bg-green-700 text-white font-semibold text-base rounded-lg transition"
-                  onClick={() => {
-                    if (!editForm.name || !editForm.dob) {
-                      toast({ title: 'Validation', description: 'Name and DOB are required', variant: 'destructive' });
-                      return;
-                    }
-                    try {
-                      const updated = { ...editCandidate, ...editForm };
-                      updatePatient(updated);
-                      // ensure recent list reflects edits
-                      setRecentPatients(prev => {
-                        const exists = prev.some(p => p.id === updated.id);
-                        if (exists) return prev.map(p => p.id === updated.id ? updated : p);
-                        return [updated, ...prev].slice(0, 5);
-                      });
-                      toast({ title: '✅ Success', description: `${updated.name} has been updated.`, variant: 'default' });
-                      setIsEditDialogOpen(false);
-                      setEditCandidate(null);
-                    } catch (err) {
-                      console.error('Update failed', err);
-                      toast({ title: '❌ Error', description: 'Could not update patient', variant: 'destructive' });
-                    }
-                  }}
-                >
-                  💾 Save Changes
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 h-11 text-base rounded-lg border border-gray-300 hover:bg-gray-50"
-                  onClick={() => {
-                    setIsEditDialogOpen(false);
-                    setEditCandidate(null);
-                  }}
-                >
-                  ❌ Cancel
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Assign to Hospital Dialog - Hidden, Functionality  Below*/}
-        <Dialog open={dialog.isOpen && dialog.mode === 'Assign'} onOpenChange={(open) => {
-          if (!open) setDialog({ mode: 'Add', isOpen: false });
-          else setDialog({ mode: 'Assign', isOpen: true });
-        }}>
-          <DialogContent>
-            {/* ASSIGN FORM */}
-          </DialogContent>
-        </Dialog>
-
-        {/* Approve / Assign Patient Button */}
-        {editCandidate && (
-          <div className="flex gap-4 pt-6 border-t mt-8">
-            <Button className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base rounded-lg transition" onClick={() => {
-              if (!editForm.name || !editForm.dob) {
-                toast({ title: 'Validation', description: 'Name and DOB are required', variant: 'destructive' });
-                return;
-              }
-              try {
-                // Check if patient is already assigned to any hospital
-                const isAlreadyAssigned = Object.values(hospitalPatients).some(patients => patients.includes(editForm.id));
-                if (isAlreadyAssigned) {
-                  toast({ title: 'Already Assigned', description: `${editForm.name} is already assigned to a hospital. One patient can only be assigned to one hospital.`, variant: 'destructive' });
-                  return;
-                }
-
-                const updated = { ...editCandidate, ...editForm };
-                updatePatient(updated);
-                // mark approved
-                setApprovedIds(prev => Array.from(new Set([updated.id, ...prev])).slice(0, 50));
-                // ensure recent list reflects edits
-                setRecentPatients(prev => {
-                  const exists = prev.some(p => p.id === updated.id);
-                  if (exists) return prev.map(p => p.id === updated.id ? updated : p);
-                  return [updated, ...prev].slice(0, 5);
-                });
-                // fire event
-                try { window.dispatchEvent(new CustomEvent('patient-approved', { detail: { id: updated.id } })); } catch (e) { }
-                // open add to hospital dialog
-                setApprovedPatientToAdd(updated);
-                setSelectedHospitalId('');
-                setIsAddToHospitalDialogOpen(true);
-                setIsEditDialogOpen(false);
-                setEditCandidate(null);
-              } catch (err) {
-                console.error('Approve failed', err);
-                toast({ title: 'Error', description: 'Could not approve patient', variant: 'destructive' });
-              }
-            }}>
-              Approve & Assign
-            </Button>
-            <Button variant="outline" className="flex-1 h-11 text-base rounded-lg border border-gray-300 hover:bg-gray-50" onClick={() => { setIsEditDialogOpen(false); setEditCandidate(null); }}>
-              Cancel
-            </Button>
-          </div>
-        )}
-
-        {/* Add Patient to Hospital Dialog */}
-        <Dialog open={isAddToHospitalDialogOpen} onOpenChange={(open) => { if (!open) { setApprovedPatientToAdd(null); setSelectedHospitalId(''); } setIsAddToHospitalDialogOpen(open); }}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Add {approvedPatientToAdd?.name} to Hospital</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Select Hospital</Label>
-                <Select value={selectedHospitalId} onValueChange={(v) => setSelectedHospitalId(v)}>
-                  <SelectTrigger className="bg-white text-black border border-gray-300">
-                    <SelectValue placeholder="Select a hospital" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {hospitals.map((h) => (
-                      <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex gap-2">
-                <Button className="flex-1 bg-white hover:bg-gray-100 text-black border border-gray-300" onClick={() => {
-                  if (!selectedHospitalId) {
-                    toast({ title: 'Validation', description: 'Please select a hospital', variant: 'destructive' });
-                    return;
-                  }
-                  if (!approvedPatientToAdd) return;
-
-                  try {
-                    // Check if patient is already assigned to any hospital
-                    const isAlreadyAssigned = Object.values(hospitalPatients).some(patients => patients.includes(approvedPatientToAdd.id));
-                    if (isAlreadyAssigned) {
-                      toast({ title: 'Already Assigned', description: `${approvedPatientToAdd.name} is already assigned to a hospital. One patient can only be assigned to one hospital.`, variant: 'destructive' });
-                      return;
-                    }
-
-                    // Check if patient is already in this specific hospital
-                    if (hospitalPatients[selectedHospitalId]?.includes(approvedPatientToAdd.id)) {
-                      toast({ title: 'Duplicate', description: `${approvedPatientToAdd.name} is already in this hospital`, variant: 'destructive' });
-                      return;
-                    }
-
-                    // Add patient to hospital
-                    setHospitalPatients(prev => ({
-                      ...prev,
-                      [selectedHospitalId]: [...(prev[selectedHospitalId] || []), approvedPatientToAdd.id]
-                    }));
-                    const hospitalName = hospitals.find(h => h.id === selectedHospitalId)?.name || 'Hospital';
-                    toast({
-                      title: 'Success',
-                      description: `${approvedPatientToAdd.name} assigned to ${hospitalName}.`,
-                      variant: 'default'
-                    });
-                    setIsAddToHospitalDialogOpen(false);
-                    setApprovedPatientToAdd(null);
-                    setSelectedHospitalId('');
-                  } catch (err) {
-                    console.error('Failed to add patient to hospital', err);
-                    toast({ title: 'Error', description: 'Could not assign patient to hospital', variant: 'destructive' });
-                  }
-                }}>Assign to Hospital</Button>
-                <Button variant="outline" onClick={() => { setIsAddToHospitalDialogOpen(false); setApprovedPatientToAdd(null); setSelectedHospitalId(''); }}>Skip</Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
 
         {error && (
           <Alert variant="destructive">
@@ -1455,161 +1277,308 @@ const Hospitals = () => {
           </Alert>
         )}
 
-        {/* Table - Enhanced Design */}
-        <div className="rounded-2xl border-2 border-gray-300 bg-white overflow-hidden shadow-xl">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b-2 border-gray-300 bg-gradient-to-r from-gray-100 to-gray-50">
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider">🏢 Hospital Name</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider">📋 Level of Care</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider">👤 Contact</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider">📞 Phone</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider">🛏️ ICU Beds</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider">👥 Patients</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider">⚙️ Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-600 font-semibold text-lg">
-                    📭 No hospitals found. Try a different search or add a new hospital.
-                  </td>
+        {/* Table Content */}
+        <div className="rounded-2xl border-2 border-slate-300 bg-white shadow-xl flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="overflow-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent flex-1">
+            <table className="w-full border-collapse border-slate-200 min-w-[1000px]">
+              <thead className="sticky top-0 z-20">
+                <tr className="bg-[#f8fafc] border-b border-slate-200">
+                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Hospital Name</th>
+                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Level of Care</th>
+                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Contact</th>
+                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Phone</th>
+                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Total Seats</th>
+                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Occupied Seats</th>
+                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
                 </tr>
-              ) : (
-                paginatedHospitals.map((hospital, idx) => (
-                  <tr key={hospital.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-200 group">
-                    <td className="px-6 py-5">
-                      <div>
-                        <p className="font-bold text-black text-base group-hover:text-gray-800">{hospital.name}</p>
-                        <p className="text-sm text-gray-600 mt-1">{hospital.address}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <Badge variant="outline" className="bg-white text-black border-2 border-gray-300 font-bold text-xs px-3 py-1">{hospital.levelOfCare}</Badge>
-                    </td>
-                    <td className="px-6 py-5 text-sm font-semibold text-gray-800">{hospital.contactPerson || '—'}</td>
-                    <td className="px-6 py-5 text-sm font-semibold text-gray-800">{hospital.phone || '—'}</td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-2">
-                        <Bed className="h-5 w-5 text-gray-600" />
-                        <span className="text-sm font-bold text-gray-800">{hospital.icuCapacity}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="space-y-2">
-                        {hospitalPatients[hospital.id] && hospitalPatients[hospital.id].length > 0 ? (
-                          <div className="space-y-2">
-                            {hospitalPatients[hospital.id].map((patientId) => {
-                              const patient = patients.find(p => p.id === patientId);
-                              return patient ? (
-                                <div key={patientId} className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-300 text-xs">
-                                  <div className="flex-1">
-                                    <p className="font-medium text-black">{patient.name}</p>
-                                    <p className="text-gray-600">{new Date(patient.dob).toLocaleDateString()}</p>
-                                  </div>
-                                  <Badge className={`text-xs text-black border ${patient.acuityLevel === 'critical' ? 'bg-white border-gray-600' : patient.acuityLevel === 'urgent' ? 'bg-white border-gray-500' : 'bg-white border-gray-300'}`}>
-                                    {patient.acuityLevel}
-                                  </Badge>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-6 w-6 p-0 hover:bg-gray-200 text-gray-600"
-                                    onClick={() => {
-                                      setHospitalPatients(prev => ({
-                                        ...prev,
-                                        [hospital.id]: prev[hospital.id].filter(id => id !== patientId)
-                                      }));
-                                      toast({
-                                        title: 'Success',
-                                        description: `${patient.name} has been unassigned from ${hospital.name}`,
-                                        variant: 'default'
-                                      });
-                                    }}
-                                    title="Remove from hospital"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              ) : null;
-                            })}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-gray-600">No patients assigned</p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" className="hover:bg-gray-100" onClick={() => handleOpenDialog('Edit', hospital)}>
-                          <Edit className="h-4 w-4 text-gray-600" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-gray-600 hover:bg-gray-100">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Hospital</AlertDialogTitle>
-                              <AlertDialogDescription>Are you sure you want to delete {hospital.name}? This action cannot be undone.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(hospital.id)} className="bg-gray-600 hover:bg-gray-700">
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
+              </thead>
+              <tbody>
+                {visible.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-600 font-semibold text-lg">
+                      📭 No hospitals found. Try a different search or add a new hospital.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : (
+                  paginatedHospitals.map((hospital) => {
+                    const status = getCapacityStatus(hospital.occupiedBeds, hospital.icuCapacity);
+                    const isExpanded = expandedRowId === hospital.id;
+                    return (
+                      <React.Fragment key={hospital.id}>
+                        <tr className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors duration-200 group ${isExpanded ? 'bg-blue-50/30' : ''}`}>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 border-2 border-blue-100 bg-gradient-to-tr from-blue-200 via-blue-100 to-blue-50 shadow-sm shrink-0 rounded-xl flex items-center justify-center">
+                                <Building2 className="h-5 w-5 text-blue-600" />
+                              </div>
+                              <div className="flex flex-col">
+                                <p
+                                  className="font-bold text-slate-900 cursor-pointer hover:text-blue-600 transition-all leading-tight text-base"
+                                  onClick={() => setExpandedRowId(isExpanded ? null : hospital.id)}
+                                >
+                                  {hospital.name}
+                                </p>
+                                <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">{hospital.id.slice(0, 8)}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <Badge variant="outline" className="bg-white text-slate-700 border-slate-200 font-black text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-lg">
+                              {hospital.levelOfCare} Care
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0">
+                                <User className="h-3 w-3 text-slate-500" />
+                              </div>
+                              <span className="text-xs font-bold text-slate-700">{hospital.contactPerson || '—'}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">{hospital.phone || '—'}</td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <div className="h-7 w-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
+                                <Bed className="h-4 w-4 text-blue-600" />
+                              </div>
+                              <span className="text-sm font-black text-slate-800">{hospital.icuCapacity}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <Badge className={`px-2 py-0.5 rounded-lg text-[9px] font-black border tracking-tighter ${status.color}`}>
+                              {hospital.occupiedBeds || 0} / {hospital.icuCapacity} {status.label}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9 bg-blue-50 border-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white transition-all rounded-xl shadow-sm active:scale-95 group"
+                                onClick={() => setSelectedHospital(hospital)}
+                                title="View Details"
+                              >
+                                <Eye className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9 bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all rounded-xl shadow-sm active:scale-95 group"
+                                onClick={() => handleOpenDialog('Edit', hospital)}
+                                title="Edit Hospital"
+                              >
+                                <Edit className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-9 w-9 bg-rose-50 border-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white transition-all rounded-xl shadow-sm active:scale-95 group"
+                                    title="Delete Hospital"
+                                  >
+                                    <Trash2 className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="rounded-2xl border-2 border-slate-200 shadow-2xl">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle className="text-xl font-black text-slate-800 uppercase tracking-tight">Delete Hospital Configuration</AlertDialogTitle>
+                                    <AlertDialogDescription className="text-slate-500 font-bold">
+                                      Are you sure you want to decommission <span className="text-rose-600 font-black decoration-rose-200 underline underline-offset-4">{hospital.name}</span>? This operation is permanent.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel className="rounded-xl font-bold uppercase tracking-widest text-xs h-11">Abort</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDelete(hospital.id)} className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black uppercase tracking-widest text-xs h-11 shadow-lg shadow-rose-100">
+                                      Confirm Deletion
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr className="bg-slate-50/30 border-b border-gray-200 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <td colSpan={7} className="p-0">
+                              <div className="p-8 space-y-8 text-black border-l-4 border-blue-500/50">
+                                <div className="flex justify-between items-start">
+                                  <div className="space-y-2">
+                                    <h3 className="text-2xl font-bold flex items-center gap-2 text-slate-800">
+                                      <Building2 className="h-6 w-6 text-blue-600" />
+                                      {hospital.name} Detail View
+                                    </h3>
+                                    <p className="text-gray-500 flex items-center gap-2 text-sm">
+                                      <MapPin className="h-4 w-4" />
+                                      {hospital.address}
+                                    </p>
+                                  </div>
+                                  <Badge className="bg-blue-600 text-white hover:bg-blue-700 text-sm px-4 py-1 font-bold rounded-lg shadow-sm">
+                                    {hospital.levelOfCare} Care Facility
+                                  </Badge>
+                                </div>
 
-        {/* PAGINATION CONTROLS */}
-        {visible.length > itemsPerPage && (
-          <div className="flex justify-center items-center gap-2 mt-6 pb-8">
-            <Button
-              variant="outline"
-              disabled={currentPage === 1}
-              onClick={() => handlePageChange(currentPage - 1)}
-              className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
-            >
-              Previous
-            </Button>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                  {/* Contact Info Card */}
+                                  <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white rounded-xl">
+                                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-100">
+                                      <h3 className="font-bold text-slate-600 flex items-center gap-2 uppercase tracking-widest text-[10px]">
+                                        <User className="h-4 w-4 text-blue-500" /> Principal Contact
+                                      </h3>
+                                    </div>
+                                    <CardContent className="p-5 space-y-4">
+                                      <div className="space-y-1">
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Authorized Person</p>
+                                        <p className="text-base font-semibold text-slate-800 underline decoration-blue-200 decoration-2 underline-offset-4">{hospital.contactPerson || 'Not Provided'}</p>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Emergency Phone</p>
+                                        <p className="text-base font-semibold text-slate-800 flex items-center gap-2">
+                                          <span className="bg-blue-50 p-1 rounded text-blue-600">
+                                            <Phone className="h-4 w-4" />
+                                          </span>
+                                          {hospital.phone || 'Not Provided'}
+                                        </p>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
 
-            <div className="flex gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <Button
-                  key={page}
-                  variant={currentPage === page ? "default" : "outline"}
-                  onClick={() => handlePageChange(page)}
-                  className={`w-10 h-10 p-0 font-bold ${currentPage === page
-                    ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
-                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
-                    }`}
-                >
-                  {page}
-                </Button>
-              ))}
+                                  {/* Facility Info Card */}
+                                  <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white rounded-xl">
+                                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-100">
+                                      <h3 className="font-bold text-slate-600 flex items-center gap-2 uppercase tracking-widest text-[10px]">
+                                        <Activity className="h-4 w-4 text-blue-500" /> Capacity Stats
+                                      </h3>
+                                    </div>
+                                    <CardContent className="p-5 space-y-4">
+                                      <div className="space-y-1">
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Seat Availability (Occupied / Total)</p>
+                                        <div className="flex items-center gap-3">
+                                          <p className="text-3xl font-black text-blue-600">{hospital.occupiedBeds || 0} / {hospital.icuCapacity}</p>
+                                          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                            <div
+                                              className={`h-full rounded-full transition-all duration-500 ${((hospital.occupiedBeds || 0) / (hospital.icuCapacity || 1)) > 0.8 ? 'bg-red-500' : 'bg-blue-500'}`}
+                                              style={{ width: `${Math.min(100, ((hospital.occupiedBeds || 0) / (hospital.icuCapacity || 1)) * 100)}%` }}
+                                            ></div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Service Tier</p>
+                                        <p className="text-base font-semibold text-slate-800 bg-slate-100 inline-block px-3 py-0.5 rounded-full">{hospital.levelOfCare} Multi-Specialty</p>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+
+                                  {/* Location Card */}
+                                  <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white rounded-xl">
+                                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-100">
+                                      <h3 className="font-bold text-slate-600 flex items-center gap-2 uppercase tracking-widest text-[10px]">
+                                        <Navigation className="h-4 w-4 text-blue-500" /> Dispatch Info
+                                      </h3>
+                                    </div>
+                                    <CardContent className="p-5 space-y-4">
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Latitude</p>
+                                          <code className="text-blue-700 font-mono font-bold text-xs">{hospital.coordinates?.lat.toFixed(6)}</code>
+                                        </div>
+                                        <div className="space-y-1">
+                                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Longitude</p>
+                                          <code className="text-blue-700 font-mono font-bold text-xs">{hospital.coordinates?.lng.toFixed(6)}</code>
+                                        </div>
+                                      </div>
+                                      <div className="space-y-1 pt-2 border-t border-slate-50">
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">System ID</p>
+                                        <p className="text-[10px] font-mono text-slate-300 truncate">{hospital.id}</p>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* 📊 PREMIUM PAGINATION FOOTER */}
+          <div className="bg-[#f8fafc] border-t border-slate-200 px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-4 z-10">
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 w-full sm:w-auto">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Show:</span>
+                <Select value={itemsPerPage.toString()} onValueChange={(v) => setItemsPerPage(parseInt(v))}>
+                  <SelectTrigger className="h-8 md:h-9 w-16 md:w-20 bg-white border-slate-200 rounded-xl text-xs font-black text-slate-700 shadow-sm focus:ring-2 focus:ring-blue-100">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                    {[5, 10, 25, 50].map(val => (
+                      <SelectItem key={val} value={val.toString()} className="text-xs font-black text-slate-600">{val}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center sm:text-left">
+                Showing {currentPage * itemsPerPage - itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, visible.length)} <span className="text-slate-300 mx-1">/</span> {visible.length} Hospitals
+              </span>
             </div>
 
-            <Button
-              variant="outline"
-              disabled={currentPage === totalPages}
-              onClick={() => handlePageChange(currentPage + 1)}
-              className="bg-white border-gray-300 hover:bg-gray-100 text-black font-bold w-24"
-            >
-              Next
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage === 1}
+                title="First Page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                title="Previous Page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              <div className="bg-white border-2 border-blue-100 px-4 py-1.5 rounded-xl shadow-inner mx-1">
+                <span className="text-xs font-black text-blue-600 uppercase tracking-tight">
+                  Page {currentPage} <span className="text-blue-200 mx-1.5">OF</span> {totalPages || 1}
+                </span>
+              </div>
+
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages || totalPages === 0}
+                title="Next Page"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                onClick={() => handlePageChange(totalPages)}
+                disabled={currentPage === totalPages || totalPages === 0}
+                title="Last Page"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        )}
+        </div>
 
         {/* Chatbot Widget - Premium Enhanced - FIXED POSITION */}
         <div className="fixed bottom-6 right-6 z-50 max-h-[90vh] flex flex-col">
@@ -1621,8 +1590,8 @@ const Hospitals = () => {
               {/* Chat Header - Dynamic Gradient */}
               <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex justify-between items-center border-b border-blue-400">
                 <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <MessageCircle className="h-6 w-6 text-white" />
+                  <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden shadow-inner flex-shrink-0">
+                    <img src={chatBotImage} alt="AI Hospital Assistant" className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <h3 className="font-bold text-white">🏥 Hospital Assistant</h3>
