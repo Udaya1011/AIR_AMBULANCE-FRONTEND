@@ -60,10 +60,10 @@ const Bookings = () => {
   };
 
   const getPatientName = (patientId: string) => {
-    if (!patientId) return 'Unknown Patient';
+    if (!patientId) return '';
     const patient = getPatientById(patientId);
-    if (!patient) return 'Unknown Patient';
-    return patient.name || 'Unknown Patient';
+    if (!patient) return '';
+    return patient.name || patient.full_name || '';
   };
 
   const getPatientAge = (patientId: string) => {
@@ -143,7 +143,7 @@ const Bookings = () => {
 
   // Filter logic
   const filteredBookings = bookings ? bookings.filter(booking => {
-    if (!booking || !booking.patientId) return false;
+    if (!booking || !booking.patientId || !getPatientById(booking.patientId)) return false;
 
     const matchesSearch = getPatientName(booking.patientId).toLowerCase().includes(searchTerm.toLowerCase()) ||
       (booking.booking_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -500,7 +500,7 @@ const Bookings = () => {
           </DialogHeader>
 
           <div className="p-6 space-y-4 overflow-y-auto flex-1">
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-1.5">
                 <Label>Selection Method</Label>
                 <Select
@@ -818,18 +818,18 @@ const Bookings = () => {
     <Layout subTitle="Medical Transport Requests" isFullHeight={true} headerActions={headerActions}>
       <div className="space-y-6 flex-1 flex flex-col min-h-0">
         {/* Table */}
-        <div className="rounded-2xl border-2 border-slate-300 bg-white shadow-xl flex flex-1 flex-col min-h-0 overflow-hidden">
+        <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl flex flex-1 flex-col min-h-0 overflow-hidden">
           <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent flex-1">
             <table className="w-full">
               <thead className="sticky top-0 z-20">
                 <tr className="bg-[#f8fafc] border-b border-slate-200">
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Patient Name</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Age</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Date</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Time</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Urgency</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Status</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Patient Name</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Age</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Date</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Time</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Urgency</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Status</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -844,7 +844,7 @@ const Bookings = () => {
                     <React.Fragment key={booking.id}>
                       <tr className={`border-b hover:bg-gray-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} ${expandedRowId === booking.id ? 'bg-blue-50/30' : ''}`}>
 
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-2.5">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10 border-2 border-purple-100 bg-gradient-to-tr from-purple-200 via-purple-100 to-purple-50 shadow-sm shrink-0">
                               <AvatarImage
@@ -866,24 +866,24 @@ const Bookings = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-2.5">
                           <p className="text-sm text-gray-900">{getPatientAge(booking.patientId)}</p>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-2.5">
                           <p className="text-sm text-gray-900">{format(new Date(booking.preferredPickupWindow), 'yyyy-MM-dd')}</p>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-2.5">
                           <p className="text-sm text-gray-900">{format(new Date(booking.preferredPickupWindow), 'HH:mm')}</p>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-2.5">
                           <p className="text-sm text-gray-900 capitalize">{booking.urgency}</p>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-2.5">
                           <Badge className={getStatusColor(booking.status)}>
                             {booking.status.replace(/_/g, ' ')}
                           </Badge>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-2.5">
                           <div className="flex justify-center gap-2">
                             <Dialog>
                               <DialogTrigger asChild>

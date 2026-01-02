@@ -767,12 +767,12 @@ export default function Reports() {
                           <Table className="min-w-full">
                             <TableHeader>
                               <TableRow>
-                                <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">ID</TableHead>
-                                <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">DATE</TableHead>
-                                <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">STATUS</TableHead>
-                                <TableHead className="p-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">URGENCY</TableHead>
-                                <TableHead className="p-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">REVENUE</TableHead>
-                                <TableHead className="p-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">ACTIONS</TableHead>
+                                <TableHead className="px-6 py-2.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">ID</TableHead>
+                                <TableHead className="px-6 py-2.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">DATE</TableHead>
+                                <TableHead className="px-6 py-2.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">STATUS</TableHead>
+                                <TableHead className="px-6 py-2.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">URGENCY</TableHead>
+                                <TableHead className="px-6 py-2.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">REVENUE</TableHead>
+                                <TableHead className="px-6 py-2.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">ACTIONS</TableHead>
                               </TableRow>
                             </TableHeader>
 
@@ -786,13 +786,13 @@ export default function Reports() {
                               ) : (
                                 paginatedBookings.map((b, index) => (
                                   <TableRow key={b.id}>
-                                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{b.booking_id || b.id}</TableCell>
-                                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    <TableCell className="px-6 py-2.5 whitespace-nowrap text-sm font-bold text-gray-900">{b.booking_id || b.id}</TableCell>
+                                    <TableCell className="px-6 py-2.5 whitespace-nowrap text-sm text-gray-600">
                                       {b.requestedAt ? format(new Date(b.requestedAt), "MMM dd, yyyy") : "N/A"}
                                     </TableCell>
-                                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm">{getStatusBadge(b.status, "status")}</TableCell>
-                                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm">{getStatusBadge(b.urgency, "urgency")}</TableCell>
-                                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
+                                    <TableCell className="px-6 py-2.5 whitespace-nowrap text-sm">{getStatusBadge(b.status, "status")}</TableCell>
+                                    <TableCell className="px-6 py-2.5 whitespace-nowrap text-sm">{getStatusBadge(b.urgency, "urgency")}</TableCell>
+                                    <TableCell className="px-6 py-2.5 whitespace-nowrap text-sm text-gray-900 font-bold">
                                       {(() => {
                                         let calculated = 0;
                                         if (b.originHospitalId && b.destinationHospitalId) {
@@ -808,7 +808,7 @@ export default function Reports() {
                                       })()}
                                     </TableCell>
 
-                                    <TableCell className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex gap-2 justify-end">
+                                    <TableCell className="px-6 py-2.5 whitespace-nowrap text-right text-sm font-medium flex gap-2 justify-end">
                                       <div className="inline-flex gap-2 p-1 rounded-md">
                                         <Tooltip>
                                           <TooltipTrigger asChild>

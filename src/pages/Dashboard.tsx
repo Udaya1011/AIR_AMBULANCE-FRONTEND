@@ -297,9 +297,9 @@ export default function Dashboard() {
 
   // Helper functions from Bookings page
   const getPatientName = (patientId: string) => {
-    if (!patientId) return 'Unknown Patient';
+    if (!patientId) return '';
     const patient = getPatientById(patientId);
-    return patient?.name || 'Unknown Patient';
+    return patient?.name || patient?.full_name || '';
   };
 
   const getHospitalName = (hospitalId: string) => {
@@ -361,11 +361,15 @@ export default function Dashboard() {
       let patientName = "";
       if (booking.patientId) {
         const p = getPatientById(booking.patientId);
+        if (!p) return false; // Filter out unknown/empty patient records
         patientName = p?.name || p?.full_name || "";
       } else if (booking.patient) {
         patientName = booking.patient?.full_name || booking.patient?.name || (typeof booking.patient === 'string' ? booking.patient : "");
+        if (!patientName) return false;
       } else if (booking.patientName) {
         patientName = booking.patientName;
+      } else {
+        return false; // No patient info at all
       }
 
       // Resolve origin hospital name
@@ -441,7 +445,7 @@ export default function Dashboard() {
 
   const getBookingDetails = (booking: any) => {
     // Initialize default variables
-    let patientName = "Unknown Patient";
+    let patientName = "";
     let patientGender = "N/A";
     let patientAge: string | number = "N/A";
     let patientCondition = "Not specified";
@@ -602,117 +606,181 @@ export default function Dashboard() {
   }), [stats, totalRevenue]);
 
   const headerActions = (
-    <div className="flex items-center gap-3">
-      {/* Analytics Popover */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" className="h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group" title="System Analytics">
-            <BarChart3 className="h-4 w-4 transition-transform group-hover:scale-110 text-slate-500 group-hover:text-blue-600" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[320px] p-5 rounded-3xl shadow-2xl border-slate-200 animate-in fade-in zoom-in-95 duration-300" align="end" sideOffset={10}>
-          <div className="flex items-center gap-3 mb-5 pb-3 border-b border-slate-100">
-            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100">
-              <TrendingUp className="h-4 w-4 text-white" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-black text-slate-800 uppercase tracking-tight">System Analytics</span>
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">Global Operations</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl transition-all hover:border-blue-100 group/metric">
-              <div className="flex items-center gap-2 mb-1.5">
-                <Activity className="h-3 w-3 text-blue-500" />
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Active</span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-slate-800 tracking-tighter">{summaryStats.active_transfers}</span>
-                <span className="text-[8px] text-slate-400 font-bold uppercase">Flights</span>
-              </div>
-            </div>
-            <div className="p-3 bg-amber-50/50 border border-amber-100 rounded-xl transition-all hover:border-amber-200 group/metric">
-              <div className="flex items-center gap-2 mb-1.5">
-                <Clock className="h-3 w-3 text-amber-500" />
-                <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Pending</span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-amber-600 tracking-tighter">{summaryStats.pending_approvals}</span>
-                <span className="text-[8px] text-amber-400 font-bold uppercase">Tasks</span>
-              </div>
-            </div>
-          </div>
-          <div className="mt-4 p-4 bg-blue-600 rounded-2xl shadow-lg shadow-blue-100">
-            <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1">Total Network Revenue</p>
-            <p className="text-2xl font-black text-white tracking-tighter">${summaryStats.totalRevenue.toLocaleString()}</p>
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      {/* Unified Filter Dropdown */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="flex items-center justify-center h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group relative" title="Filters">
-            <Filter className={`h-4 w-4 transition-transform group-hover:rotate-12 ${statusFilter || urgencyFilter ? 'text-blue-600' : 'text-slate-500'}`} />
-            {(statusFilter || urgencyFilter) && (
-              <span className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center rounded-full bg-blue-600 text-white text-[8px] font-black border-2 border-white shadow-sm animate-in zoom-in duration-300">
-                {(statusFilter ? 1 : 0) + (urgencyFilter ? 1 : 0)}
-              </span>
-            )}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56 p-2 rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200" align="end">
-          <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2 py-1.5">
-            Operational Filters
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator className="my-1 bg-slate-100" />
-
-          <div className="px-2 py-2">
-            <p className="text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">Urgency</p>
-            <div className="flex flex-col gap-1">
-              {['', 'routine', 'urgent', 'emergency'].map(u => (
-                <DropdownMenuItem key={u} onClick={() => setUrgencyFilter(u)} className={`rounded-lg px-2 py-1.5 cursor-pointer text-xs font-bold transition-colors ${urgencyFilter === u ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}>
-                  <span className="capitalize">{u || 'All Urgency'}</span>
-                </DropdownMenuItem>
-              ))}
-            </div>
-          </div>
-
-          <DropdownMenuSeparator className="my-1 bg-slate-100" />
-
-          <div className="px-2 py-2">
-            <p className="text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">Status</p>
-            <div className="flex flex-col gap-1 max-h-[200px] overflow-y-auto scrollbar-thin">
-              {['', 'requested', 'clinical_review', 'dispatch_review', 'airline_confirmed', 'crew_assigned', 'in_transit', 'completed', 'cancelled'].map(s => (
-                <DropdownMenuItem key={s} onClick={() => setStatusFilter(s)} className={`rounded-lg px-2 py-1.5 cursor-pointer text-xs font-bold transition-colors ${statusFilter === s ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}>
-                  <span className="capitalize">{s.replace('_', ' ') || 'All Status'}</span>
-                </DropdownMenuItem>
-              ))}
-            </div>
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Search */}
-      <div className="relative group max-w-[200px]">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-        <Input
-          placeholder="Global search..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="h-10 pl-9 pr-3 bg-slate-50 border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all w-full"
-        />
+    <div className="flex items-center gap-2">
+      <div className="md:hidden flex items-center gap-2">
+        {/* Mobile Header Title */}
+        <span className="text-lg font-black text-slate-800 tracking-tight">Dashboard</span>
       </div>
 
-      <Button
-        variant="outline"
-        className="h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group"
-        onClick={handleExportAll}
-        title="Export Report"
-      >
-        <Download className="h-4 w-4 text-slate-500 group-hover:text-blue-600" />
-      </Button>
+      <div className="flex items-center gap-3 overflow-x-auto pb-2 md:pb-0 scrollbar-hide md:overflow-visible">
+        {/* Search & Actions - Hidden on mobile, shown in dropdown or similar if needed. User requested "name only shown down set dropdown to search filters" */}
+
+        {/* Mobile Search/Filter Dropdown Trigger */}
+        <div className="md:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-10 w-10 p-0 rounded-xl hover:bg-slate-100">
+                <Search className="h-5 w-5 text-slate-600" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-[300px] p-4 rounded-xl shadow-xl border-slate-200" align="end">
+              <div className="space-y-4">
+                <div className="relative group">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                  <Input
+                    placeholder="Search..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="h-10 pl-9 pr-3 bg-slate-50 border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all w-full"
+                  />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Filters</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Select value={urgencyFilter} onValueChange={setUrgencyFilter}>
+                      <SelectTrigger className="h-9 w-full bg-slate-50 border-slate-200"><SelectValue placeholder="Urgency" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="routine">Routine</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
+                        <SelectItem value="emergency">Emergency</SelectItem>
+                        <SelectItem value="all_urgency">All</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="h-9 w-full bg-slate-50 border-slate-200"><SelectValue placeholder="Status" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="requested">Requested</SelectItem>
+                        <SelectItem value="in_transit">In Transit</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                        <SelectItem value="all_status">All</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <Button className="w-full bg-blue-600 text-white hover:bg-blue-700 rounded-xl h-10 font-bold text-xs" onClick={handleExportAll}>
+                  <Download className="mr-2 h-4 w-4" /> Export Report
+                </Button>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="hidden md:flex items-center gap-3">
+          {/* Analytics Popover - Hidden on extra small mobile */}
+          <div className="hidden xs:block">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group shrink-0" title="System Analytics">
+                  <BarChart3 className="h-4 w-4 transition-transform group-hover:scale-110 text-slate-500 group-hover:text-blue-600" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[calc(100vw-32px)] sm:w-[320px] p-5 rounded-3xl shadow-2xl border-slate-200 animate-in fade-in zoom-in-95 duration-300" align="end" sideOffset={10}>
+                <div className="flex items-center gap-3 mb-5 pb-3 border-b border-slate-100">
+                  <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100">
+                    <TrendingUp className="h-4 w-4 text-white" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-black text-slate-800 uppercase tracking-tight">System Analytics</span>
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">Global Operations</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl transition-all hover:border-blue-100 group/metric">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Activity className="h-3 w-3 text-blue-500" />
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Active</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xl font-black text-slate-800 tracking-tighter">{summaryStats.active_transfers}</span>
+                      <span className="text-[8px] text-slate-400 font-bold uppercase">Flights</span>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-amber-50/50 border border-amber-100 rounded-xl transition-all hover:border-amber-200 group/metric">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Clock className="h-3 w-3 text-amber-500" />
+                      <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Pending</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xl font-black text-amber-600 tracking-tighter">{summaryStats.pending_approvals}</span>
+                      <span className="text-[8px] text-amber-400 font-bold uppercase">Tasks</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 p-4 bg-blue-600 rounded-2xl shadow-lg shadow-blue-100">
+                  <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1">Total Network Revenue</p>
+                  <p className="text-2xl font-black text-white tracking-tighter">${summaryStats.totalRevenue.toLocaleString()}</p>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Unified Filter Dropdown (Desktop) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="flex items-center justify-center h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group relative shrink-0" title="Filters">
+                <Filter className={`h-4 w-4 transition-transform group-hover:rotate-12 ${statusFilter || urgencyFilter ? 'text-blue-600' : 'text-slate-500'}`} />
+                {(statusFilter || urgencyFilter) && (
+                  <span className="absolute -top-1 -right-1 h-3.5 w-3.5 md:h-4 md:w-4 flex items-center justify-center rounded-full bg-blue-600 text-white text-[8px] font-black border-2 border-white shadow-sm animate-in zoom-in duration-300">
+                    {(statusFilter ? 1 : 0) + (urgencyFilter ? 1 : 0)}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 p-2 rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200" align="end">
+              <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2 py-1.5">
+                Operational Filters
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="my-1 bg-slate-100" />
+
+              <div className="px-2 py-2">
+                <p className="text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">Urgency</p>
+                <div className="flex flex-col gap-1">
+                  {['', 'routine', 'urgent', 'emergency'].map(u => (
+                    <DropdownMenuItem key={u} onClick={() => setUrgencyFilter(u)} className={`rounded-lg px-2 py-1.5 cursor-pointer text-xs font-bold transition-colors ${urgencyFilter === u ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}>
+                      <span className="capitalize">{u || 'All Urgency'}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </div>
+              </div>
+
+              <DropdownMenuSeparator className="my-1 bg-slate-100" />
+
+              <div className="px-2 py-2">
+                <p className="text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">Status</p>
+                <div className="flex flex-col gap-1 max-h-[200px] overflow-y-auto scrollbar-thin">
+                  {['', 'requested', 'clinical_review', 'dispatch_review', 'airline_confirmed', 'crew_assigned', 'in_transit', 'completed', 'cancelled'].map(s => (
+                    <DropdownMenuItem key={s} onClick={() => setStatusFilter(s)} className={`rounded-lg px-2 py-1.5 cursor-pointer text-xs font-bold transition-colors ${statusFilter === s ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}>
+                      <span className="capitalize">{s.replace('_', ' ') || 'All Status'}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </div>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Search (Desktop) */}
+          <div className="relative group flex-1 min-w-[120px] max-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+            <Input
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-10 pl-9 pr-3 bg-slate-50 border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all w-full"
+            />
+          </div>
+
+          <Button
+            variant="outline"
+            className="h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group shrink-0"
+            onClick={handleExportAll}
+            title="Export Report"
+          >
+            <Download className="h-4 w-4 text-slate-500 group-hover:text-blue-600" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 
@@ -732,12 +800,12 @@ export default function Dashboard() {
               <table className="w-full border-collapse">
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#f8fafc] border-b border-slate-200">
-                    <th className="px-6 py-2 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Patient Name</th>
-                    <th className="px-6 py-2 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Origin</th>
-                    <th className="px-6 py-2 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Destination</th>
-                    <th className="px-6 py-2 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Status</th>
-                    <th className="px-6 py-2 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Revenue</th>
-                    <th className="px-6 py-2 text-center text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
+                    <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Patient Name</th>
+                    <th className="hidden md:table-cell px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Origin</th>
+                    <th className="hidden md:table-cell px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Destination</th>
+                    <th className="hidden md:table-cell px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Status</th>
+                    <th className="hidden md:table-cell px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Revenue</th>
+                    <th className="px-6 py-2.5 text-center text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
                   </tr>
                 </thead>
 
@@ -756,22 +824,22 @@ export default function Dashboard() {
                       return (
                         <React.Fragment key={booking.id}>
                           <tr className={`border-b hover:bg-slate-50 transition-colors duration-200 ${isExpanded ? 'bg-blue-50/30' : ''}`}>
-                            <td className="px-6 py-2">
+                            <td className="px-6 py-2.5">
                               <span
                                 className="cursor-pointer hover:text-blue-600 font-bold transition-all flex items-center gap-3"
                                 onClick={() => setExpandedRowId(isExpanded ? null : booking.id)}
                               >
                                 <div className="h-8 w-8 border-2 border-purple-100 bg-gradient-to-tr from-purple-200 via-purple-100 to-purple-50 shadow-sm shrink-0 rounded-full overflow-hidden flex items-center justify-center">
-                                  <Avatar gender={details.patientGender} size="sm" />
+                                  <Avatar gender={details.patientGender} size={32} />
                                 </div>
                                 <div className="flex flex-col">
                                   <span className="font-bold text-slate-900 leading-tight text-sm">{details.patientName}</span>
                                 </div>
                               </span>
                             </td>
-                            <td className="px-6 py-2 text-sm font-medium text-slate-700 truncate max-w-[150px]">{details.origin}</td>
+                            <td className="hidden md:table-cell px-6 py-2.5 text-sm font-medium text-slate-700 truncate max-w-[150px]">{details.origin}</td>
 
-                            <td className="px-6 py-2">
+                            <td className="hidden md:table-cell px-6 py-2.5">
                               <div className="flex items-center gap-2 text-blue-700">
                                 <Building2 className="h-3.5 w-3.5" />
                                 <div className="flex flex-col">
@@ -781,7 +849,7 @@ export default function Dashboard() {
                               </div>
                             </td>
 
-                            <td className="px-6 py-2">
+                            <td className="hidden md:table-cell px-6 py-2.5">
                               <div className="flex flex-col gap-1">
                                 <Badge className={`w-fit capitalize font-black text-[10px] tracking-tight ${booking.status === 'completed' ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100' :
                                   booking.status === 'cancelled' ? 'bg-rose-100 text-rose-800 hover:bg-rose-100' :
@@ -798,11 +866,11 @@ export default function Dashboard() {
                               </div>
                             </td>
 
-                            <td className="px-6 py-2 text-left font-black text-slate-900 text-sm">
+                            <td className="hidden md:table-cell px-6 py-2.5 text-left font-black text-slate-900 text-sm">
                               {details.formattedCost}
                             </td>
 
-                            <td className="px-6 py-2 text-center">
+                            <td className="px-6 py-2.5 text-center">
                               <div className="flex items-center justify-center gap-2">
                                 <Button
                                   variant="outline"
@@ -840,7 +908,19 @@ export default function Dashboard() {
                           {isExpanded && (
                             <tr className="bg-blue-50/20 border-b border-slate-100 animate-in fade-in zoom-in-95 duration-200">
                               <td colSpan={6} className="p-4">
-                                <div className="grid grid-cols-4 gap-4 pl-16">
+                                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 pl-0 sm:pl-16">
+                                  {/* Mobile-only fields shown in expanded view */}
+                                  <div className="md:hidden space-y-1 col-span-1 sm:col-span-4 border-b border-indigo-50 pb-2 mb-2">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Route & Status</span>
+                                    <div className="flex flex-col gap-1">
+                                      <p className="text-xs font-bold text-slate-700">{details.origin} → {details.destination}</p>
+                                      <div className="flex gap-2 items-center">
+                                        <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-600">{booking.status.replace('_', ' ')}</Badge>
+                                        <span className="text-xs font-black text-emerald-600">{details.formattedCost}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
                                   <div className="space-y-1">
                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Medical Condition</span>
                                     <p className="text-sm font-medium text-slate-900">{details.patientCondition}</p>
@@ -880,8 +960,8 @@ export default function Dashboard() {
             </div>
 
             {/* PAGINATION FOOTER */}
-            <div className="bg-[#f8fafc] border-t border-slate-200 px-6 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-6">
+            <div className="bg-[#f8fafc] border-t border-slate-200 px-6 py-3 flex flex-col-reverse gap-4 sm:flex-row items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-center gap-6 w-full sm:w-auto justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Show:</span>
                   <Select
@@ -999,7 +1079,7 @@ export default function Dashboard() {
       </Dialog>
 
       <Chatbot stats={stats} bookings={bookings} totalRevenue={totalRevenue} />
-    </Layout>
+    </Layout >
   );
 }
 

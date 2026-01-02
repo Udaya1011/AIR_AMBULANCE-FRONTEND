@@ -705,17 +705,17 @@ const Aircraft: React.FC = () => {
               {view === "list" ? (
                 <div className="flex-1 flex flex-col min-h-0">
                   {/* TABLE */}
-                  <div className="rounded-2xl border-2 border-slate-300 bg-white shadow-xl flex flex-col flex-1 min-h-0 overflow-hidden">
+                  <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl flex flex-col flex-1 min-h-0 overflow-hidden">
                     <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent flex-1">
                       <table className="w-full border-collapse text-sm">
                         <thead className="sticky top-0 z-20">
                           <tr className="bg-[#f8fafc] border-b border-slate-200">
-                            <th className="px-6 py-2 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Registration</th>
-                            <th className="px-6 py-2 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Operator</th>
-                            <th className="px-6 py-2 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Base</th>
-                            <th className="px-6 py-2 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Crew</th>
-                            <th className="px-6 py-2 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Status</th>
-                            <th className="px-6 py-2 text-center font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
+                            <th className="px-6 py-2.5 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Registration</th>
+                            <th className="px-6 py-2.5 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Operator</th>
+                            <th className="px-6 py-2.5 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Base</th>
+                            <th className="px-6 py-2.5 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Crew</th>
+                            <th className="px-6 py-2.5 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Status</th>
+                            <th className="px-6 py-2.5 text-center font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
                           </tr>
                         </thead>
 
@@ -729,16 +729,16 @@ const Aircraft: React.FC = () => {
                           ) : (
                             paginatedAircraft.map((ac, idx) => (
                               <tr key={ac.id} className={`border-b border-slate-200 hover:bg-slate-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/20'}`}>
-                                <td className="px-6 py-2 font-black text-blue-800 tracking-tight">{ac.registration}</td>
-                                <td className="px-6 py-2 text-slate-600 font-semibold">{ac.operator}</td>
-                                <td className="px-6 py-2 text-slate-600 font-semibold">{ac.baseLocation}</td>
-                                <td className="px-6 py-2 text-slate-600 font-semibold">{ac.crewAssigned} Pax</td>
-                                <td className="px-6 py-2">
+                                <td className="px-6 py-2.5 font-black text-blue-800 tracking-tight">{ac.registration}</td>
+                                <td className="px-6 py-2.5 text-slate-600 font-semibold">{ac.operator}</td>
+                                <td className="px-6 py-2.5 text-slate-600 font-semibold">{ac.baseLocation}</td>
+                                <td className="px-6 py-2.5 text-slate-600 font-semibold">{ac.crewAssigned} Pax</td>
+                                <td className="px-6 py-2.5">
                                   <span className={statusColorClass(ac.status)}>
                                     {statusLabel(ac.status)}
                                   </span>
                                 </td>
-                                <td className="px-6 py-2 text-center">
+                                <td className="px-6 py-2.5 text-center">
                                   <div className="flex flex-col items-center gap-2">
                                     <div className="flex items-center justify-center gap-1.5">
                                       <Button

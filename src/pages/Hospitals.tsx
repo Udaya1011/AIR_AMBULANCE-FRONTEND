@@ -1278,18 +1278,18 @@ const Hospitals = () => {
         )}
 
         {/* Table Content */}
-        <div className="rounded-2xl border-2 border-slate-300 bg-white shadow-xl flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl flex flex-col flex-1 min-h-0 overflow-hidden">
           <div className="overflow-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent flex-1">
             <table className="w-full border-collapse border-slate-200 min-w-[1000px]">
               <thead className="sticky top-0 z-20">
                 <tr className="bg-[#f8fafc] border-b border-slate-200">
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Hospital Name</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Level of Care</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Contact</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Phone</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Total Seats</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Occupied Seats</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Hospital Name</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Level of Care</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Contact</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Phone</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Total Seats</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Occupied Seats</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1306,7 +1306,7 @@ const Hospitals = () => {
                     return (
                       <React.Fragment key={hospital.id}>
                         <tr className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors duration-200 group ${isExpanded ? 'bg-blue-50/30' : ''}`}>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-2.5">
                             <div className="flex items-center gap-3">
                               <div className="h-10 w-10 border-2 border-blue-100 bg-gradient-to-tr from-blue-200 via-blue-100 to-blue-50 shadow-sm shrink-0 rounded-xl flex items-center justify-center">
                                 <Building2 className="h-5 w-5 text-blue-600" />
@@ -1322,12 +1322,12 @@ const Hospitals = () => {
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-2.5">
                             <Badge variant="outline" className="bg-white text-slate-700 border-slate-200 font-black text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-lg">
                               {hospital.levelOfCare} Care
                             </Badge>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-2.5">
                             <div className="flex items-center gap-2">
                               <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0">
                                 <User className="h-3 w-3 text-slate-500" />
@@ -1336,7 +1336,7 @@ const Hospitals = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">{hospital.phone || '—'}</td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-2.5">
                             <div className="flex items-center gap-2">
                               <div className="h-7 w-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
                                 <Bed className="h-4 w-4 text-blue-600" />
@@ -1344,12 +1344,12 @@ const Hospitals = () => {
                               <span className="text-sm font-black text-slate-800">{hospital.icuCapacity}</span>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-2.5">
                             <Badge className={`px-2 py-0.5 rounded-lg text-[9px] font-black border tracking-tighter ${status.color}`}>
                               {hospital.occupiedBeds || 0} / {hospital.icuCapacity} {status.label}
                             </Badge>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-2.5">
                             <div className="flex gap-2">
                               <Button
                                 variant="outline"

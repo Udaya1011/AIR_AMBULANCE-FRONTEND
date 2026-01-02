@@ -109,7 +109,7 @@ const Patients = () => {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   // Filter Logic
   const filteredPatients = useMemo(() => {
@@ -723,17 +723,17 @@ const Patients = () => {
           </DialogContent>
         </Dialog>
 
-        <div className="rounded-2xl border-2 border-slate-300 bg-white overflow-hidden shadow-xl flex flex-col flex-1 min-h-0">
+        <div className="rounded-2xl border-2 border-slate-200 bg-white overflow-hidden shadow-xl flex flex-col flex-1 min-h-0">
           <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent flex-1">
             <table className="w-full border-collapse">
               <thead className="sticky top-0 z-20">
                 <tr className="bg-[#f8fafc] border-b border-slate-200">
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Patient Name</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Age</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Diagnosis</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Acuity</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Hospital</th>
-                  <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Patient Name</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Age</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Diagnosis</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Acuity</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Hospital</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -780,7 +780,7 @@ const Patients = () => {
                           <td className="px-6 py-4 text-sm">{age}</td>
                           <td className="px-6 py-4 text-sm">{patient.diagnosis}</td>
 
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-2.5">
                             <Badge className={getAcuityColor(patient.acuity_level)}>
                               {patient.acuity_level}
                             </Badge>
@@ -806,7 +806,7 @@ const Patients = () => {
                             )}
                           </td>
 
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-2.5">
                             <div className="flex gap-2">
                               <Button
                                 variant="outline"
