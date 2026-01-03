@@ -815,11 +815,11 @@ const Bookings = () => {
   };
 
   return (
-    <Layout subTitle="Medical Transport Requests" isFullHeight={true} headerActions={headerActions}>
-      <div className="space-y-6 flex-1 flex flex-col min-h-0">
+    <Layout subTitle="Medical Transport Requests" headerActions={headerActions}>
+      <div className="space-y-6">
         {/* Table */}
-        <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl flex flex-1 flex-col min-h-0 overflow-hidden">
-          <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent flex-1">
+        <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl overflow-hidden">
+          <div className="max-h-[380px] overflow-y-auto custom-scrollbar">
             <table className="w-full">
               <thead className="sticky top-0 z-20">
                 <tr className="bg-[#f8fafc] border-b border-slate-200">

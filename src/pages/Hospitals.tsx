@@ -1046,8 +1046,8 @@ const Hospitals = () => {
   }
 
   return (
-    <Layout isFullHeight={true} subTitle="Hospital Network Operations" headerActions={headerActions}>
-      <div className="space-y-6 flex-1 flex flex-col min-h-0">
+    <Layout subTitle="Hospital Network Operations" headerActions={headerActions}>
+      <div className="space-y-6">
 
         {/* Hospital Detail View Dialog */}
         <Dialog open={Boolean(selectedHospital)} onOpenChange={(open) => { if (!open) setSelectedHospital(null); }}>
@@ -1278,8 +1278,8 @@ const Hospitals = () => {
         )}
 
         {/* Table Content */}
-        <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="overflow-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent flex-1">
+        <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl overflow-hidden">
+          <div className="max-h-[380px] overflow-y-auto h-full overflow-x-auto custom-scrollbar">
             <table className="w-full border-collapse border-slate-200 min-w-[1000px]">
               <thead className="sticky top-0 z-20">
                 <tr className="bg-[#f8fafc] border-b border-slate-200">
@@ -1313,7 +1313,7 @@ const Hospitals = () => {
                               </div>
                               <div className="flex flex-col">
                                 <p
-                                  className="font-bold text-slate-900 cursor-pointer hover:text-blue-600 transition-all leading-tight text-base"
+                                  className="font-bold text-slate-900 cursor-pointer hover:text-blue-600 transition-all leading-tight text-sm"
                                   onClick={() => setExpandedRowId(isExpanded ? null : hospital.id)}
                                 >
                                   {hospital.name}

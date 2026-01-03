@@ -215,7 +215,7 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
         `}
       >
         {/* Top Bar - Page Title & Notifications */}
-        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-sm border-b border-slate-100 px-4 lg:px-8 py-3.5 flex items-center justify-between">
+        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-sm border-b border-slate-100 px-4 lg:px-8 py-1.5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Mobile Menu Toggle */}
             <button
@@ -268,7 +268,7 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
         </div>
 
         {/* CONTENT AREA */}
-        <main className={`flex-1 w-full ${isFullHeight ? 'overflow-hidden' : 'overflow-y-auto'} overflow-x-hidden p-4 lg:p-8 scrollbar-none bg-slate-50/50`}>
+        <main className={`flex-1 w-full ${isFullHeight ? 'overflow-hidden pt-0 px-2 pb-2 lg:px-4 lg:pb-4' : 'overflow-y-auto p-4 lg:p-8'} overflow-x-hidden custom-scrollbar bg-slate-50/50`}>
           <div className={`max-w-[1600px] mx-auto ${isFullHeight ? 'h-full flex flex-col' : 'min-h-full flex flex-col'}`}>
             <div className={`flex-1 ${isFullHeight ? 'min-h-0 flex flex-col' : ''}`}>
               {children}
@@ -351,10 +351,10 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
           scrollbar-width: none;
         }
 
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+        .custom-scrollbar::-webkit-scrollbar { width: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; border: 2px solid #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
         
         @keyframes swing {
           0% { transform: rotate(0deg); }

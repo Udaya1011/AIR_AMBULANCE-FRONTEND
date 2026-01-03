@@ -786,17 +786,16 @@ export default function Dashboard() {
 
   return (
     <Layout
-      isFullHeight={true}
       subTitle="Precision Medical Logistics"
       headerActions={headerActions}
     >
-      <div className="flex-1 flex flex-col min-h-0 p-6 space-y-6">
+      <div className="p-6 space-y-6">
 
         {loading ? (
           <LoadingSpinner text="" />
         ) : (
-          <div className="rounded-2xl border-2 border-slate-200 bg-white overflow-hidden shadow-xl flex flex-col flex-1 min-h-0">
-            <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent flex-1">
+          <div className="rounded-2xl border-2 border-slate-200 bg-white overflow-hidden shadow-xl">
+            <div className="max-h-[380px] overflow-y-auto custom-scrollbar">
               <table className="w-full border-collapse">
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#f8fafc] border-b border-slate-200">

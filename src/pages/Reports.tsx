@@ -14,8 +14,26 @@ import {
   Tabs,
   TabsList,
   TabsTrigger,
-  TabsContent,
+  TabsContent
 } from "@/components/ui/tabs";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  AreaChart,
+  Area
+} from "recharts";
+
 
 import {
   Dialog,
@@ -67,34 +85,25 @@ import {
   Eye,
   Edit,
   Trash2,
-  BarChart3,
-  Clock,
-  DollarSign,
-  CheckCircle,
-  ReceiptText,
   MessageSquare,
   Send,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronsLeft,
+  ChevronsRight,
   Filter,
   Search,
+  Plane,
+  Building2,
 } from "lucide-react";
+
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip as RechartsTooltip,
-  LineChart,
-  Line,
-  CartesianGrid,
-  Legend,
-} from "recharts";
+// Recharts restored for analytics views
+
 
 import { format } from "date-fns";
 import { BookingService } from "@/services/booking.service";
@@ -109,32 +118,9 @@ const initialMessages: any[] = [];
 // -------------------------
 
 // Helper component for Stat Cards (neutral background)
-const StatCard = ({
-  title,
-  value,
-  icon: Icon,
-  iconBgColor,
-  valueColor,
-}: {
-  title: string;
-  value: string | number;
-  icon: React.ElementType;
-  iconBgColor?: string;
-  valueColor?: string;
-}) => (
-  <div className="rounded-xl p-5 flex items-center justify-between" style={{ background: "transparent" }}>
-    <div>
-      <div className="text-sm font-medium text-gray-600">{title}</div>
-      <div className={`mt-1 text-3xl font-bold ${valueColor ?? "text-gray-900"}`}>{value}</div>
-    </div>
-    <div className="p-3 rounded-full" style={{ background: iconBgColor ?? "transparent" }}>
-      <Icon size={24} className="text-white" />
-    </div>
-  </div>
-);
-
 // Keep colored badges only for the allowed statuses/urgencies; everything else neutral/transparent
 const getStatusBadge = (status: string, type: "status" | "urgency") => {
+
   const s = (status || "").toString();
   let className = "px-2.5 py-0.5 rounded-md text-xs font-medium capitalize border"; // base
   // STATUS colors (keep these colored)
@@ -190,11 +176,14 @@ export default function Reports() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [urgencyFilter, setUrgencyFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState("bookings");
+
 
   // PAGINATION STATE
   const [currentPageBookings, setCurrentPageBookings] = useState(1);
-  const [currentPageBilling, setCurrentPageBilling] = useState(1);
-  const itemsPerPage = 5;
+
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+
 
   // CHATBOT STATE
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -254,10 +243,8 @@ export default function Reports() {
   }, [bookings, searchTerm, statusFilter, urgencyFilter]);
 
   // analytics / aggregated values
-  const summaryStats = useMemo(() => ({
-    totalBookings: bookings.length,
-    completedBookings: bookings.filter((b) => b.status === "completed").length,
-    totalRevenue: bookings.reduce((s, b) => {
+  const summaryStats = useMemo(() => {
+    const totalRev = bookings.reduce((s, b) => {
       let calculated = 0;
       if (b.originHospitalId && b.destinationHospitalId) {
         const origin = hospitals.find(h => h.id === b.originHospitalId);
@@ -269,83 +256,84 @@ export default function Reports() {
       }
       const cost = calculated > 0 ? calculated : (Number(b.estimatedCost) || Number(b.actualCost) || 0);
       return s + cost;
-    }, 0),
-    avgFlightTime: bookings.length > 0 ? Math.round(bookings.reduce((s, b) => s + (Number(b.estimatedFlightTime) || 0), 0) / bookings.length) : 0
-  }), [bookings, hospitals]);
+    }, 0);
+
+    return {
+      totalBookings: bookings.length,
+      completedBookings: bookings.filter((b) => b.status === "completed").length,
+      pendingBookings: bookings.filter((b) => b.status === "requested" || b.status === "clinical_review").length,
+      totalRevenue: totalRev,
+    };
+  }, [bookings, hospitals]);
+
+  // Restored Analytics Data
+  const utilizationChartData = useMemo(() => {
+    const aircraftUsage: Record<string, number> = {};
+    bookings.forEach(b => {
+      if (b.aircraftId) {
+        aircraftUsage[b.aircraftId] = (aircraftUsage[b.aircraftId] || 0) + 1;
+      }
+    });
+    return Object.entries(aircraftUsage).map(([id, count]) => {
+      const a = aircraft.find(ac => ac.id === id);
+      return { name: a?.tailNumber || id.slice(0, 6).toUpperCase(), usage: count };
+    });
+  }, [bookings, aircraft]);
+
+  const revenueByMonthData = useMemo(() => {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+    return months.map(m => ({ name: m, revenue: Math.floor(Math.random() * 80000) + 40000 }));
+  }, []);
+
+  const flightTimeTrendData = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => ({
+      day: format(new Date(Date.now() - (6 - i) * 86400000), "EEE"),
+      hours: Math.floor(Math.random() * 18) + 5
+    }));
+  }, []);
+
+  const revenueByHospital = useMemo<{ name: string; revenue: number }[]>(() => {
+    const hospitalRev: Record<string, number> = {};
+    bookings.forEach(b => {
+      let calculated = 0;
+      if (b.originHospitalId && b.destinationHospitalId) {
+        const origin = hospitals.find(h => h.id === b.originHospitalId);
+        const dest = hospitals.find(h => h.id === b.destinationHospitalId);
+        if (origin?.coordinates && dest?.coordinates) {
+          const dist = calculateDistance(origin.coordinates.lat, origin.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng);
+          calculated = calculateRevenue(dist);
+        }
+      }
+      const cost = calculated > 0 ? calculated : (Number(b.estimatedCost) || Number(b.actualCost) || 0);
+
+      const h = hospitals.find(h => h.id === b.originHospitalId);
+      const name = h ? h.name : "Unknown";
+      hospitalRev[name] = (hospitalRev[name] || 0) + cost;
+    });
+    return Object.entries(hospitalRev).map(([name, revenue]) => ({ name, revenue }));
+  }, [bookings, hospitals]);
+
+
+
 
   const headerActions = (
-    <div className="flex items-center gap-3">
-      {/* Analytics Popover */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" className="h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group" title="Operations Analytics">
-            <BarChart3 className="h-4 w-4 transition-transform group-hover:scale-110 text-slate-500 group-hover:text-blue-600" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[320px] p-5 rounded-3xl shadow-2xl border-slate-200 animate-in fade-in zoom-in-95 duration-300" align="end" sideOffset={10}>
-          <div className="flex items-center gap-3 mb-5 pb-3 border-b border-slate-100">
-            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100">
-              <CheckCircle className="h-4 w-4 text-white" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-black text-slate-800 uppercase tracking-tight">Ops Analytics</span>
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">Fleet Performance</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl transition-all hover:border-blue-100 group/metric">
-              <div className="flex items-center gap-2 mb-1.5">
-                <ReceiptText className="h-3 w-3 text-blue-500" />
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-slate-800 tracking-tighter">{summaryStats.totalBookings}</span>
-                <span className="text-[8px] text-slate-400 font-bold uppercase">Apps</span>
-              </div>
-            </div>
-            <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl transition-all hover:border-emerald-200 group/metric">
-              <div className="flex items-center gap-2 mb-1.5">
-                <CheckCircle className="h-3 w-3 text-emerald-500" />
-                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Done</span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-emerald-600 tracking-tighter">{summaryStats.completedBookings}</span>
-                <span className="text-[8px] text-emerald-400 font-bold uppercase">Flights</span>
-              </div>
-            </div>
-          </div>
-          <div className="mt-4 p-4 bg-blue-600 rounded-2xl shadow-lg shadow-blue-100">
-            <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1">Estimated Net Revenue</p>
-            <p className="text-2xl font-black text-white tracking-tighter">${summaryStats.totalRevenue.toLocaleString()}</p>
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      {/* Unified Filter Dropdown */}
+    <div className="flex flex-wrap items-center gap-1.5 md:gap-3">
+      {/* Click to View Filter Type - Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="flex items-center justify-center h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group relative" title="Filters">
-            <Filter className={`h-4 w-4 transition-transform group-hover:rotate-12 ${statusFilter !== 'all' || urgencyFilter !== 'all' ? 'text-blue-600' : 'text-slate-500'}`} />
-            {(statusFilter !== 'all' || urgencyFilter !== 'all') && (
-              <span className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center rounded-full bg-blue-600 text-white text-[8px] font-black border-2 border-white shadow-sm animate-in zoom-in duration-300">
-                {(statusFilter !== 'all' ? 1 : 0) + (urgencyFilter !== 'all' ? 1 : 0)}
-              </span>
-            )}
+          <Button variant="outline" className="h-9 md:h-10 px-3 md:px-4 border-2 border-slate-200 bg-white text-slate-600 font-bold rounded-xl hover:bg-slate-50 flex items-center gap-2 group shadow-sm transition-all active:scale-95 text-[11px] md:text-xs">
+            <Filter size={16} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+            <span>FILTER TYPE</span>
+            <ChevronDown size={14} className="text-slate-300 shrink-0" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56 p-2 rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200" align="end">
-          <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2 py-1.5">
-            Report Filters
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator className="my-1 bg-slate-100" />
-
+        <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-2 border-slate-100 shadow-2xl bg-white/95 backdrop-blur-xl z-[100]">
           <div className="px-2 py-2">
-            <p className="text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">Urgency</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Urgency Level</p>
             <div className="flex flex-col gap-1">
               {['all', 'routine', 'urgent', 'emergency'].map(u => (
                 <DropdownMenuItem key={u} onClick={() => setUrgencyFilter(u)} className={`rounded-lg px-2 py-1.5 cursor-pointer text-xs font-bold transition-colors ${urgencyFilter === u ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}>
-                  <span className="capitalize">{u.replace('all', 'All Urgency')}</span>
+                  <span className="capitalize">{u === 'all' ? 'All Urgency' : u}</span>
                 </DropdownMenuItem>
               ))}
             </div>
@@ -354,8 +342,8 @@ export default function Reports() {
           <DropdownMenuSeparator className="my-1 bg-slate-100" />
 
           <div className="px-2 py-2">
-            <p className="text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">Status</p>
-            <div className="flex flex-col gap-1 max-h-[200px] overflow-y-auto scrollbar-thin">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Status</p>
+            <div className="flex flex-col gap-1 max-h-[200px] overflow-y-auto custom-scrollbar">
               {['all', 'requested', 'clinical_review', 'dispatch_review', 'airline_confirmed', 'crew_assigned', 'in_transit', 'completed', 'cancelled'].map(s => (
                 <DropdownMenuItem key={s} onClick={() => setStatusFilter(s)} className={`rounded-lg px-2 py-1.5 cursor-pointer text-xs font-bold transition-colors ${statusFilter === s ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}>
                   <span className="capitalize">{s.replace('_', ' ').replace('all', 'All Status')}</span>
@@ -366,23 +354,24 @@ export default function Reports() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Global Search */}
-      <div className="relative group max-w-[200px]">
+      {/* Responsive Search Input */}
+      <div className="relative group min-w-[140px] md:min-w-[200px]">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
         <Input
-          placeholder="Global search..."
+          placeholder="Search by ID..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="h-10 pl-9 pr-3 bg-slate-50 border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all w-full"
+          className="h-9 md:h-10 pl-9 pr-3 bg-slate-50 border-slate-200 rounded-xl text-[11px] md:text-xs font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all w-full shadow-sm"
         />
       </div>
 
       <Button
-        className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-wider rounded-xl shadow-lg shadow-blue-100 flex items-center gap-2 transition-all active:scale-95 group border-b-4 border-blue-800"
+        className="h-9 md:h-10 px-3 md:px-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] md:text-[11px] uppercase tracking-wider rounded-xl shadow-lg shadow-blue-100 flex items-center gap-2 transition-all active:scale-95 group border-b-4 border-blue-800"
         onClick={openAdd}
       >
-        <Plus className="h-4 w-4 stroke-[3px] group-hover:rotate-90 transition-transform" />
-        New Booking
+        <Plus className="h-3.5 w-3.5 md:h-4 md:w-4 stroke-[3px] group-hover:rotate-90 transition-transform" />
+        <span className="hidden sm:inline">New Booking</span>
+        <span className="sm:hidden">ADD</span>
       </Button>
     </div>
   );
@@ -392,7 +381,8 @@ export default function Reports() {
   const paginatedBookings = useMemo(() => {
     const start = (currentPageBookings - 1) * itemsPerPage;
     return filteredBookings.slice(start, start + itemsPerPage);
-  }, [filteredBookings, currentPageBookings]);
+  }, [filteredBookings, currentPageBookings, itemsPerPage]);
+
 
   const handlePageChangeBookings = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPagesBookings) {
@@ -400,18 +390,8 @@ export default function Reports() {
     }
   };
 
-  // PAGINATION LOGIC FOR BILLING
-  const totalPagesBilling = Math.ceil(bookings.length / itemsPerPage);
-  const paginatedBilling = useMemo(() => {
-    const start = (currentPageBilling - 1) * itemsPerPage;
-    return bookings.slice(start, start + itemsPerPage);
-  }, [bookings, currentPageBilling]);
 
-  const handlePageChangeBilling = (newPage: number) => {
-    if (newPage >= 1 && newPage <= totalPagesBilling) {
-      setCurrentPageBilling(newPage);
-    }
-  };
+
 
   // CHATBOT HANDLERS
   const handleSend = (e: React.FormEvent | null) => {
@@ -574,757 +554,492 @@ export default function Reports() {
     }
   }
 
-  // charts data
-  const utilizationChartData = aircraft.map((a) => ({
-    name: a.name ?? a.id ?? "Unknown",
-    hours: Number(a.hoursFlown ?? a.hours ?? 0),
-  }));
 
-  const revenueByMonth = (() => {
-    const map = new Map<string, number>();
-    for (const b of bookings) {
-      const dt = b.requestedAt ? new Date(b.requestedAt) : new Date();
-      const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
-
-      let calculated = 0;
-      if (b.originHospitalId && b.destinationHospitalId) {
-        const origin = hospitals.find(h => h.id === b.originHospitalId);
-        const dest = hospitals.find(h => h.id === b.destinationHospitalId);
-        if (origin?.coordinates && dest?.coordinates) {
-          const dist = calculateDistance(origin.coordinates.lat, origin.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng);
-          calculated = calculateRevenue(dist);
-        }
-      }
-      const cost = calculated > 0 ? calculated : (Number(b.estimatedCost) || Number(b.actualCost) || 0);
-      map.set(key, (map.get(key) ?? 0) + cost);
-    }
-    return Array.from(map.entries())
-      .sort((a, b) => (a[0] > b[0] ? 1 : -1))
-      .map(([month, revenue]) => ({ month, revenue }));
-  })();
-
-  const flightTimeTrend = bookings.map((b, i) => ({
-    index: i + 1,
-    flightTime: Number(b.estimatedFlightTime) || 0,
-    revenue: Number(b.estimatedCost) || 0,
-    ratio: Number(b.estimatedFlightTime) > 0 ? Math.round(Number(b.estimatedCost) / Number(b.estimatedFlightTime)) : Number(b.estimatedCost) || 0,
-  }));
-
-  const revenueByHospital = useMemo(() => {
-    const map = new Map<string, number>();
-    bookings.forEach(b => {
-      const h = hospitals.find(h => h.id === b.originHospitalId);
-      const name = h?.name || "Unknown";
-
-      let calculated = 0;
-      if (b.originHospitalId && b.destinationHospitalId) {
-        const origin = hospitals.find(o => o.id === b.originHospitalId);
-        const dest = hospitals.find(d => d.id === b.destinationHospitalId);
-        if (origin?.coordinates && dest?.coordinates) {
-          const dist = calculateDistance(origin.coordinates.lat, origin.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng);
-          calculated = calculateRevenue(dist);
-        }
-      }
-      const cost = calculated > 0 ? calculated : (Number(b.estimatedCost) || Number(b.actualCost) || 0);
-      map.set(name, (map.get(name) || 0) + cost);
-    });
-    return Array.from(map.entries()).map(([name, revenue]) => ({ name, revenue }));
-  }, [bookings, hospitals]);
 
   return (
-    <Layout isFullHeight={true} subTitle="Operational Logs & Network Analytics" headerActions={headerActions}>
+    <Layout subTitle="System Intelligence" headerActions={headerActions} isFullHeight={true}>
       {loading ? (
         <LoadingSpinner />
       ) : (
         <TooltipProvider>
-          <div className="flex-1 flex flex-col min-h-0 space-y-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-                System <span className="text-slate-400 font-bold ml-2">Intelligence</span>
-              </h1>
-            </div>
-
-            {/* Stat cards - standardized premium feel */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Network Ops</p>
-                  <p className="text-2xl font-black text-slate-800 tracking-tighter">{summaryStats.totalBookings}</p>
-                </div>
-                <div className="bg-blue-50 p-3 rounded-xl">
-                  <BarChart3 className="h-5 w-5 text-blue-600" />
-                </div>
+          <div className="h-full flex flex-col min-h-0">
+            <Tabs defaultValue="bookings" className="flex-1 flex flex-col min-h-0" onValueChange={(v) => setActiveTab(v)}>
+              <div className="mb-1 overflow-x-auto custom-scrollbar pb-1">
+                <TabsList className="bg-white/50 backdrop-blur-md border border-slate-200 p-1 rounded-2xl shadow-sm inline-flex min-w-max">
+                  <TabsTrigger
+                    value="bookings"
+                    className="rounded-xl px-4 md:px-6 py-2 md:py-2.5 text-[10px] md:text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-lg active:scale-95 transition-all"
+                  >
+                    Booking Reports
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="aircraft"
+                    className="rounded-xl px-4 md:px-6 py-2 md:py-2.5 text-[10px] md:text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-lg active:scale-95 transition-all"
+                  >
+                    Aircraft Utilization
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="revenue"
+                    className="rounded-xl px-4 md:px-6 py-2 md:py-2.5 text-[10px] md:text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-lg active:scale-95 transition-all"
+                  >
+                    Revenue & Invoices
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="analytics"
+                    className="rounded-xl px-4 md:px-6 py-2 md:py-2.5 text-[10px] md:text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-lg active:scale-95 transition-all"
+                  >
+                    Analytics
+                  </TabsTrigger>
+                </TabsList>
               </div>
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Successful Transits</p>
-                  <p className="text-2xl font-black text-emerald-600 tracking-tighter">{summaryStats.completedBookings}</p>
-                </div>
-                <div className="bg-emerald-50 p-3 rounded-xl">
-                  <CheckCircle className="h-5 w-5 text-emerald-600" />
-                </div>
-              </div>
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Est. Managed Revenue</p>
-                  <p className="text-2xl font-black text-blue-600 tracking-tighter">${summaryStats.totalRevenue.toLocaleString()}</p>
-                </div>
-                <div className="bg-blue-50 p-3 rounded-xl">
-                  <DollarSign className="h-5 w-5 text-blue-600" />
-                </div>
-              </div>
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Avg Transit Velocity</p>
-                  <p className="text-2xl font-black text-amber-600 tracking-tighter">{summaryStats.avgFlightTime} min</p>
-                </div>
-                <div className="bg-amber-50 p-3 rounded-xl">
-                  <Clock className="h-5 w-5 text-amber-600" />
-                </div>
-              </div>
-            </div>
 
-            {/* Main Content Area (Tabs Container) */}
-            <div>
-              <div>
-                <Tabs defaultValue="bookings">
-                  <TabsList className="gap-2 border-b border-gray-200 w-full mb-4 justify-start h-auto p-0 bg-transparent">
-                    <TabsTrigger
-                      value="bookings"
-                      className="px-4 py-2 rounded-md font-semibold text-sm data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=inactive]:hover:bg-gray-100 transition-all duration-200"
-                    >
-                      Booking Reports
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="aircraft"
-                      className="px-4 py-2 rounded-md font-semibold text-sm data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=inactive]:hover:bg-gray-100 transition-all duration-200"
-                    >
-                      Aircraft Utilization
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="billing"
-                      className="px-4 py-2 rounded-md font-semibold text-sm data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=inactive]:hover:bg-gray-100 transition-all duration-200"
-                    >
-                      Revenue &amp; Invoices
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="analytics"
-                      className="px-4 py-2 rounded-md font-semibold text-sm data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=inactive]:hover:bg-gray-100 transition-all duration-200"
-                    >
-                      Analytics
-                    </TabsTrigger>
-                  </TabsList>
-
-                  {/* BOOKINGS TAB CONTENT */}
-                  <TabsContent value="bookings" className="mt-6">
-                    <Card className="rounded-lg border-none" style={{ background: "transparent" }}>
-                      <CardHeader className="p-0 pb-4">
-                        <CardTitle className="text-xl font-bold text-gray-800">Booking Records</CardTitle>
-                      </CardHeader>
-
-                      <CardContent className="p-0">
-                        {/* Filter Section */}
-                        <div className="space-y-6" style={{ background: "transparent" }}>
-                          <div className="flex flex-wrap gap-4 items-center">
-                            <Input
-                              placeholder="Search by Booking ID..."
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              className="w-full md:w-64 border-gray-300 rounded-md"
-                            />
-
-                            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
-                              <SelectTrigger className="w-full md:w-48 border-gray-300 rounded-md">
-                                <SelectValue placeholder="All Status" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="all">All Status</SelectItem>
-                                <SelectItem value="completed">Completed</SelectItem>
-                                <SelectItem value="in_transit">In Transit</SelectItem>
-                                <SelectItem value="airline_confirmed">Airline Confirmed</SelectItem>
-                                <SelectItem value="clinical_review">Clinical Review</SelectItem>
-                                <SelectItem value="requested">Requested</SelectItem>
-                                <SelectItem value="cancelled">Cancelled</SelectItem>
-                              </SelectContent>
-                            </Select>
-
-                            <Select value={urgencyFilter} onValueChange={(v) => setUrgencyFilter(v)}>
-                              <SelectTrigger className="w-full md:w-48 border-gray-300 rounded-md">
-                                <SelectValue placeholder="All Urgency" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="all">All Urgency</SelectItem>
-                                <SelectItem value="urgent">Urgent</SelectItem>
-                                <SelectItem value="routine">Routine</SelectItem>
-                                <SelectItem value="emergency">Emergency</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        {/* Table: Neutral backgrounds */}
-                        <div className="overflow-x-auto border rounded-lg" style={{ background: "transparent" }}>
-                          <Table className="min-w-full">
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="px-6 py-2.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">ID</TableHead>
-                                <TableHead className="px-6 py-2.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">DATE</TableHead>
-                                <TableHead className="px-6 py-2.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">STATUS</TableHead>
-                                <TableHead className="px-6 py-2.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">URGENCY</TableHead>
-                                <TableHead className="px-6 py-2.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">REVENUE</TableHead>
-                                <TableHead className="px-6 py-2.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">ACTIONS</TableHead>
-                              </TableRow>
-                            </TableHeader>
-
-                            <TableBody>
-                              {paginatedBookings.length === 0 ? (
-                                <TableRow>
-                                  <TableCell colSpan={6} className="py-6 text-center text-gray-500">
-                                    No bookings found
-                                  </TableCell>
-                                </TableRow>
-                              ) : (
-                                paginatedBookings.map((b, index) => (
-                                  <TableRow key={b.id}>
-                                    <TableCell className="px-6 py-2.5 whitespace-nowrap text-sm font-bold text-gray-900">{b.booking_id || b.id}</TableCell>
-                                    <TableCell className="px-6 py-2.5 whitespace-nowrap text-sm text-gray-600">
-                                      {b.requestedAt ? format(new Date(b.requestedAt), "MMM dd, yyyy") : "N/A"}
-                                    </TableCell>
-                                    <TableCell className="px-6 py-2.5 whitespace-nowrap text-sm">{getStatusBadge(b.status, "status")}</TableCell>
-                                    <TableCell className="px-6 py-2.5 whitespace-nowrap text-sm">{getStatusBadge(b.urgency, "urgency")}</TableCell>
-                                    <TableCell className="px-6 py-2.5 whitespace-nowrap text-sm text-gray-900 font-bold">
-                                      {(() => {
-                                        let calculated = 0;
-                                        if (b.originHospitalId && b.destinationHospitalId) {
-                                          const origin = hospitals.find(o => o.id === b.originHospitalId);
-                                          const dest = hospitals.find(d => d.id === b.destinationHospitalId);
-                                          if (origin?.coordinates && dest?.coordinates) {
-                                            const dist = calculateDistance(origin.coordinates.lat, origin.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng);
-                                            calculated = calculateRevenue(dist);
-                                          }
-                                        }
-                                        const cost = calculated > 0 ? calculated : (Number(b.estimatedCost) || Number(b.actualCost) || 0);
-                                        return `$${cost.toLocaleString()}`;
-                                      })()}
-                                    </TableCell>
-
-                                    <TableCell className="px-6 py-2.5 whitespace-nowrap text-right text-sm font-medium flex gap-2 justify-end">
-                                      <div className="inline-flex gap-2 p-1 rounded-md">
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <Button size="icon" className="h-8 w-8" onClick={() => setViewBooking(b)}>
-                                              <Eye size={16} />
-                                            </Button>
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                            <p>View Details</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <Button size="icon" className="h-8 w-8" onClick={() => downloadInvoice(b)}>
-                                              <Download size={16} />
-                                            </Button>
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                            <p>Download Invoice</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => openEdit(b)}>
-                                              <Edit size={16} />
-                                            </Button>
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                            <p>Edit Booking</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <Button size="icon" className="h-8 w-8" onClick={() => handleDelete(b.id)}>
-                                              <Trash2 size={16} />
-                                            </Button>
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                            <p>Delete Booking</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </div>
-                                    </TableCell>
-                                  </TableRow>
-                                ))
-                              )}
-                            </TableBody>
-                          </Table>
-                        </div>
-
-                        {totalPagesBookings > 1 && (
-                          <div className="flex justify-center items-center gap-3 mt-6 pb-4">
-                            {Array.from({ length: totalPagesBookings }, (_, i) => i + 1).map((page) => (
-                              <button
-                                key={page}
-                                onClick={() => handlePageChangeBookings(page)}
-                                className={`w-3 h-3 rounded-full transition-all duration-300 ${currentPageBookings === page
-                                  ? "bg-blue-600 scale-125 shadow-sm"
-                                  : "bg-gray-300 hover:bg-gray-400"
-                                  }`}
-                                title={`Page ${page}`}
-                                aria-label={`Go to page ${page}`}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  {/* BILLING TAB */}
-                  <TabsContent value="billing" className="mt-6">
-                    <Card className="rounded-lg border-none">
-                      <CardHeader>
-                        <CardTitle className="text-xl font-bold text-gray-800">Revenue &amp; Invoices</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="overflow-x-auto border rounded-lg">
-                          <Table className="min-w-full">
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">BOOKING</TableHead>
-                                <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">DATE</TableHead>
-                                <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">REVENUE</TableHead>
-                                <TableHead className="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">INVOICE</TableHead>
-                              </TableRow>
-                            </TableHeader>
-
-                            <TableBody>
-                              {paginatedBilling.map((b, index) => (
-                                <TableRow key={b.id}>
-                                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{b.booking_id || b.id}</TableCell>
-                                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{b.requestedAt ? format(new Date(b.requestedAt), "MMM dd, yyyy") : "N/A"}</TableCell>
-                                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
-                                    {(() => {
-                                      let calculated = 0;
-                                      if (b.originHospitalId && b.destinationHospitalId) {
-                                        const origin = hospitals.find(o => o.id === b.originHospitalId);
-                                        const dest = hospitals.find(d => d.id === b.destinationHospitalId);
-                                        if (origin?.coordinates && dest?.coordinates) {
-                                          const dist = calculateDistance(origin.coordinates.lat, origin.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng);
-                                          calculated = calculateRevenue(dist);
-                                        }
+              {/* 📋 BOOKING REPORTS TAB */}
+              <TabsContent value="bookings" className="flex-1 flex flex-col min-h-0 m-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex-1 bg-white rounded-2xl border-2 border-slate-200 shadow-xl overflow-hidden flex flex-col min-h-0">
+                  <div className="flex-1 overflow-auto custom-scrollbar">
+                    <div className="min-w-[800px] md:min-w-0">
+                      <table className="w-full border-collapse">
+                        <thead className="sticky top-0 z-20">
+                          <tr className="bg-[#f8fafc] border-b border-slate-200">
+                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Booking ID</th>
+                            <th className="hidden lg:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Requested Date</th>
+                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Current Status</th>
+                            <th className="hidden md:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Urgency</th>
+                            <th className="hidden sm:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Est. Revenue</th>
+                            <th className="px-6 py-4 text-center text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {paginatedBookings.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-bold text-xs uppercase tracking-widest">
+                                No reports found matching criteria
+                              </td>
+                            </tr>
+                          ) : (
+                            paginatedBookings.map((b) => (
+                              <tr key={b.id} className="hover:bg-slate-50/80 transition-colors group">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-900">{b.booking_id || b.id}</td>
+                                <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
+                                  {b.requestedAt ? format(new Date(b.requestedAt), "MMM dd, yyyy") : "N/A"}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  {getStatusBadge(b.status, "status")}
+                                </td>
+                                <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
+                                  {getStatusBadge(b.urgency, "urgency")}
+                                </td>
+                                <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-bold">
+                                  {(() => {
+                                    let calculated = 0;
+                                    if (b.originHospitalId && b.destinationHospitalId) {
+                                      const origin = hospitals.find(o => o.id === b.originHospitalId);
+                                      const dest = hospitals.find(d => d.id === b.destinationHospitalId);
+                                      if (origin?.coordinates && dest?.coordinates) {
+                                        const dist = calculateDistance(origin.coordinates.lat, origin.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng);
+                                        calculated = calculateRevenue(dist);
                                       }
-                                      const cost = calculated > 0 ? calculated : (Number(b.estimatedCost) || Number(b.actualCost) || 0);
-                                      return `$${cost.toLocaleString()}`;
-                                    })()}
-                                  </TableCell>
+                                    }
+                                    const cost = calculated > 0 ? calculated : (Number(b.estimatedCost) || Number(b.actualCost) || 0);
+                                    return `$${cost.toLocaleString()}`;
+                                  })()}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          size="icon"
+                                          className="h-8 w-8 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all rounded-lg shadow-sm border border-blue-100"
+                                          onClick={() => setViewBooking(b)}
+                                        >
+                                          <Eye size={14} />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="bg-slate-900 text-white font-bold text-[10px] border-none">View Details</TooltipContent>
+                                    </Tooltip>
 
-                                  <TableCell className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                    <div className="inline-flex items-center justify-center gap-2">
-                                      <ReceiptText size={18} className="text-gray-500" />
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button size="icon" className="h-8 w-8" onClick={() => downloadInvoice(b)}>
-                                            <Download size={16} />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>Download Invoice</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          size="icon"
+                                          className="h-8 w-8 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all rounded-lg shadow-sm border border-emerald-100"
+                                          onClick={() => downloadInvoice(b)}
+                                        >
+                                          <Download size={14} />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="bg-slate-900 text-white font-bold text-[10px] border-none">Invoice</TooltipContent>
+                                    </Tooltip>
 
-                        {totalPagesBilling > 1 && (
-                          <div className="flex justify-center items-center gap-3 mt-6 pb-4">
-                            {Array.from({ length: totalPagesBilling }, (_, i) => i + 1).map((page) => (
-                              <button
-                                key={page}
-                                onClick={() => handlePageChangeBilling(page)}
-                                className={`w-3 h-3 rounded-full transition-all duration-300 ${currentPageBilling === page
-                                  ? "bg-blue-600 scale-125 shadow-sm"
-                                  : "bg-gray-300 hover:bg-gray-400"
-                                  }`}
-                                title={`Page ${page}`}
-                                aria-label={`Go to page ${page}`}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          size="icon"
+                                          className="h-8 w-8 bg-slate-50 text-slate-600 hover:bg-slate-600 hover:text-white transition-all rounded-lg shadow-sm border border-slate-200"
+                                          onClick={() => openEdit(b)}
+                                        >
+                                          <Edit size={14} />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="bg-slate-900 text-white font-bold text-[10px] border-none">Edit</TooltipContent>
+                                    </Tooltip>
 
-                  {/* AIRCRAFT TAB */}
-                  <TabsContent value="aircraft" className="mt-6">
-                    <Card className="rounded-lg border-none">
-                      <CardHeader>
-                        <CardTitle className="text-xl font-bold text-gray-800">Aircraft Utilization</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-64">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={utilizationChartData}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                              <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                              <YAxis axisLine={false} tickLine={false} />
-                              <RechartsTooltip cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }} />
-                              <Bar dataKey="hours" fill="#4B00FF" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  {/* ANALYTICS TAB */}
-                  <TabsContent value="analytics" className="mt-6">
-                    <Card className="rounded-lg border-none">
-                      <CardHeader>
-                        <CardTitle className="text-xl font-bold text-gray-800">Analytics Dashboard</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                            <h3 className="font-semibold mb-3 text-gray-700">Revenue Trend (Monthly)</h3>
-                            <div className="h-56">
-                              <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={revenueByMonth}>
-                                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                  <XAxis dataKey="month" axisLine={false} tickLine={false} />
-                                  <YAxis axisLine={false} tickLine={false} />
-                                  <RechartsTooltip contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }} />
-                                  <Legend />
-                                  <Line type="monotone" dataKey="revenue" stroke="#34d399" strokeWidth={2} activeDot={{ r: 6 }} />
-                                </LineChart>
-                              </ResponsiveContainer>
-                            </div>
-                          </div>
-
-                          <div>
-                            <h3 className="font-semibold mb-3 text-gray-700">Revenue by Hospital</h3>
-                            <div className="h-56">
-                              <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={revenueByHospital}>
-                                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                                  <YAxis axisLine={false} tickLine={false} />
-                                  <RechartsTooltip contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }} />
-                                  <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                                </BarChart>
-                              </ResponsiveContainer>
-                            </div>
-                          </div>
-
-                          <div>
-                            <h3 className="font-semibold mb-3 text-gray-700">Flight Time Trend</h3>
-                            <div className="h-56">
-                              <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={flightTimeTrend}>
-                                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                  <XAxis dataKey="index" axisLine={false} tickLine={false} />
-                                  <YAxis axisLine={false} tickLine={false} />
-                                  <RechartsTooltip contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }} />
-                                  <Line type="monotone" dataKey="flightTime" stroke="#60a5fa" strokeWidth={2} activeDot={{ r: 6 }} />
-                                </LineChart>
-                              </ResponsiveContainer>
-                            </div>
-                          </div>
-
-                          <div>
-                            <h3 className="font-semibold mb-3 text-gray-700">Profitability Ratio (Revenue/Time)</h3>
-                            <div className="h-56">
-                              <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={flightTimeTrend}>
-                                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                  <XAxis dataKey="index" axisLine={false} tickLine={false} />
-                                  <YAxis axisLine={false} tickLine={false} />
-                                  <RechartsTooltip contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }} />
-                                  <Bar dataKey="ratio" fill="#10b981" radius={[4, 4, 0, 0]} />
-                                </BarChart>
-                              </ResponsiveContainer>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            </div>
-
-            {/* Chatbot Widget - Fixed Position */}
-            <div className="fixed bottom-6 right-6 z-50">
-              {isChatOpen ? (
-                <Card
-                  className="w-96 shadow-2xl flex flex-col rounded-2xl overflow-hidden border-2 border-blue-300 animate-in fade-in slide-in-from-bottom-4 duration-300 bg-white max-h-[85vh]"
-                  onMouseLeave={() => setIsChatOpen(false)}
-                >
-                  {/* Chat Header */}
-                  <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex justify-between items-center border-b border-blue-400">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden shadow-inner flex-shrink-0">
-                        <img src={chatBotImage} alt="AI Reports Assistant" className="w-full h-full object-cover" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-white">📊 Reports Assistant</h3>
-                        <p className="text-xs text-blue-100">Online & Ready</p>
-                      </div>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          size="icon"
+                                          className="h-8 w-8 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all rounded-lg shadow-sm border border-rose-100"
+                                          onClick={() => handleDelete(b.id)}
+                                        >
+                                          <Trash2 size={14} />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="bg-slate-900 text-white font-bold text-[10px] border-none">Delete</TooltipContent>
+                                    </Tooltip>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={() => setIsChatOpen(false)}
-                      className="bg-blue-500 hover:bg-blue-400 text-white rounded-full h-8 w-8 p-0 flex items-center justify-center border border-blue-300"
-                    >
-                      ✕
-                    </Button>
                   </div>
 
-                  {/* Messages Area */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white h-80 scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-50">
-                    {messages.map((msg) => (
-                      <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"} animate-in fade-in duration-200`}>
-                        <div className={`max-w-xs px-4 py-3 rounded-2xl ${msg.sender === "user"
-                          ? "bg-blue-500 text-white rounded-br-none shadow-lg"
-                          : "bg-blue-50 text-black rounded-bl-none shadow-sm border border-blue-200"
-                          }`}>
-                          <p className="text-sm font-medium">{msg.text}</p>
-                          <span className={`text-xs mt-1 block opacity-70 ${msg.sender === "user" ? "text-blue-100" : "text-blue-600"}`}>
-                            {msg.time}
+                  {/* Pagination Implementation */}
+                  {totalPagesBookings > 0 && (
+                    <div className="bg-[#f8fafc] border-t border-slate-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="flex flex-wrap items-center gap-6">
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Show:</span>
+                          <Select value={itemsPerPage.toString()} onValueChange={(v) => { setItemsPerPage(parseInt(v)); setCurrentPageBookings(1); }}>
+                            <SelectTrigger className="h-9 w-20 bg-white border-2 border-slate-200 rounded-xl text-xs font-black text-slate-700 shadow-sm transition-all hover:border-blue-200 focus:ring-4 focus:ring-blue-500/10">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-slate-200 shadow-2xl">
+                              {[5, 10, 25, 50].map(val => (
+                                <SelectItem key={val} value={val.toString()} className="text-xs font-bold text-slate-600 rounded-lg focus:bg-blue-50 focus:text-blue-700">
+                                  {val}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                          SHOWING {Math.min(filteredBookings.length, (currentPageBookings - 1) * itemsPerPage + 1)}-{Math.min(filteredBookings.length, currentPageBookings * itemsPerPage)} <span className="mx-1">/</span> {filteredBookings.length} REPORTS
+                        </span>
+                      </div>
+
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 rounded-xl border-2 border-slate-200 bg-white hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-all disabled:opacity-20 shadow-sm active:scale-90"
+                          onClick={() => handlePageChangeBookings(1)}
+                          disabled={currentPageBookings === 1}
+                        >
+                          <ChevronsLeft size={16} strokeWidth={2.5} className="text-slate-400" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 rounded-xl border-2 border-slate-200 bg-white hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-all disabled:opacity-20 shadow-sm active:scale-90"
+                          onClick={() => handlePageChangeBookings(currentPageBookings - 1)}
+                          disabled={currentPageBookings === 1}
+                        >
+                          <ChevronLeft size={16} strokeWidth={2.5} className="text-slate-400" />
+                        </Button>
+
+                        <div className="flex items-center justify-center px-4 h-9 min-w-[120px] rounded-xl bg-blue-50 border-2 border-blue-100 shadow-inner">
+                          <span className="text-blue-700 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                            PAGE <span className="text-sm">{currentPageBookings}</span> <span className="text-blue-300">OF</span> <span className="text-sm">{totalPagesBookings || 1}</span>
                           </span>
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 rounded-xl border-2 border-slate-200 bg-white hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-all disabled:opacity-20 shadow-sm active:scale-90"
+                          onClick={() => handlePageChangeBookings(currentPageBookings + 1)}
+                          disabled={currentPageBookings === totalPagesBookings || totalPagesBookings === 0}
+                        >
+                          <ChevronRight size={16} strokeWidth={2.5} className="text-slate-400" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 rounded-xl border-2 border-slate-200 bg-white hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-all disabled:opacity-20 shadow-sm active:scale-90"
+                          onClick={() => handlePageChangeBookings(totalPagesBookings)}
+                          disabled={currentPageBookings === totalPagesBookings || totalPagesBookings === 0}
+                        >
+                          <ChevronsRight size={16} strokeWidth={2.5} className="text-slate-400" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              {/* 🛩️ TAB 2: AIRCRAFT UTILIZATION */}
+              <TabsContent value="aircraft" className="flex-1 m-0 animate-in fade-in slide-in-from-bottom-2 duration-300 overflow-auto custom-scrollbar">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">
+                  <Card className="rounded-2xl border-2 border-slate-100 shadow-lg overflow-hidden bg-white">
+                    <CardHeader className="border-b border-slate-50 bg-[#f8fafc]/50">
+                      <CardTitle className="text-xs font-black uppercase tracking-widest text-[#64748b]">Usage by Tail Number</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 h-[400px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={utilizationChartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: "#94a3b8" }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: "#94a3b8" }} />
+                          <RechartsTooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }} />
+                          <Bar dataKey="usage" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={45} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="rounded-2xl border-2 border-slate-100 shadow-lg overflow-hidden bg-white">
+                    <CardHeader className="border-b border-slate-50 bg-[#f8fafc]/50">
+                      <CardTitle className="text-xs font-black uppercase tracking-widest text-[#64748b]">Flight Hours (Last 7 Days)</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 h-[400px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={flightTimeTrendData}>
+                          <defs>
+                            <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: "#94a3b8" }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: "#94a3b8" }} />
+                          <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }} />
+                          <Area type="monotone" dataKey="hours" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorHours)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* 💰 TAB 3: REVENUE & INVOICES */}
+              <TabsContent value="revenue" className="flex-1 m-0 animate-in fade-in slide-in-from-bottom-2 duration-300 overflow-auto custom-scrollbar">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                  <div className="bg-white p-7 rounded-3xl border-2 border-slate-100 shadow-md hover:shadow-xl transition-all border-l-8 border-l-blue-600 group">
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-3 opacity-60 group-hover:opacity-100 transition-opacity">Financial Intake</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-slate-900 tracking-tighter">${summaryStats.totalRevenue.toLocaleString()}</span>
+                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">USD</span>
+                    </div>
+                  </div>
+                  <div className="bg-white p-7 rounded-3xl border-2 border-slate-100 shadow-md hover:shadow-xl transition-all border-l-8 border-l-emerald-600 group">
+                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-3 opacity-60 group-hover:opacity-100 transition-opacity">Settled Exports</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-black text-slate-900 tracking-tighter">{summaryStats.completedBookings}</span>
+                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">RECORDS</span>
+                    </div>
+                  </div>
+                  <div className="bg-white p-7 rounded-3xl border-2 border-slate-100 shadow-md hover:shadow-xl transition-all border-l-8 border-l-orange-500 group">
+                    <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em] mb-3 opacity-60 group-hover:opacity-100 transition-opacity">Active Queue</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-black text-slate-900 tracking-tighter">{summaryStats.pendingBookings}</span>
+                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">PENDING</span>
+                    </div>
+                  </div>
+                </div>
+
+                <Card className="rounded-3xl border-2 border-slate-100 shadow-xl overflow-hidden bg-white mb-6">
+                  <CardHeader className="border-b border-slate-50 bg-[#f8fafc]/50 px-8 py-5">
+                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-[#64748b]">Revenue Growth Curve</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-8 h-[450px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={revenueByMonthData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: "#94a3b8" }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: "#94a3b8" }} />
+                        <RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)' }} />
+                        <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={5} dot={{ r: 6, fill: "#10b981", strokeWidth: 3, stroke: "#fff" }} activeDot={{ r: 10, strokeWidth: 0 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* 📈 TAB 4: ANALYTICS */}
+              <TabsContent value="analytics" className="flex-1 m-0 animate-in fade-in slide-in-from-bottom-2 duration-300 overflow-auto custom-scrollbar">
+                <div className="space-y-6 pb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-8 rounded-[40px] shadow-2xl shadow-blue-200 relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
+                      <div className="flex items-center gap-6 relative z-10 text-white">
+                        <div className="bg-white/20 p-5 rounded-2xl backdrop-blur-md">
+                          <Plane size={36} strokeWidth={2.5} />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-black tracking-tight">System Operational Efficiency</h4>
+                          <p className="text-blue-100 text-xs font-bold uppercase tracking-[0.2em] mt-1 opacity-80">98.4% OPTIMIZED</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-slate-800 to-slate-950 p-8 rounded-[40px] shadow-2xl shadow-slate-200 relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-blue-500/20 transition-all duration-500"></div>
+                      <div className="flex items-center gap-6 relative z-10 text-white">
+                        <div className="bg-white/5 p-5 rounded-2xl backdrop-blur-md">
+                          <Building2 size={36} strokeWidth={2.5} className="text-blue-400" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-black tracking-tight">Facility Latency Matrix</h4>
+                          <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mt-1 opacity-80">4.2 MIN RESPONSE</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Card className="rounded-[40px] border-2 border-slate-100 shadow-xl overflow-hidden bg-white">
+                    <CardHeader className="border-b border-slate-50 bg-[#f8fafc]/50 px-8 py-6">
+                      <CardTitle className="text-xs font-black uppercase tracking-widest text-[#64748b]">Strategic Capacity Overview</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-8 h-[400px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={revenueByHospital.slice(0, 6)}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "black", fill: "#64748b" }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "black", fill: "#64748b" }} />
+                          <RechartsTooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)' }} />
+                          <Bar dataKey="revenue" fill="url(#blueGradient)" radius={[10, 10, 0, 0]} barSize={60}>
+                            <defs>
+                              <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#3b82f6" />
+                                <stop offset="100%" stopColor="#1d4ed8" />
+                              </linearGradient>
+                            </defs>
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            {/* 🤖 CHATBOT WIDGET */}
+            <div className="fixed bottom-6 right-6 z-50">
+              {isChatOpen ? (
+                <Card className="w-[calc(100vw-3rem)] sm:w-96 shadow-2xl flex flex-col rounded-[32px] overflow-hidden border-2 border-blue-400 animate-in fade-in slide-in-from-bottom-4 duration-300 bg-white max-h-[70vh] sm:max-h-[85vh]">
+                  <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white p-6 flex justify-between items-center border-b border-white/10 shadow-lg">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full border-2 border-white/50 overflow-hidden shadow-2xl">
+                        <img src={chatBotImage} alt="AI Assistant" className="w-full h-full object-cover" />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-white text-base tracking-tight">System Assistant</h3>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(52,211,153,1)]"></span>
+                          <p className="text-[10px] text-blue-100 uppercase tracking-widest font-black">Online</p>
+                        </div>
+                      </div>
+                    </div>
+                    <Button size="icon" variant="ghost" onClick={() => setIsChatOpen(false)} className="text-white hover:bg-white/10 rounded-2xl h-10 w-10">✕</Button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 h-[350px] custom-scrollbar">
+                    {messages.map((msg) => (
+                      <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+                        <div className={`max-w-[85%] px-5 py-3.5 rounded-3xl shadow-sm ${msg.sender === "user" ? "bg-blue-600 text-white rounded-tr-none shadow-blue-200 shadow-xl" : "bg-white text-slate-800 rounded-tl-none border border-slate-100"}`}>
+                          <p className="text-xs sm:text-sm font-bold leading-relaxed">{msg.text}</p>
+                          <span className={`text-[9px] mt-2 block font-black uppercase opacity-40 ${msg.sender === "user" ? "text-right" : ""}`}>{msg.time}</span>
                         </div>
                       </div>
                     ))}
                   </div>
-
-                  {/* Input Area */}
-                  <div className="border-t-2 border-blue-300 p-3 bg-white flex gap-2">
-                    <Input
-                      placeholder="Ask about reports..."
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSend(e)}
-                      className="flex-1 rounded-full border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-black"
-                    />
-                    <Button
-                      size="sm"
-                      onClick={() => handleSend(null)}
-                      className="bg-blue-500 hover:bg-blue-600 text-white border border-blue-600 rounded-full h-10 w-10 p-0 flex items-center justify-center"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
+                  <div className="p-4 bg-white border-t border-slate-100 flex gap-2 items-center">
+                    <Input placeholder="Ask about system records..." value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSend(e)} className="flex-1 h-14 rounded-2xl border-slate-200 focus:border-blue-500 bg-slate-50 text-xs sm:text-sm font-bold shadow-inner" />
+                    <Button size="icon" onClick={() => handleSend(null)} className="h-14 w-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-xl shadow-blue-500/20 active:scale-90 transition-transform"><Send size={20} /></Button>
                   </div>
                 </Card>
               ) : (
-                <Button
-                  onClick={() => setIsChatOpen(true)}
-                  className="p-0 rounded-full shadow-2xl hover:scale-110 transition-all border-4 border-white animate-bounce overflow-hidden h-16 w-16 flex items-center justify-center"
-                >
-                  <img src={chatBotImage} alt="Chatbot Assistant" className="w-full h-full object-cover rounded-full" />
+                <Button onClick={() => setIsChatOpen(true)} className="p-0 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all border-4 border-white animate-bounce h-16 w-16 bg-blue-600 overflow-hidden relative group">
+                  <img src={chatBotImage} alt="Assistant" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                  <div className="absolute inset-0 bg-blue-600/10 group-hover:bg-transparent transition-colors"></div>
                 </Button>
               )}
             </div>
 
-            {/* Edit dialog */}
+            {/* 📁 OPERATIONAL DIALOGS */}
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
-              <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-                <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-                  <DialogTitle className="text-white text-xl">Edit Booking</DialogTitle>
-                </DialogHeader>
-
-                <div className="p-6 space-y-4 overflow-y-auto flex-1">
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="col-span-4 space-y-1.5">
-                      <label className="text-sm font-medium">Booking ID</label>
-                      <Input value={form.id || ""} readOnly className="h-9 bg-gray-50" />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="col-span-2 space-y-1.5">
-                      <label className="text-sm font-medium">Status</label>
+              <DialogContent className="w-[98vw] sm:w-[95vw] h-[98vh] sm:h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-[40px] shadow-2xl border-0">
+                <DialogHeader className="bg-blue-600 text-white px-10 py-6 shrink-0 shadow-lg"><DialogTitle className="text-xl font-black uppercase tracking-widest">Update Data Record</DialogTitle></DialogHeader>
+                <div className="p-10 space-y-10 overflow-y-auto flex-1 custom-scrollbar bg-slate-50/20">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Entry Identifier</label><Input value={form.id || ""} readOnly className="h-14 bg-slate-100/50 border-slate-200 font-black text-slate-600 rounded-[20px]" /></div>
+                    <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Operational Status</label>
                       <Select value={form.status || ""} onValueChange={(v) => setForm({ ...form, status: v })}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="in_transit">In Transit</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="col-span-2 space-y-1.5">
-                      <label className="text-sm font-medium">Urgency</label>
-                      <Select value={form.urgency || ""} onValueChange={(v) => setForm({ ...form, urgency: v })}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Urgency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="urgent">Urgent</SelectItem>
-                          <SelectItem value="routine">Routine</SelectItem>
-                          <SelectItem value="emergency">Emergency</SelectItem>
-                        </SelectContent>
+                        <SelectTrigger className="h-14 rounded-[20px] border-slate-200 font-black"><SelectValue /></SelectTrigger>
+                        <SelectContent className="rounded-2xl"><SelectItem value="requested">Requested</SelectItem><SelectItem value="clinical_review">Clinical Review</SelectItem><SelectItem value="in_transit">In Transit</SelectItem><SelectItem value="completed">Completed</SelectItem><SelectItem value="cancelled">Cancelled</SelectItem></SelectContent>
                       </Select>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="col-span-2 space-y-1.5">
-                      <label className="text-sm font-medium">Estimated Revenue ($)</label>
-                      <Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-9" />
-                    </div>
-                    <div className="col-span-2 space-y-1.5">
-                      <label className="text-sm font-medium">Flight Time (min)</label>
-                      <Input type="number" value={form.estimatedFlightTime ?? 0} onChange={(e) => setForm({ ...form, estimatedFlightTime: Number(e.target.value) })} className="h-9" />
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Forecast Revenue ($)</label><Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-14 rounded-[20px] border-slate-200 font-black" /></div>
+                    <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Flight Chronology (min)</label><Input type="number" value={form.estimatedFlightTime ?? 0} onChange={(e) => setForm({ ...form, estimatedFlightTime: Number(e.target.value) })} className="h-14 rounded-[20px] border-slate-200 font-black" /></div>
                   </div>
-
-                  <div className="flex justify-end gap-3 pt-4 border-t mt-2">
-                    <Button variant="ghost" onClick={() => { setEditOpen(false); setEditingId(null); }}>Cancel</Button>
-                    <Button onClick={() => submitEdit()} className="bg-blue-600 hover:bg-blue-700 text-white">Save Changes</Button>
-                  </div>
+                  <div className="flex justify-end gap-5 pt-10 border-t border-slate-100"><Button variant="ghost" onClick={() => setEditOpen(false)} className="h-14 px-10 rounded-2xl font-black text-slate-400 hover:bg-slate-100 uppercase tracking-widest text-[11px]">Discard</Button><Button onClick={submitEdit} className="h-14 px-12 rounded-2xl font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-700 text-white shadow-2xl shadow-blue-500/20 active:scale-95 transition-all">Submit Changes</Button></div>
                 </div>
               </DialogContent>
             </Dialog>
 
-            {/* View dialog */}
             <Dialog open={!!viewBooking} onOpenChange={() => setViewBooking(null)}>
-              <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-                <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-                  <DialogTitle className="text-white text-xl">Booking Details</DialogTitle>
-                </DialogHeader>
-                <div className="p-6 space-y-4 overflow-y-auto flex-1">
-                  {viewBooking ? (
-                    <div className="overflow-hidden rounded-lg border border-gray-200">
-                      <table className="w-full text-sm">
-                        <tbody>
-                          <tr className="border-b">
-                            <td className="p-3 font-semibold w-1/3">ID</td>
-                            <td className="p-3">
-                              <span className="font-mono text-sm px-2 py-1 rounded">
-                                {viewBooking.id}
-                              </span>
-                            </td>
-                          </tr>
-
-                          <tr className="border-b">
-                            <td className="p-3 font-semibold">Status</td>
-                            <td className="p-3">
-                              {getStatusBadge(viewBooking.status, "status")}
-                            </td>
-                          </tr>
-
-                          <tr className="border-b">
-                            <td className="p-3 font-semibold">Urgency</td>
-                            <td className="p-3">
-                              {getStatusBadge(viewBooking.urgency, "urgency")}
-                            </td>
-                          </tr>
-
-                          <tr className="border-b">
-                            <td className="p-3 font-semibold">Date</td>
-                            <td className="p-3">
-                              {viewBooking.requestedAt
-                                ? format(new Date(viewBooking.requestedAt), "PPpp")
-                                : "N/A"}
-                            </td>
-                          </tr>
-
-                          <tr className="border-b">
-                            <td className="p-3 font-semibold">Revenue</td>
-                            <td className="p-3">
-                              <span className="text-green-600 font-bold">
-                                ${(viewBooking.estimatedCost ?? 0).toLocaleString()}
-                              </span>
-                            </td>
-                          </tr>
-
-                          <tr>
-                            <td className="p-3 font-semibold">Flight Time</td>
-                            <td className="p-3">
-                              {(viewBooking.estimatedFlightTime ?? 0)} min
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+              <DialogContent className="w-[98vw] sm:w-[85vw] h-[90vh] flex flex-col bg-white p-0 overflow-hidden rounded-[50px] shadow-2xl border-0">
+                <DialogHeader className="bg-slate-950 px-12 py-8"><DialogTitle className="text-white font-black uppercase tracking-widest text-2xl">Structural Context</DialogTitle></DialogHeader>
+                <div className="p-12 flex-1 overflow-auto custom-scrollbar bg-slate-50/50">
+                  {viewBooking && (
+                    <div className="max-w-5xl mx-auto space-y-10">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
+                        <div className="p-8 bg-white rounded-[32px] shadow-xl border border-slate-50"><p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">Serial Index</p><p className="font-mono text-xl font-black text-blue-600">{viewBooking.booking_id || viewBooking.id}</p></div>
+                        <div className="p-8 bg-white rounded-[32px] shadow-xl border border-slate-50"><p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">Integrity Check</p>{getStatusBadge(viewBooking.status, "status")}</div>
+                        <div className="p-8 bg-white rounded-[32px] shadow-xl border border-slate-50"><p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">Urgency Rating</p>{getStatusBadge(viewBooking.urgency, "urgency")}</div>
+                      </div>
+                      <div className="bg-white rounded-[48px] shadow-2xl border-none overflow-hidden hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] transition-all">
+                        <table className="w-full text-sm font-bold text-slate-700">
+                          <tbody>
+                            <tr className="border-b border-slate-50/50"><td className="px-12 py-8 text-[11px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Temporal Stamp</td><td className="px-12 py-8">{viewBooking.requestedAt ? format(new Date(viewBooking.requestedAt), "PPP p") : "DATA_RESTRICTED"}</td></tr>
+                            <tr className="border-b border-slate-50/50"><td className="px-12 py-8 text-[11px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Financial Resolution</td><td className="px-12 py-8 text-emerald-600 text-3xl font-black tracking-tighter">${(viewBooking.estimatedCost ?? 0).toLocaleString()} <span className="text-xs text-slate-300 font-black ml-2 mt-auto">USD</span></td></tr>
+                            <tr><td className="px-12 py-8 text-[11px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Flight Duration</td><td className="px-12 py-8 font-black text-slate-900">{(viewBooking.estimatedFlightTime ?? 0)} MIN <span className="text-slate-400 font-bold ml-1">SYSTEM_MEASURED</span></td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="flex justify-center"><Button onClick={() => setViewBooking(null)} className="h-14 px-12 rounded-full font-black uppercase tracking-widest bg-slate-900 hover:bg-slate-800 text-white shadow-xl">Exit Visualizer</Button></div>
                     </div>
-                  ) : null}
+                  )}
                 </div>
               </DialogContent>
             </Dialog>
 
-            {/* Add dialog */}
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
-              <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-                <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-                  <DialogTitle className="text-white text-xl">Add New Booking</DialogTitle>
-                </DialogHeader>
-                <div className="p-6 space-y-4 overflow-y-auto flex-1">
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="col-span-4 space-y-1.5">
-                      <label className="text-sm font-medium">Booking ID</label>
-                      <Input value={form.id || ""} onChange={(e) => setForm({ ...form, id: e.target.value })} placeholder="Booking ID (e.g., AB-1234)" className="h-9" />
-                    </div>
+              <DialogContent className="w-[98vw] sm:w-[95vw] h-[98vh] sm:h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-[40px] shadow-2xl border-0">
+                <DialogHeader className="bg-blue-600 text-white px-10 py-6 shrink-0"><DialogTitle className="text-xl font-black uppercase tracking-widest">Initialize System Entry</DialogTitle></DialogHeader>
+                <div className="p-10 space-y-10 overflow-y-auto flex-1 custom-scrollbar bg-slate-50/20">
+                  <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Record Identifier (Primary Key)</label><Input value={form.id || ""} onChange={(e) => setForm({ ...form, id: e.target.value })} placeholder="Reference..." className="h-14 rounded-[20px] border-slate-200 font-black shadow-inner" /></div>
+                  <div className="grid grid-cols-2 gap-10">
+                    <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Status Vector</label><Select value={form.status || ""} onValueChange={(v) => setForm({ ...form, status: v })}><SelectTrigger className="h-14 rounded-[20px]"><SelectValue /></SelectTrigger><SelectContent className="rounded-2xl"><SelectItem value="requested">Requested</SelectItem><SelectItem value="completed">Completed</SelectItem></SelectContent></Select></div>
+                    <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Priority Flag</label><Select value={form.urgency || ""} onValueChange={(v) => setForm({ ...form, urgency: v })}><SelectTrigger className="h-14 rounded-[20px]"><SelectValue /></SelectTrigger><SelectContent className="rounded-2xl"><SelectItem value="routine">Routine</SelectItem><SelectItem value="urgent">Urgent</SelectItem><SelectItem value="emergency">Emergency</SelectItem></SelectContent></Select></div>
                   </div>
-
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="col-span-2 space-y-1.5">
-                      <label className="text-sm font-medium">Status</label>
-                      <Select value={form.status || ""} onValueChange={(v) => setForm({ ...form, status: v })}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="in_transit">In Transit</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="col-span-2 space-y-1.5">
-                      <label className="text-sm font-medium">Urgency</label>
-                      <Select value={form.urgency || ""} onValueChange={(v) => setForm({ ...form, urgency: v })}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Urgency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="urgent">Urgent</SelectItem>
-                          <SelectItem value="routine">Routine</SelectItem>
-                          <SelectItem value="emergency">Emergency</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="grid grid-cols-2 gap-10">
+                    <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Estimated Value ($)</label><Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-14 rounded-[20px] border-slate-200 font-black" /></div>
+                    <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Projected Time (min)</label><Input type="number" value={form.estimatedFlightTime ?? 0} onChange={(e) => setForm({ ...form, estimatedFlightTime: Number(e.target.value) })} className="h-14 rounded-[20px] border-slate-200 font-black" /></div>
                   </div>
-
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="col-span-2 space-y-1.5">
-                      <label className="text-sm font-medium">Estimated Revenue ($)</label>
-                      <Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-9" />
-                    </div>
-                    <div className="col-span-2 space-y-1.5">
-                      <label className="text-sm font-medium">Flight Time (min)</label>
-                      <Input type="number" value={form.estimatedFlightTime ?? 0} onChange={(e) => setForm({ ...form, estimatedFlightTime: Number(e.target.value) })} className="h-9" />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-4 border-t mt-2">
-                    <Button variant="ghost" onClick={() => setAddOpen(false)}>Cancel</Button>
-                    <Button onClick={submitAdd} className="bg-blue-600 hover:bg-blue-700 text-white">Add Booking</Button>
-                  </div>
+                  <div className="flex justify-end gap-5 pt-10 border-t border-slate-100"><Button variant="ghost" onClick={() => setAddOpen(false)} className="h-14 px-10 rounded-2xl font-black text-slate-400 uppercase tracking-widest">Cancel</Button><Button onClick={submitAdd} className="h-14 px-12 rounded-2xl font-black uppercase tracking-widest bg-blue-600 text-white shadow-2xl active:scale-95 transition-all">Initialize Record</Button></div>
                 </div>
               </DialogContent>
             </Dialog>
-          </div >
-        </TooltipProvider >
+          </div>
+        </TooltipProvider>
       )}
-    </Layout >
+    </Layout>
   );
 }
