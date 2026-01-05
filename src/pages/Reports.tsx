@@ -219,10 +219,14 @@ export default function Reports() {
           PatientsService.list(),
           HospitalService.getHospitals(),
         ]);
-        setBookings(bookingsData.map((b: any) => ({ ...b, id: b._id || b.id })));
-        setAircraft(aircraftData);
-        setPatients(patientsData);
-        setHospitals(hospitalsData);
+
+        // Filter out null or incomplete data
+        const validBookings = (bookingsData || []).filter((b: any) => b && (b.id || b._id));
+        setBookings(validBookings.map((b: any) => ({ ...b, id: b._id || b.id })));
+
+        setAircraft((aircraftData || []).filter((a: any) => a && (a.id || a._id)));
+        setPatients((patientsData || []).filter((p: any) => p && (p.id || p._id)));
+        setHospitals((hospitalsData || []).filter((h: any) => h && (h.id || h._id)));
       } catch (err) {
         console.error('Failed to fetch data', err);
       } finally {
@@ -263,6 +267,8 @@ export default function Reports() {
       completedBookings: bookings.filter((b) => b.status === "completed").length,
       pendingBookings: bookings.filter((b) => b.status === "requested" || b.status === "clinical_review").length,
       totalRevenue: totalRev,
+      efficiency: bookings.length > 0 ? Math.round((bookings.filter(b => b.status === 'completed').length / bookings.length) * 100) : 0,
+      avgFlightTime: bookings.length > 0 ? Math.round(bookings.reduce((s, b) => s + (Number(b.estimatedFlightTime) || 0), 0) / bookings.length) : 0
     };
   }, [bookings, hospitals]);
 
@@ -281,16 +287,61 @@ export default function Reports() {
   }, [bookings, aircraft]);
 
   const revenueByMonthData = useMemo(() => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-    return months.map(m => ({ name: m, revenue: Math.floor(Math.random() * 80000) + 40000 }));
-  }, []);
+    const monthlyData: Record<string, number> = {};
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    // Initialize last 6 months with 0
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      monthlyData[months[d.getMonth()]] = 0;
+    }
+
+    bookings.forEach(b => {
+      if (!b.requestedAt) return;
+      const date = new Date(b.requestedAt);
+      const month = months[date.getMonth()];
+
+      if (monthlyData[month] !== undefined) {
+        let calculated = 0;
+        if (b.originHospitalId && b.destinationHospitalId) {
+          const origin = hospitals.find(h => h.id === b.originHospitalId);
+          const dest = hospitals.find(h => h.id === b.destinationHospitalId);
+          if (origin?.coordinates && dest?.coordinates) {
+            const dist = calculateDistance(origin.coordinates.lat, origin.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng);
+            calculated = calculateRevenue(dist);
+          }
+        }
+        const cost = calculated > 0 ? calculated : (Number(b.estimatedCost) || Number(b.actualCost) || 0);
+        monthlyData[month] += cost;
+      }
+    });
+
+    return Object.entries(monthlyData).map(([name, revenue]) => ({ name, revenue }));
+  }, [bookings, hospitals]);
 
   const flightTimeTrendData = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => ({
-      day: format(new Date(Date.now() - (6 - i) * 86400000), "EEE"),
-      hours: Math.floor(Math.random() * 18) + 5
-    }));
-  }, []);
+    const dailyData: Record<string, number> = {};
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    // Initialize last 7 days including today
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 86400000);
+      dailyData[days[d.getDay()]] = 0;
+    }
+
+    bookings.forEach(b => {
+      if (!b.requestedAt) return;
+      const date = new Date(b.requestedAt);
+      const dayName = days[date.getDay()];
+      if (dailyData[dayName] !== undefined) {
+        dailyData[dayName] += (Number(b.estimatedFlightTime) || 0);
+      }
+    });
+
+    return Object.entries(dailyData).map(([day, hours]) => ({ day, hours }));
+  }, [bookings]);
 
   const revenueByHospital = useMemo<{ name: string; revenue: number }[]>(() => {
     const hospitalRev: Record<string, number> = {};
@@ -883,7 +934,7 @@ export default function Reports() {
                         </div>
                         <div>
                           <h4 className="text-lg font-black tracking-tight">System Operational Efficiency</h4>
-                          <p className="text-blue-100 text-xs font-bold uppercase tracking-[0.2em] mt-1 opacity-80">98.4% OPTIMIZED</p>
+                          <p className="text-blue-100 text-xs font-bold uppercase tracking-[0.2em] mt-1 opacity-80">{summaryStats.efficiency}% OPTIMIZED</p>
                         </div>
                       </div>
                     </div>
@@ -894,8 +945,8 @@ export default function Reports() {
                           <Building2 size={36} strokeWidth={2.5} className="text-blue-400" />
                         </div>
                         <div>
-                          <h4 className="text-lg font-black tracking-tight">Facility Latency Matrix</h4>
-                          <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mt-1 opacity-80">4.2 MIN RESPONSE</p>
+                          <h4 className="text-lg font-black tracking-tight">Avg Flight Duration</h4>
+                          <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mt-1 opacity-80">{summaryStats.avgFlightTime} MIN AVERAGE</p>
                         </div>
                       </div>
                     </div>

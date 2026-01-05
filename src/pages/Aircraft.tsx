@@ -141,7 +141,9 @@ const Aircraft: React.FC = () => {
     try {
       setLoading(true);
       const data = await AircraftService.getAircrafts();
-      setAircraft(data.filter(Boolean));
+      // Filter out null or incomplete data
+      const validAircraft = (data || []).filter((a: any) => a && (a.id || a._id) && a.registration);
+      setAircraft(validAircraft);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch aircraft");
