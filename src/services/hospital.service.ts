@@ -21,19 +21,20 @@ export const HospitalService = {
   async getHospitals(): Promise<Hospital[]> {
     const response = await apiClient.get('/api/hospitals');
 
-    // Transform backend response to frontend format
-    return response.map((hospital: any) => ({
-      id: hospital.id || hospital._id,
-      name: hospital.hospital_name,
-      address: hospital.address,
-      levelOfCare: reverseLevelOfCareMap[hospital.level_of_care] || 'Primary',
-      icuCapacity: hospital.icu_capacity,
-      occupiedBeds: hospital.occupied_beds || 0,
-      coordinates: { lat: hospital.latitude, lng: hospital.longitude },
-      contactPerson: hospital.contact_information?.name || '',
-      email: hospital.contact_information?.email || '',
-      phone: hospital.contact_information?.phone || '',
-    }));
+    return (response || [])
+      .filter((h: any) => h && (h.id || h._id) && h.hospital_name)
+      .map((hospital: any) => ({
+        id: hospital.id || hospital._id,
+        name: hospital.hospital_name,
+        address: hospital.address,
+        levelOfCare: reverseLevelOfCareMap[hospital.level_of_care] || 'Primary',
+        icuCapacity: hospital.icu_capacity,
+        occupiedBeds: hospital.occupied_beds || 0,
+        coordinates: { lat: hospital.latitude, lng: hospital.longitude },
+        contactPerson: hospital.contact_information?.name || '',
+        email: hospital.contact_information?.email || '',
+        phone: hospital.contact_information?.phone || '',
+      }));
   },
 
   async createHospital(hospital: Partial<Hospital>): Promise<Hospital> {

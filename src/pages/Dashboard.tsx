@@ -57,7 +57,6 @@ import {
   Filter,
   Search,
   Building2,
-  Edit,
 } from "lucide-react";
 import { DashboardService, DashboardStats } from "@/services/dashboard.service";
 import { BookingService } from "@/services/booking.service";
@@ -884,10 +883,11 @@ export default function Dashboard() {
                                 <Button
                                   variant="outline"
                                   size="icon"
-                                  className="h-8 w-8 bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all rounded-xl shadow-sm active:scale-95 group"
-                                  title="Edit Booking"
+                                  className="h-8 w-8 bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all rounded-xl shadow-sm active:scale-95 group"
+                                  onClick={() => handleDownload(booking)}
+                                  title="Download PDF"
                                 >
-                                  <Edit className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                  <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
                                 </Button>
 
                                 <Button

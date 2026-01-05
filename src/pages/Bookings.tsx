@@ -97,7 +97,9 @@ const Bookings = () => {
     try {
       setLoading(true);
       const data = await BookingService.list();
-      setBookings(data.filter(Boolean));
+      // Filter out records that are completely null or missing required fields
+      const validData = (data || []).filter((b: any) => b && (b.id || b._id) && b.patientId);
+      setBookings(validData);
       setError(null);
     } catch (err) {
       console.error('Error fetching bookings:', err);
@@ -121,7 +123,7 @@ const Bookings = () => {
     const fetchHospitals = async () => {
       try {
         const data = await HospitalService.getHospitals();
-        setHospitals(data);
+        setHospitals((data || []).filter(h => h && h.id && h.name));
       } catch (err) {
         console.error('Failed to fetch hospitals', err);
       }
@@ -142,18 +144,23 @@ const Bookings = () => {
   const [urgencyFilter, setUrgencyFilter] = useState<string>('all');
 
   // Filter logic
-  const filteredBookings = bookings ? bookings.filter(booking => {
-    if (!booking || !booking.patientId || !getPatientById(booking.patientId)) return false;
+  const filteredBookings = (bookings || []).filter(booking => {
+    // Robust check for empty/invalid records
+    if (!booking || !booking.id || !booking.patientId) return false;
 
-    const matchesSearch = getPatientName(booking.patientId).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (booking.booking_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (booking.id || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const patient = getPatientById(booking.patientId);
+    if (!patient) return false;
 
+    const patientName = (patient.name || patient.full_name || "").toLowerCase();
+    const bookingId = (booking.booking_id || booking.id || "").toLowerCase();
+    const search = searchTerm.toLowerCase();
+
+    const matchesSearch = patientName.includes(search) || bookingId.includes(search);
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
     const matchesUrgency = urgencyFilter === 'all' || booking.urgency === urgencyFilter;
 
     return matchesSearch && matchesStatus && matchesUrgency;
-  }) : [];
+  });
 
   const openNewBooking = () => {
     setEditingBookingId(null);

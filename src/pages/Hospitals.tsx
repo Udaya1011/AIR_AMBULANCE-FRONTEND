@@ -37,6 +37,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/components/ui/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { HospitalService } from '@/services/hospital.service';
+import { BookingService } from '@/services/booking.service';
 import { exportHospitals } from '@/utils/exportHospitals';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import chatBotImage from '../emoji.jpeg';
@@ -186,19 +187,23 @@ const Hospitals = () => {
   const navigate = useNavigate();
 
   // Booking approval state
-  const [bookings, setBookings] = useState<any[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('airswift_bookings') || '[]');
-    } catch {
-      return mockBookings || [];
-    }
-  });
+  const [bookings, setBookings] = useState<any[]>([]);
   const [selectedBookingForApproval, setSelectedBookingForApproval] = useState<string | null>(null);
   const [approvalNotes, setApprovalNotes] = useState('');
 
   useEffect(() => {
     fetchHospitals();
+    fetchBookings();
   }, []);
+
+  const fetchBookings = async () => {
+    try {
+      const data = await BookingService.list();
+      setBookings((data || []).filter(Boolean));
+    } catch (err) {
+      console.error("Error fetching bookings:", err);
+    }
+  };
 
   // Chatbot inactivity timer effect
   useEffect(() => {
@@ -664,7 +669,6 @@ const Hospitals = () => {
         : b
     );
     setBookings(updatedBookings);
-    localStorage.setItem('airswift_bookings', JSON.stringify(updatedBookings));
     setSelectedBookingForApproval(null);
     setApprovalNotes('');
     toast({
@@ -692,7 +696,6 @@ const Hospitals = () => {
         : b
     );
     setBookings(updatedBookings);
-    localStorage.setItem('airswift_bookings', JSON.stringify(updatedBookings));
     setSelectedBookingForApproval(null);
     setApprovalNotes('');
     toast({

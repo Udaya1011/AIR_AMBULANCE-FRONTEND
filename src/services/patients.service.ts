@@ -4,14 +4,16 @@ import { apiClient } from './apiClient';
 export const PatientsService = {
   async list(): Promise<Patient[]> {
     const response = await apiClient.get('/api/patients');
-    return response.map((p: any) => ({
-      ...p,
-      id: p.id || p._id,
-      patient_id: p.patient_id,
-      name: p.full_name || p.name,
-      dob: p.date_of_birth || p.dob,
-      weight: p.weight_kg || p.weight
-    }));
+    return (response || [])
+      .filter((p: any) => p && (p.id || p._id) && (p.full_name || p.name))
+      .map((p: any) => ({
+        ...p,
+        id: p.id || p._id,
+        patient_id: p.patient_id,
+        name: p.full_name || p.name,
+        dob: p.date_of_birth || p.dob,
+        weight: p.weight_kg || p.weight
+      }));
   },
 
   async create(patient: any): Promise<Patient> {
