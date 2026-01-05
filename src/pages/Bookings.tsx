@@ -97,8 +97,16 @@ const Bookings = () => {
     try {
       setLoading(true);
       const data = await BookingService.list();
-      // Filter out records that are completely null or missing required fields
-      const validData = (data || []).filter((b: any) => b && (b.id || b._id) && b.patientId);
+      // Enforce strict data validation - only show records with verified links
+      const validData = (data || []).filter((b: any) => {
+        if (!b || !(b.id || b._id)) return false;
+        const patientExists = !!getPatientById(b.patientId);
+        // Note: hospitals state might not be populated yet if parallel, so we just check for ID existence
+        // or check against the fetched hospitals in the next step.
+        // Actually fetchHospitals is in the same useEffect, but called after fetchBookings.
+        // Best to filter in filteredBookings computed property for reactive updates.
+        return patientExists && b.originHospitalId && b.destinationHospitalId;
+      });
       setBookings(validData);
       setError(null);
     } catch (err) {
@@ -345,6 +353,46 @@ const Bookings = () => {
     urgent: bookings.filter(b => b.urgency === 'urgent').length,
   };
 
+  // Approval Handlers
+  const handleApprove = async (id: string) => {
+    try {
+      if (!id) return;
+      await BookingService.update(id, { status: 'clinical_review' });
+      toast({
+        title: "Booking Approved",
+        description: "The request has been moved to Clinical Review state.",
+      });
+      fetchBookings();
+    } catch (err) {
+      console.error('Approve error:', err);
+      toast({
+        title: "Error",
+        description: "Failed to process approval.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      if (!id) return;
+      await BookingService.update(id, { status: 'cancelled' });
+      toast({
+        title: "Booking Rejected",
+        description: "The request has been formally cancelled.",
+        variant: "destructive",
+      });
+      fetchBookings();
+    } catch (err) {
+      console.error('Reject error:', err);
+      toast({
+        title: "Error",
+        description: "Failed to process rejection.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const headerActions = (
     <div className="flex items-center gap-3">
       {/* Analytics Popover */}
@@ -409,6 +457,56 @@ const Bookings = () => {
           </div>
         </PopoverContent>
       </Popover>
+
+      {/* Approvals Dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-emerald-600 transition-all active:scale-95 group relative" title="Pending Approvals">
+            <Zap className={`h-4 w-4 transition-transform group-hover:scale-110 ${bookings.filter(b => b.status === 'requested').length > 0 ? 'text-emerald-600 animate-pulse' : 'text-slate-500'}`} />
+            {bookings.filter(b => b.status === 'requested').length > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center rounded-full bg-emerald-600 text-white text-[8px] font-black border-2 border-white shadow-sm animate-bounce">
+                {bookings.filter(b => b.status === 'requested').length}
+              </span>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-80 p-2 rounded-2xl shadow-2xl border-slate-200 animate-in fade-in zoom-in-95 duration-200" align="end">
+          <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2 py-1.5 flex justify-between items-center">
+            <span>Operational Approvals</span>
+            <Badge variant="outline" className="text-[9px] border-emerald-200 text-emerald-600 bg-emerald-50 font-black">ACTION REQ</Badge>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator className="my-1 bg-slate-100" />
+          <div className="max-h-[400px] overflow-y-auto custom-scrollbar p-1">
+            {bookings.filter(b => b.status === 'requested').length === 0 ? (
+              <div className="py-8 px-4 text-center space-y-2">
+                <CheckCircle2 className="h-8 w-8 text-slate-100 mx-auto" />
+                <p className="text-xs font-bold text-slate-400">All Requests Cleared</p>
+              </div>
+            ) : (
+              bookings.filter(b => b.status === 'requested').map(b => (
+                <div key={b.id} className="p-3 mb-2 bg-white hover:bg-slate-50/80 rounded-xl border border-slate-100 hover:border-emerald-100 transition-all group/item shadow-sm">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-slate-900 leading-none tracking-tight">#{(b.booking_id || b.id).slice(0, 8).toUpperCase()}</span>
+                        {b.urgency === 'emergency' && <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping" />}
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-500 mt-1.5 uppercase tracking-wide">{getPatientName(b.patientId)}</span>
+                    </div>
+                    <Badge className={`text-[9px] font-black uppercase tracking-tighter ${b.urgency === 'emergency' ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-blue-50 text-blue-700 border-blue-100'} border`}>
+                      {b.urgency}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button size="sm" className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-emerald-100 transition-all active:scale-95" onClick={() => handleApprove(b.id)}>Approve</Button>
+                    <Button size="sm" variant="outline" className="h-8 border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all active:scale-95" onClick={() => handleReject(b.id)}>Reject</Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Unified Filter Dropdown */}
       <DropdownMenu>
@@ -500,14 +598,14 @@ const Bookings = () => {
             <span className="uppercase tracking-wider">New Booking</span>
           </Button>
         </DialogTrigger>
-        <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-          <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-            <DialogTitle className="text-white text-xl">{editingBookingId ? 'Edit Booking' : 'Create New Booking'}</DialogTitle>
-            <DialogDescription className="text-blue-100">Request a new medical transfer</DialogDescription>
+        <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+          <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
+            <DialogTitle className="text-white text-lg font-black tracking-tight">{editingBookingId ? 'Refine Transfer Request' : 'Initialize Medical Dispatch'}</DialogTitle>
+            <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Emergency logistics coordination</DialogDescription>
           </DialogHeader>
 
-          <div className="p-6 space-y-4 overflow-y-auto flex-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="space-y-1.5">
                 <Label>Selection Method</Label>
                 <Select
@@ -899,14 +997,15 @@ const Bookings = () => {
                                 </Button>
                               </DialogTrigger>
                               <DialogContent
-                                className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl"
+                                className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl"
                               >
-                                <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-                                  <DialogTitle className="text-white text-xl">
-                                    Booking Details - #{(booking.booking_id || booking.id).toUpperCase()}
+                                <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
+                                  <DialogTitle className="text-white text-lg font-black tracking-tight">
+                                    Transfer Intelligence — #{(booking.booking_id || booking.id).toUpperCase().slice(0, 8)}
                                   </DialogTitle>
+                                  <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Comprehensive audit trail and status</DialogDescription>
                                 </DialogHeader>
-                                <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                                <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/10">
 
                                   <div className="space-y-6 px-6 py-4">
                                     <div className="grid grid-cols-2 gap-6">

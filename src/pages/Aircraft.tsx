@@ -45,7 +45,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileText, BarChart3, Edit, Trash2, Search, Map, Plus, PlaneTakeoff, PlaneLanding, Activity, MessageSquare, Send, List, Eye, Building2, Users, Clock, MapPin, Calendar, AlertCircle, ChevronLeft, ChevronRight, Loader2, Navigation, Filter } from "lucide-react";
+import { FileText, BarChart3, Edit, Trash2, Search, Map, Plus, Plane, PlaneTakeoff, PlaneLanding, Activity, MessageSquare, Send, List, Eye, Building2, Users, Clock, MapPin, Calendar, AlertCircle, ChevronLeft, ChevronRight, Loader2, Navigation, Filter } from "lucide-react";
 
 import {
   Tooltip,
@@ -113,6 +113,7 @@ const Aircraft: React.FC = () => {
   const [view, setView] = useState<"list" | "map">("list");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [trackingId, setTrackingId] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<AircraftStatus | "all">("all");
@@ -494,13 +495,13 @@ const Aircraft: React.FC = () => {
             Add Aircraft
           </Button>
         </DialogTrigger>
-        <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-          <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-            <DialogTitle className="text-white text-xl">{editItem ? 'Edit Aircraft' : 'Add New Aircraft'}</DialogTitle>
-            <DialogDescription className="text-blue-100">Maintain fleet records and operational status</DialogDescription>
+        <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+          <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
+            <DialogTitle className="text-white text-lg font-black tracking-tight">{editItem ? '🏗️ Refine Asset Configuration' : '🏛️ Register Global Asset'}</DialogTitle>
+            <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Strategic Aviation Management</DialogDescription>
           </DialogHeader>
 
-          <div className="p-6 space-y-4 overflow-y-auto flex-1 text-black">
+          <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 text-black bg-white">
             {/* ROW 1: Reg, Type, Operator, Status */}
             <div className="grid grid-cols-4 gap-4">
               <div className="col-span-1 space-y-1.5">
@@ -775,18 +776,8 @@ const Aircraft: React.FC = () => {
                                     <Button
                                       className="h-7 w-full px-2 text-[9px] font-black uppercase tracking-tighter bg-slate-900 text-white hover:bg-slate-800 shadow-md"
                                       onClick={() => {
+                                        setTrackingId(ac.id);
                                         setView("map");
-                                        setTimeout(() => {
-                                          window.dispatchEvent(
-                                            new CustomEvent("flyToAircraft", {
-                                              detail: {
-                                                id: ac.id,
-                                                lat: ac.latitude,
-                                                lng: ac.longitude,
-                                              },
-                                            })
-                                          );
-                                        }, 250);
                                       }}
                                     >
                                       <Map className="h-3 w-3 mr-1" /> Track Live
@@ -874,25 +865,23 @@ const Aircraft: React.FC = () => {
                 </div>
               ) : (
                 <div className="flex-1 rounded-2xl border-2 border-slate-300 bg-white shadow-xl overflow-hidden relative min-h-0">
-                  <LiveMapComponent aircraftData={aircraft} />
+                  <LiveMapComponent aircraftData={aircraft} initialTrackedId={trackingId} />
                 </div>
               )}
             </div>
           )}
 
           {/* Aircraft Detail View Dialog */}
-          <Dialog open={Boolean(selectedAircraft)} onOpenChange={(open) => { if (!open) setSelectedAircraft(null); }}>
-            <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-              <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-                <DialogTitle className="text-white text-xl">
-                  Aircraft Detail View - {selectedAircraft?.registration} ({selectedAircraft?.operator})
+          <Dialog open={!!selectedAircraft} onOpenChange={(open) => !open && setSelectedAircraft(null)}>
+            <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+              <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
+                <DialogTitle className="text-white text-lg font-black tracking-tight flex items-center gap-2">
+                  <Plane className="h-5 w-5 text-blue-200" />
+                  Aircraft Intelligence — {selectedAircraft?.registration}
                 </DialogTitle>
-                <DialogDescription className="text-blue-100">
-                  Comprehensive status and configuration for {selectedAircraft?.registration}
-                </DialogDescription>
+                <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Global Asset Tracking Metrics</DialogDescription>
               </DialogHeader>
-
-              <div className="p-8 space-y-8 overflow-y-auto flex-1 text-black">
+              <div className="p-5 space-y-5 overflow-y-auto custom-scrollbar flex-1 text-black bg-slate-50/10">
                 {selectedAircraft && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                     {/* Left Col: Aircraft Image and Primary Info */}

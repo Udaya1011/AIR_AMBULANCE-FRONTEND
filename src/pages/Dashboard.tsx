@@ -302,9 +302,9 @@ export default function Dashboard() {
   };
 
   const getHospitalName = (hospitalId: string) => {
-    if (!hospitalId) return 'Unknown Hospital';
+    if (!hospitalId) return 'Unspecified';
     const hospital = hospitals.find(h => h.id === hospitalId);
-    return hospital?.name || 'Unknown Hospital';
+    return hospital?.name || 'Unspecified';
   };
 
   useEffect(() => {
@@ -318,8 +318,16 @@ export default function Dashboard() {
           HospitalService.getHospitals()
         ]);
 
-        // Use real API data
-        setBookings((bookingsData || []).filter(Boolean));
+        // Strictly filter for valid dashboard data
+        const validBookings = (bookingsData || []).filter((b: any) => {
+          if (!b || !(b.id || b._id)) return false;
+          const hasPatient = !!getPatientById(b.patientId);
+          const hasOrigin = (hospitalsData || []).some((h: any) => h.id === b.originHospitalId);
+          const hasDest = (hospitalsData || []).some((h: any) => h.id === b.destinationHospitalId);
+          return hasPatient && hasOrigin && hasDest;
+        });
+
+        setBookings(validBookings);
         setHospitals((hospitalsData || []).filter(Boolean));
         setStats(statsData || {
           active_transfers: 0,
@@ -456,7 +464,7 @@ export default function Dashboard() {
     if (booking.patientId) {
       const patient = getPatientById(booking.patientId);
       if (patient) {
-        patientName = patient.name || patient.full_name || "Unknown Patient";
+        patientName = patient.name || patient.full_name || "Restricted Info";
         patientGender = (patient.gender || "N/A").toLowerCase();
 
         // Age calculation
@@ -478,8 +486,8 @@ export default function Dashboard() {
 
     // 2. If no patient found via ID, or ID not present, check embedded patient object
     // Note: We check if patientName is still default "Unknown Patient" to prioritize ID lookup if successful
-    if (patientName === "Unknown Patient" && booking.patient) {
-      patientName = booking.patient.full_name || booking.patient.name || "Unknown Patient";
+    if (patientName === "Restricted Info" && booking.patient) {
+      patientName = booking.patient.full_name || booking.patient.name || "Restricted Info";
       patientGender = (booking.patient.gender || "N/A").toLowerCase();
 
       if (booking.patient.date_of_birth || booking.patient.dob) {
@@ -498,7 +506,7 @@ export default function Dashboard() {
     }
 
     // 3. Last resort: flat properties
-    if (patientName === "Unknown Patient" && (booking.patient_name || booking.patientName)) {
+    if (patientName === "Restricted Info" && (booking.patient_name || booking.patientName)) {
       patientName = booking.patient_name || booking.patientName;
     }
 
@@ -1012,11 +1020,11 @@ export default function Dashboard() {
 
       {/* DIALOG: VIEW BOOKING */}
       <Dialog open={!!viewingBooking} onOpenChange={() => setViewingBooking(null)}>
-        <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-          <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-            <DialogTitle className="text-white text-xl">Booking Information</DialogTitle>
+        <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+          <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
+            <DialogTitle className="text-white text-lg font-black tracking-tight">Booking Intelligence Report</DialogTitle>
           </DialogHeader>
-          <div className="p-8 overflow-y-auto">
+          <div className="p-5 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/10">
             {viewingBooking && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-6">

@@ -210,6 +210,17 @@ export default function Reports() {
   });
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  // Helper helpers
+  const getPatientName = (patientId: string) => {
+    const p = patients.find(x => x.id === patientId || x.patient_id === patientId);
+    return p?.name || p?.full_name || 'Patient Restricted';
+  };
+
+  const getHospitalName = (hId: string) => {
+    const h = hospitals.find(x => x.id === hId);
+    return h?.name || 'Unassigned Facility';
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -220,8 +231,16 @@ export default function Reports() {
           HospitalService.getHospitals(),
         ]);
 
-        // Filter out null or incomplete data
-        const validBookings = (bookingsData || []).filter((b: any) => b && (b.id || b._id));
+        // Filter out null or incomplete data - only show records with valid links
+        const validBookings = (bookingsData || []).filter((b: any) => {
+          if (!b || !(b.id || b._id)) return false;
+          // Must have valid patient and hospitals to be a real report
+          const hasPatient = patientsData.some((p: any) => p.id === b.patientId || p.patient_id === b.patientId);
+          const hasOrigin = hospitalsData.some((h: any) => h.id === b.originHospitalId);
+          const hasDest = hospitalsData.some((h: any) => h.id === b.destinationHospitalId);
+          return hasPatient && hasOrigin && hasDest;
+        });
+
         setBookings(validBookings.map((b: any) => ({ ...b, id: b._id || b.id })));
 
         setAircraft((aircraftData || []).filter((a: any) => a && (a.id || a._id)));
@@ -346,19 +365,20 @@ export default function Reports() {
   const revenueByHospital = useMemo<{ name: string; revenue: number }[]>(() => {
     const hospitalRev: Record<string, number> = {};
     bookings.forEach(b => {
+      const h = hospitals.find(h => h.id === b.originHospitalId);
+      if (!h) return; // Skip records without valid hospital (should already be filtered, but double safety)
+
       let calculated = 0;
       if (b.originHospitalId && b.destinationHospitalId) {
-        const origin = hospitals.find(h => h.id === b.originHospitalId);
-        const dest = hospitals.find(h => h.id === b.destinationHospitalId);
-        if (origin?.coordinates && dest?.coordinates) {
-          const dist = calculateDistance(origin.coordinates.lat, origin.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng);
+        const dest = hospitals.find(d => d.id === b.destinationHospitalId);
+        if (h?.coordinates && dest?.coordinates) {
+          const dist = calculateDistance(h.coordinates.lat, h.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng);
           calculated = calculateRevenue(dist);
         }
       }
       const cost = calculated > 0 ? calculated : (Number(b.estimatedCost) || Number(b.actualCost) || 0);
 
-      const h = hospitals.find(h => h.id === b.originHospitalId);
-      const name = h ? h.name : "Unknown";
+      const name = h.name;
       hospitalRev[name] = (hospitalRev[name] || 0) + cost;
     });
     return Object.entries(hospitalRev).map(([name, revenue]) => ({ name, revenue }));
@@ -613,9 +633,9 @@ export default function Reports() {
         <LoadingSpinner />
       ) : (
         <TooltipProvider>
-          <div className="h-full flex flex-col min-h-0">
-            <Tabs defaultValue="bookings" className="flex-1 flex flex-col min-h-0" onValueChange={(v) => setActiveTab(v)}>
-              <div className="mb-1 overflow-x-auto custom-scrollbar pb-1">
+          <div className="flex-1 flex flex-col min-h-0">
+            <Tabs defaultValue="bookings" className="flex flex-col" onValueChange={(v) => setActiveTab(v)}>
+              <div className="mb-4 overflow-x-auto custom-scrollbar pb-1">
                 <TabsList className="bg-white/50 backdrop-blur-md border border-slate-200 p-1 rounded-2xl shadow-sm inline-flex min-w-max">
                   <TabsTrigger
                     value="bookings"
@@ -645,18 +665,19 @@ export default function Reports() {
               </div>
 
               {/* 📋 BOOKING REPORTS TAB */}
-              <TabsContent value="bookings" className="flex-1 flex flex-col min-h-0 m-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex-1 bg-white rounded-2xl border-2 border-slate-200 shadow-xl overflow-hidden flex flex-col min-h-0">
+              <TabsContent value="bookings" className="m-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-xl overflow-hidden flex flex-col">
                   <div className="flex-1 overflow-auto custom-scrollbar">
                     <div className="min-w-[800px] md:min-w-0">
                       <table className="w-full border-collapse">
                         <thead className="sticky top-0 z-20">
                           <tr className="bg-[#f8fafc] border-b border-slate-200">
                             <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Booking ID</th>
-                            <th className="hidden lg:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Requested Date</th>
-                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Current Status</th>
+                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Patient</th>
+                            <th className="hidden lg:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Path</th>
+                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Status</th>
                             <th className="hidden md:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Urgency</th>
-                            <th className="hidden sm:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Est. Revenue</th>
+                            <th className="hidden sm:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Revenue</th>
                             <th className="px-6 py-4 text-center text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
                           </tr>
                         </thead>
@@ -670,9 +691,18 @@ export default function Reports() {
                           ) : (
                             paginatedBookings.map((b) => (
                               <tr key={b.id} className="hover:bg-slate-50/80 transition-colors group">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-900">{b.booking_id || b.id}</td>
-                                <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
-                                  {b.requestedAt ? format(new Date(b.requestedAt), "MMM dd, yyyy") : "N/A"}
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-900">{b.booking_id || (b.id && b.id.toString().slice(-8).toUpperCase()) || "N/A"}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-bold text-slate-900">{getPatientName(b.patientId)}</span>
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase">{b.patientId?.slice(0, 8)}</span>
+                                  </div>
+                                </td>
+                                <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
+                                  <div className="flex flex-col">
+                                    <span className="text-xs font-bold text-slate-700">{getHospitalName(b.originHospitalId)}</span>
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase">→ {getHospitalName(b.destinationHospitalId)}</span>
+                                  </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   {getStatusBadge(b.status, "status")}
@@ -834,7 +864,7 @@ export default function Reports() {
               </TabsContent>
 
               {/* 🛩️ TAB 2: AIRCRAFT UTILIZATION */}
-              <TabsContent value="aircraft" className="flex-1 m-0 animate-in fade-in slide-in-from-bottom-2 duration-300 overflow-auto custom-scrollbar">
+              <TabsContent value="aircraft" className="m-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">
                   <Card className="rounded-2xl border-2 border-slate-100 shadow-lg overflow-hidden bg-white">
                     <CardHeader className="border-b border-slate-50 bg-[#f8fafc]/50">
@@ -857,7 +887,7 @@ export default function Reports() {
                     <CardHeader className="border-b border-slate-50 bg-[#f8fafc]/50">
                       <CardTitle className="text-xs font-black uppercase tracking-widest text-[#64748b]">Flight Hours (Last 7 Days)</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-6 h-[400px]">
+                    <CardContent className="p-4 h-[320px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={flightTimeTrendData}>
                           <defs>
@@ -879,23 +909,23 @@ export default function Reports() {
               </TabsContent>
 
               {/* 💰 TAB 3: REVENUE & INVOICES */}
-              <TabsContent value="revenue" className="flex-1 m-0 animate-in fade-in slide-in-from-bottom-2 duration-300 overflow-auto custom-scrollbar">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-                  <div className="bg-white p-7 rounded-3xl border-2 border-slate-100 shadow-md hover:shadow-xl transition-all border-l-8 border-l-blue-600 group">
+              <TabsContent value="revenue" className="m-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                  <div className="bg-white p-5 rounded-3xl border-2 border-slate-100 shadow-md hover:shadow-xl transition-all border-l-8 border-l-blue-600 group">
                     <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-3 opacity-60 group-hover:opacity-100 transition-opacity">Financial Intake</p>
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl font-black text-slate-900 tracking-tighter">${summaryStats.totalRevenue.toLocaleString()}</span>
                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">USD</span>
                     </div>
                   </div>
-                  <div className="bg-white p-7 rounded-3xl border-2 border-slate-100 shadow-md hover:shadow-xl transition-all border-l-8 border-l-emerald-600 group">
+                  <div className="bg-white p-5 rounded-3xl border-2 border-slate-100 shadow-md hover:shadow-xl transition-all border-l-8 border-l-emerald-600 group">
                     <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-3 opacity-60 group-hover:opacity-100 transition-opacity">Settled Exports</p>
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-black text-slate-900 tracking-tighter">{summaryStats.completedBookings}</span>
                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">RECORDS</span>
                     </div>
                   </div>
-                  <div className="bg-white p-7 rounded-3xl border-2 border-slate-100 shadow-md hover:shadow-xl transition-all border-l-8 border-l-orange-500 group">
+                  <div className="bg-white p-5 rounded-3xl border-2 border-slate-100 shadow-md hover:shadow-xl transition-all border-l-8 border-l-orange-500 group">
                     <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em] mb-3 opacity-60 group-hover:opacity-100 transition-opacity">Active Queue</p>
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-black text-slate-900 tracking-tighter">{summaryStats.pendingBookings}</span>
@@ -904,11 +934,11 @@ export default function Reports() {
                   </div>
                 </div>
 
-                <Card className="rounded-3xl border-2 border-slate-100 shadow-xl overflow-hidden bg-white mb-6">
-                  <CardHeader className="border-b border-slate-50 bg-[#f8fafc]/50 px-8 py-5">
+                <Card className="rounded-3xl border-2 border-slate-100 shadow-xl overflow-hidden bg-white mb-4">
+                  <CardHeader className="border-b border-slate-50 bg-[#f8fafc]/50 px-6 py-4">
                     <CardTitle className="text-[10px] font-black uppercase tracking-widest text-[#64748b]">Revenue Growth Curve</CardTitle>
                   </CardHeader>
-                  <CardContent className="p-8 h-[450px]">
+                  <CardContent className="p-6 h-[350px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={revenueByMonthData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -923,10 +953,10 @@ export default function Reports() {
               </TabsContent>
 
               {/* 📈 TAB 4: ANALYTICS */}
-              <TabsContent value="analytics" className="flex-1 m-0 animate-in fade-in slide-in-from-bottom-2 duration-300 overflow-auto custom-scrollbar">
-                <div className="space-y-6 pb-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-8 rounded-[40px] shadow-2xl shadow-blue-200 relative overflow-hidden group">
+              <TabsContent value="analytics" className="m-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="space-y-4 pb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-6 rounded-[32px] shadow-2xl shadow-blue-200 relative overflow-hidden group">
                       <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
                       <div className="flex items-center gap-6 relative z-10 text-white">
                         <div className="bg-white/20 p-5 rounded-2xl backdrop-blur-md">
@@ -938,7 +968,7 @@ export default function Reports() {
                         </div>
                       </div>
                     </div>
-                    <div className="bg-gradient-to-br from-slate-800 to-slate-950 p-8 rounded-[40px] shadow-2xl shadow-slate-200 relative overflow-hidden group">
+                    <div className="bg-gradient-to-br from-slate-800 to-slate-950 p-6 rounded-[32px] shadow-2xl shadow-slate-200 relative overflow-hidden group">
                       <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-blue-500/20 transition-all duration-500"></div>
                       <div className="flex items-center gap-6 relative z-10 text-white">
                         <div className="bg-white/5 p-5 rounded-2xl backdrop-blur-md">
@@ -952,11 +982,11 @@ export default function Reports() {
                     </div>
                   </div>
 
-                  <Card className="rounded-[40px] border-2 border-slate-100 shadow-xl overflow-hidden bg-white">
-                    <CardHeader className="border-b border-slate-50 bg-[#f8fafc]/50 px-8 py-6">
+                  <Card className="rounded-[32px] border-2 border-slate-100 shadow-xl overflow-hidden bg-white">
+                    <CardHeader className="border-b border-slate-50 bg-[#f8fafc]/50 px-6 py-4">
                       <CardTitle className="text-xs font-black uppercase tracking-widest text-[#64748b]">Strategic Capacity Overview</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-8 h-[400px]">
+                    <CardContent className="p-6 h-[320px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={revenueByHospital.slice(0, 6)}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -1023,48 +1053,54 @@ export default function Reports() {
 
             {/* 📁 OPERATIONAL DIALOGS */}
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
-              <DialogContent className="w-[98vw] sm:w-[95vw] h-[98vh] sm:h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-[40px] shadow-2xl border-0">
-                <DialogHeader className="bg-blue-600 text-white px-10 py-6 shrink-0 shadow-lg"><DialogTitle className="text-xl font-black uppercase tracking-widest">Update Data Record</DialogTitle></DialogHeader>
-                <div className="p-10 space-y-10 overflow-y-auto flex-1 custom-scrollbar bg-slate-50/20">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                    <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Entry Identifier</label><Input value={form.id || ""} readOnly className="h-14 bg-slate-100/50 border-slate-200 font-black text-slate-600 rounded-[20px]" /></div>
-                    <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Operational Status</label>
+              <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+                <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
+                  <DialogTitle className="text-white font-black uppercase tracking-widest text-lg">Update Data Record</DialogTitle>
+                </DialogHeader>
+                <div className="p-4 space-y-4 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/20 text-black">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Entry Identifier</label><Input value={form.id || ""} readOnly className="h-10 bg-slate-100/50 border-slate-200 font-black text-slate-600 rounded-lg text-sm" /></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Operational Status</label>
                       <Select value={form.status || ""} onValueChange={(v) => setForm({ ...form, status: v })}>
-                        <SelectTrigger className="h-14 rounded-[20px] border-slate-200 font-black"><SelectValue /></SelectTrigger>
-                        <SelectContent className="rounded-2xl"><SelectItem value="requested">Requested</SelectItem><SelectItem value="clinical_review">Clinical Review</SelectItem><SelectItem value="in_transit">In Transit</SelectItem><SelectItem value="completed">Completed</SelectItem><SelectItem value="cancelled">Cancelled</SelectItem></SelectContent>
+                        <SelectTrigger className="h-10 rounded-lg border-slate-200 font-black text-sm"><SelectValue /></SelectTrigger>
+                        <SelectContent className="rounded-lg text-sm"><SelectItem value="requested">Requested</SelectItem><SelectItem value="clinical_review">Clinical Review</SelectItem><SelectItem value="in_transit">In Transit</SelectItem><SelectItem value="completed">Completed</SelectItem><SelectItem value="cancelled">Cancelled</SelectItem></SelectContent>
                       </Select>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                    <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Forecast Revenue ($)</label><Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-14 rounded-[20px] border-slate-200 font-black" /></div>
-                    <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Flight Chronology (min)</label><Input type="number" value={form.estimatedFlightTime ?? 0} onChange={(e) => setForm({ ...form, estimatedFlightTime: Number(e.target.value) })} className="h-14 rounded-[20px] border-slate-200 font-black" /></div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Forecast Revenue ($)</label><Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-10 rounded-lg border-slate-200 font-black text-sm" /></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Flight Chronology (min)</label><Input type="number" value={form.estimatedFlightTime ?? 0} onChange={(e) => setForm({ ...form, estimatedFlightTime: Number(e.target.value) })} className="h-10 rounded-lg border-slate-200 font-black text-sm" /></div>
                   </div>
-                  <div className="flex justify-end gap-5 pt-10 border-t border-slate-100"><Button variant="ghost" onClick={() => setEditOpen(false)} className="h-14 px-10 rounded-2xl font-black text-slate-400 hover:bg-slate-100 uppercase tracking-widest text-[11px]">Discard</Button><Button onClick={submitEdit} className="h-14 px-12 rounded-2xl font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-700 text-white shadow-2xl shadow-blue-500/20 active:scale-95 transition-all">Submit Changes</Button></div>
+                  <div className="flex justify-end gap-3 pt-6 border-t border-slate-100"><Button variant="ghost" onClick={() => setEditOpen(false)} className="h-10 px-6 rounded-xl font-black text-slate-400 hover:bg-slate-100 uppercase tracking-widest text-[10px]">Discard</Button><Button onClick={submitEdit} className="h-10 px-8 rounded-xl font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-700 text-white shadow-lg active:scale-95 transition-all text-[10px]">Submit Changes</Button></div>
                 </div>
               </DialogContent>
             </Dialog>
 
             <Dialog open={!!viewBooking} onOpenChange={() => setViewBooking(null)}>
-              <DialogContent className="w-[98vw] sm:w-[85vw] h-[90vh] flex flex-col bg-white p-0 overflow-hidden rounded-[50px] shadow-2xl border-0">
-                <DialogHeader className="bg-slate-950 px-12 py-8"><DialogTitle className="text-white font-black uppercase tracking-widest text-2xl">Structural Context</DialogTitle></DialogHeader>
-                <div className="p-12 flex-1 overflow-auto custom-scrollbar bg-slate-50/50">
+              <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+                <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
+                  <DialogTitle className="text-white font-black uppercase tracking-widest text-lg">Booking Intelligence Report</DialogTitle>
+                </DialogHeader>
+                <div className="p-5 flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 text-black">
                   {viewBooking && (
-                    <div className="max-w-5xl mx-auto space-y-10">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
-                        <div className="p-8 bg-white rounded-[32px] shadow-xl border border-slate-50"><p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">Serial Index</p><p className="font-mono text-xl font-black text-blue-600">{viewBooking.booking_id || viewBooking.id}</p></div>
-                        <div className="p-8 bg-white rounded-[32px] shadow-xl border border-slate-50"><p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">Integrity Check</p>{getStatusBadge(viewBooking.status, "status")}</div>
-                        <div className="p-8 bg-white rounded-[32px] shadow-xl border border-slate-50"><p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">Urgency Rating</p>{getStatusBadge(viewBooking.urgency, "urgency")}</div>
+                    <div className="max-w-4xl mx-auto space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center md:text-left">
+                        <div className="p-5 bg-white rounded-2xl shadow-md border border-slate-50"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Booking ID</p><p className="font-mono text-base font-black text-blue-600">{viewBooking.booking_id || viewBooking.id}</p></div>
+                        <div className="p-5 bg-white rounded-2xl shadow-md border border-slate-50"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status Badge</p>{getStatusBadge(viewBooking.status, "status")}</div>
+                        <div className="p-5 bg-white rounded-2xl shadow-md border border-slate-50"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Priority Level</p>{getStatusBadge(viewBooking.urgency, "urgency")}</div>
                       </div>
-                      <div className="bg-white rounded-[48px] shadow-2xl border-none overflow-hidden hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] transition-all">
-                        <table className="w-full text-sm font-bold text-slate-700">
+                      <div className="bg-white rounded-3xl shadow-lg border-none overflow-hidden transition-all">
+                        <table className="w-full text-xs font-bold text-slate-700">
                           <tbody>
-                            <tr className="border-b border-slate-50/50"><td className="px-12 py-8 text-[11px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Temporal Stamp</td><td className="px-12 py-8">{viewBooking.requestedAt ? format(new Date(viewBooking.requestedAt), "PPP p") : "DATA_RESTRICTED"}</td></tr>
-                            <tr className="border-b border-slate-50/50"><td className="px-12 py-8 text-[11px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Financial Resolution</td><td className="px-12 py-8 text-emerald-600 text-3xl font-black tracking-tighter">${(viewBooking.estimatedCost ?? 0).toLocaleString()} <span className="text-xs text-slate-300 font-black ml-2 mt-auto">USD</span></td></tr>
-                            <tr><td className="px-12 py-8 text-[11px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Flight Duration</td><td className="px-12 py-8 font-black text-slate-900">{(viewBooking.estimatedFlightTime ?? 0)} MIN <span className="text-slate-400 font-bold ml-1">SYSTEM_MEASURED</span></td></tr>
+                            <tr className="border-b border-slate-50/50"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Patient Identity</td><td className="px-6 py-4"><span className="text-sm font-black">{getPatientName(viewBooking.patientId)}</span></td></tr>
+                            <tr className="border-b border-slate-50/50"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Transfer Path</td><td className="px-6 py-4 flex items-center gap-4"><span className="font-black text-slate-900">{getHospitalName(viewBooking.originHospitalId)}</span><span className="text-blue-500">→</span><span className="font-black text-slate-900">{getHospitalName(viewBooking.destinationHospitalId)}</span></td></tr>
+                            <tr className="border-b border-slate-50/50"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Temporal Stamp</td><td className="px-6 py-4">{viewBooking.requestedAt ? format(new Date(viewBooking.requestedAt), "PPP p") : "DATA_RESTRICTED"}</td></tr>
+                            <tr className="border-b border-slate-50/50"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Financial Resolution</td><td className="px-6 py-4 text-emerald-600 text-xl font-black tracking-tighter">${(viewBooking.estimatedCost ?? 0).toLocaleString()} <span className="text-[9px] text-slate-300 font-black ml-1 mt-auto">USD</span></td></tr>
+                            <tr><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Flight Duration</td><td className="px-6 py-4 font-black text-slate-900">{(viewBooking.estimatedFlightTime ?? 0)} MIN</td></tr>
                           </tbody>
                         </table>
                       </div>
-                      <div className="flex justify-center"><Button onClick={() => setViewBooking(null)} className="h-14 px-12 rounded-full font-black uppercase tracking-widest bg-slate-900 hover:bg-slate-800 text-white shadow-xl">Exit Visualizer</Button></div>
+                      <div className="flex justify-center"><Button onClick={() => setViewBooking(null)} className="h-10 px-8 rounded-full font-black uppercase tracking-widest bg-slate-900 hover:bg-slate-800 text-white shadow-lg text-[10px]">Exit Visualizer</Button></div>
                     </div>
                   )}
                 </div>
@@ -1072,19 +1108,21 @@ export default function Reports() {
             </Dialog>
 
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
-              <DialogContent className="w-[98vw] sm:w-[95vw] h-[98vh] sm:h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-[40px] shadow-2xl border-0">
-                <DialogHeader className="bg-blue-600 text-white px-10 py-6 shrink-0"><DialogTitle className="text-xl font-black uppercase tracking-widest">Initialize System Entry</DialogTitle></DialogHeader>
-                <div className="p-10 space-y-10 overflow-y-auto flex-1 custom-scrollbar bg-slate-50/20">
-                  <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Record Identifier (Primary Key)</label><Input value={form.id || ""} onChange={(e) => setForm({ ...form, id: e.target.value })} placeholder="Reference..." className="h-14 rounded-[20px] border-slate-200 font-black shadow-inner" /></div>
-                  <div className="grid grid-cols-2 gap-10">
-                    <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Status Vector</label><Select value={form.status || ""} onValueChange={(v) => setForm({ ...form, status: v })}><SelectTrigger className="h-14 rounded-[20px]"><SelectValue /></SelectTrigger><SelectContent className="rounded-2xl"><SelectItem value="requested">Requested</SelectItem><SelectItem value="completed">Completed</SelectItem></SelectContent></Select></div>
-                    <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Priority Flag</label><Select value={form.urgency || ""} onValueChange={(v) => setForm({ ...form, urgency: v })}><SelectTrigger className="h-14 rounded-[20px]"><SelectValue /></SelectTrigger><SelectContent className="rounded-2xl"><SelectItem value="routine">Routine</SelectItem><SelectItem value="urgent">Urgent</SelectItem><SelectItem value="emergency">Emergency</SelectItem></SelectContent></Select></div>
+              <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+                <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
+                  <DialogTitle className="text-white font-black uppercase tracking-widest text-lg">Initialize System Entry</DialogTitle>
+                </DialogHeader>
+                <div className="p-5 space-y-5 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/20 text-black">
+                  <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Record Identifier (Primary Key)</label><Input value={form.id || ""} onChange={(e) => setForm({ ...form, id: e.target.value })} placeholder="Reference..." className="h-10 rounded-xl border-slate-200 font-black shadow-inner text-sm" /></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status Vector</label><Select value={form.status || ""} onValueChange={(v) => setForm({ ...form, status: v })}><SelectTrigger className="h-10 rounded-xl text-sm"><SelectValue /></SelectTrigger><SelectContent className="rounded-xl"><SelectItem value="requested">Requested</SelectItem><SelectItem value="completed">Completed</SelectItem></SelectContent></Select></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Priority Flag</label><Select value={form.urgency || ""} onValueChange={(v) => setForm({ ...form, urgency: v })}><SelectTrigger className="h-10 rounded-xl text-sm"><SelectValue /></SelectTrigger><SelectContent className="rounded-xl"><SelectItem value="routine">Routine</SelectItem><SelectItem value="urgent">Urgent</SelectItem><SelectItem value="emergency">Emergency</SelectItem></SelectContent></Select></div>
                   </div>
-                  <div className="grid grid-cols-2 gap-10">
-                    <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Estimated Value ($)</label><Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-14 rounded-[20px] border-slate-200 font-black" /></div>
-                    <div className="space-y-3"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Projected Time (min)</label><Input type="number" value={form.estimatedFlightTime ?? 0} onChange={(e) => setForm({ ...form, estimatedFlightTime: Number(e.target.value) })} className="h-14 rounded-[20px] border-slate-200 font-black" /></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estimated Value ($)</label><Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-10 rounded-xl border-slate-200 font-black text-sm" /></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Projected Time (min)</label><Input type="number" value={form.estimatedFlightTime ?? 0} onChange={(e) => setForm({ ...form, estimatedFlightTime: Number(e.target.value) })} className="h-10 rounded-xl border-slate-200 font-black text-sm" /></div>
                   </div>
-                  <div className="flex justify-end gap-5 pt-10 border-t border-slate-100"><Button variant="ghost" onClick={() => setAddOpen(false)} className="h-14 px-10 rounded-2xl font-black text-slate-400 uppercase tracking-widest">Cancel</Button><Button onClick={submitAdd} className="h-14 px-12 rounded-2xl font-black uppercase tracking-widest bg-blue-600 text-white shadow-2xl active:scale-95 transition-all">Initialize Record</Button></div>
+                  <div className="flex justify-end gap-3 pt-6 border-t border-slate-100"><Button variant="ghost" onClick={() => setAddOpen(false)} className="h-10 px-8 rounded-xl font-black text-slate-400 uppercase tracking-widest text-[10px]">Cancel</Button><Button onClick={submitAdd} className="h-10 px-10 rounded-xl font-black uppercase tracking-widest bg-blue-600 text-white shadow-lg active:scale-95 transition-all text-[10px]">Initialize Record</Button></div>
                 </div>
               </DialogContent>
             </Dialog>

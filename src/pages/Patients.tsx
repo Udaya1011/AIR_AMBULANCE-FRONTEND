@@ -101,7 +101,7 @@ const Patients = () => {
 
   useEffect(() => {
     const id = params['id'];
-    if (id) {
+    if (id && patients && Array.isArray(patients)) {
       const match = patients.find(p => p.id === id);
       if (match) setSelectedPatient(match);
     }
@@ -113,7 +113,7 @@ const Patients = () => {
 
   // Filter Logic
   const filteredPatients = useMemo(() => {
-    if (!patients) return [];
+    if (!patients || !Array.isArray(patients)) return [];
     return patients.filter(p => {
       const matchesGender = genderFilter === 'all' || (p.gender || 'other').toLowerCase() === genderFilter;
       const matchesStatus = statusFilter === 'all' || (p.acuity_level || 'stable').toLowerCase() === statusFilter;
@@ -173,6 +173,7 @@ const Patients = () => {
   }, [isChatOpen, chatInactivityTimer, CHAT_INACTIVITY_TIME]);
 
   const summaryStats = useMemo(() => {
+    if (!patients || !Array.isArray(patients)) return { total: 0, critical: 0, urgent: 0, stable: 0, male: 0, female: 0, other: 0 };
     const total = patients.length;
     const critical = patients.filter(p => p.acuity_level === 'critical').length;
     const urgent = patients.filter(p => p.acuity_level === 'urgent').length;
@@ -208,10 +209,10 @@ const Patients = () => {
       const lowerInput = chatInput.toLowerCase().trim();
 
       // Analysis helpers
-      const criticalPatients = patients.filter(p => p.acuity_level === 'critical');
-      const urgentPatients = patients.filter(p => p.acuity_level === 'urgent');
-      const stablePatients = patients.filter(p => p.acuity_level === 'stable');
-      const totalPatients = patients.length;
+      const criticalPatients = (patients || []).filter(p => p.acuity_level === 'critical');
+      const urgentPatients = (patients || []).filter(p => p.acuity_level === 'urgent');
+      const stablePatients = (patients || []).filter(p => p.acuity_level === 'stable');
+      const totalPatients = (patients || []).length;
 
       const getAverageAge = () => {
         if (totalPatients === 0) return 0;
@@ -249,12 +250,12 @@ const Patients = () => {
           botResponse = `🟢 **Stable Patients** (${stablePatients.length} total)\n\n${stablePatients.slice(0, 8).map((p, i) => `${i + 1}. ${p.name}`).join('\n')}${stablePatients.length > 8 ? `\n... and ${stablePatients.length - 8} more` : ''}\n\n✓ All stable patients under observation`;
         }
       } else if (lowerInput.includes('age') || lowerInput.includes('demographic')) {
-        const ages = patients.map(p => new Date().getFullYear() - new Date(p.date_of_birth || p.dob || Date.now()).getFullYear());
-        const oldest = Math.max(...ages);
-        const youngest = Math.min(...ages);
+        const ages = (patients || []).map(p => new Date().getFullYear() - new Date(p.date_of_birth || p.dob || Date.now()).getFullYear());
+        const oldest = ages.length > 0 ? Math.max(...ages) : 0;
+        const youngest = ages.length > 0 ? Math.min(...ages) : 0;
         botResponse = `👥 **Demographic Analysis**\n\nTotal Patients: ${totalPatients}\nAverage Age: ${getAverageAge()} years\nYoungest: ${youngest} years\nOldest: ${oldest} years\n\nAge Range: ${oldest - youngest} years`;
       } else if (lowerInput.includes('diagnosis') || lowerInput.includes('condition')) {
-        const diagnoses = [...new Set(patients.map(p => p.diagnosis).filter(d => d))];
+        const diagnoses = [...new Set((patients || []).map(p => p.diagnosis).filter(d => d))];
         if (diagnoses.length === 0) {
           botResponse = '📋 No diagnoses recorded yet.';
         } else {
@@ -504,12 +505,12 @@ const Patients = () => {
             Add Patient
           </Button>
         </DialogTrigger>
-        <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-          <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-            <DialogTitle className="text-white text-xl">➕ Add New Patient</DialogTitle>
-            <DialogDescription className="text-blue-100">Enter patient medical information</DialogDescription>
+        <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+          <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
+            <DialogTitle className="text-white text-lg font-black tracking-tight">Patient Intake Registration</DialogTitle>
+            <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Clinical Profile Entry</DialogDescription>
           </DialogHeader>
-          <div className="p-6 space-y-4 overflow-y-auto flex-1">
+          <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 bg-white">
             {/* ROW 1: Basics */}
             <div className="grid grid-cols-4 gap-4">
               <div className="space-y-1.5">
@@ -686,11 +687,15 @@ const Patients = () => {
         {/* Patients Table Content */}
         {/* Selected patient detail dialog (opens when navigating to /patients/:id) */}
         <Dialog open={Boolean(selectedPatient)} onOpenChange={(open) => { if (!open) { setSelectedPatient(null); navigate('/patients'); } }}>
-          <DialogContent className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-            <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-              <DialogTitle className="text-white text-xl">Patient Details - {selectedPatient?.full_name || selectedPatient?.name}</DialogTitle>
+          <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+            <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
+              <DialogTitle className="text-white text-lg font-black tracking-tight flex items-center gap-2">
+                <User className="h-5 w-5 text-blue-200" />
+                Patient Intelligence Profile — {selectedPatient?.full_name || selectedPatient?.name}
+              </DialogTitle>
+              <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Advanced Clinical Analytics</DialogDescription>
             </DialogHeader>
-            <div className="p-6 space-y-4 overflow-y-auto flex-1 text-black">
+            <div className="p-4 space-y-5 overflow-y-auto custom-scrollbar flex-1 text-black bg-slate-50/10">
               {selectedPatient && (
                 <div>
                   <div className="grid grid-cols-2 gap-4">
@@ -1064,13 +1069,13 @@ const Patients = () => {
 
         {/* EDIT DIALOG MOVED OUTSIDE LOOP */}
         <Dialog open={isEditOpen} onOpenChange={(open) => { setIsEditOpen(open); if (!open) setEditingPatientId(null); }}>
-          <DialogContent className="w-[90vw] max-w-none max-h-[90vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-            <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-              <DialogTitle className="text-white text-xl">✏️ Edit Patient</DialogTitle>
-              <DialogDescription className="text-blue-100">Update patient medical information</DialogDescription>
+          <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+            <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
+              <DialogTitle className="text-white text-lg font-black tracking-tight">✏️ Refine Patient Record</DialogTitle>
+              <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Clinical Profile Update</DialogDescription>
             </DialogHeader>
 
-            <div className="p-6 space-y-4 overflow-y-auto flex-1 text-black">
+            <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 text-black bg-white">
               {/* ROW 1: Basics */}
               <div className="grid grid-cols-4 gap-4">
                 <div className="space-y-1.5">

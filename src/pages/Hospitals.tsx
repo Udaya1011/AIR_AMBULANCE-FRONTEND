@@ -205,6 +205,12 @@ const Hospitals = () => {
     }
   };
 
+  const getPatientName = (patientId: string) => {
+    if (!patientId) return 'Unknown Patient';
+    const patient = patients.find(p => p.id === patientId || (p as any)._id === patientId);
+    return patient ? (patient.name || patient.full_name || 'Unnamed Patient') : 'Patient Not Found';
+  };
+
   // Chatbot inactivity timer effect
   useEffect(() => {
     if (!isChatOpen) return;
@@ -651,31 +657,59 @@ const Hospitals = () => {
     return bookings.filter(b => b.status === 'requested' || b.status === 'clinical_review');
   };
 
-  const approveBooking = (bookingId: string) => {
-    const updatedBookings = bookings.map(b =>
-      b.id === bookingId
-        ? {
-          ...b,
-          status: 'dispatch_review',
-          approvals: [...(b.approvals || []), {
-            id: `approval_${Date.now()}`,
-            type: 'receiving_hospital',
-            status: 'approved',
-            approvedBy: 'Hospital Staff',
-            approvedAt: new Date().toISOString(),
-            notes: approvalNotes
-          }]
-        }
-        : b
-    );
-    setBookings(updatedBookings);
-    setSelectedBookingForApproval(null);
-    setApprovalNotes('');
-    toast({
-      title: "Booking Approved",
-      description: "The booking has been approved and moved to dispatch review.",
-      action: <ToastAction altText="Close">Close</ToastAction>,
-    });
+  const approveBooking = async (bookingId: string) => {
+    try {
+      const targetBooking = bookings.find(b => b.id === bookingId);
+      if (!targetBooking) return;
+
+      const destHospitalId = targetBooking.destinationHospitalId;
+      const hospital = hospitals.find(h => h.id === destHospitalId);
+
+      // 1. Update Hospital Bed Capacity (Increment Occupied)
+      if (hospital) {
+        const newOccupied = (hospital.occupiedBeds || 0) + 1;
+        await HospitalService.updateHospital(destHospitalId, { occupiedBeds: newOccupied });
+
+        setHospitals(prev => prev.map(h =>
+          h.id === destHospitalId ? { ...h, occupiedBeds: newOccupied } : h
+        ));
+      }
+
+      // 2. Update Booking Status via Service
+      await BookingService.update(bookingId, { status: 'dispatch_review' });
+
+      const updatedBookings = bookings.map(b =>
+        b.id === bookingId
+          ? {
+            ...b,
+            status: 'dispatch_review',
+            approvals: [...(b.approvals || []), {
+              id: `approval_${Date.now()}`,
+              type: 'receiving_hospital',
+              status: 'approved',
+              approvedBy: 'Hospital Staff',
+              approvedAt: new Date().toISOString(),
+              notes: approvalNotes
+            }]
+          }
+          : b
+      );
+      setBookings(updatedBookings);
+      setSelectedBookingForApproval(null);
+      setApprovalNotes('');
+
+      toast({
+        title: "✅ Request Approved",
+        description: `Patient transfer approved. ${hospital ? `Bed occupied at ${hospital.name}.` : 'Status updated.'}`,
+      });
+    } catch (err) {
+      console.error("Approval error:", err);
+      toast({
+        title: "❌ Approval Failed",
+        description: "Could not update registration status or capacity.",
+        variant: "destructive"
+      });
+    }
   };
 
   const rejectBooking = (bookingId: string) => {
@@ -788,6 +822,56 @@ const Hospitals = () => {
         </PopoverContent>
       </Popover>
 
+      {/* Approvals Dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="h-9 w-9 md:h-10 md:w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-emerald-600 transition-all active:scale-95 group relative shrink-0" title="Pending Approvals">
+            <Zap className={`h-4 w-4 transition-transform group-hover:scale-110 ${getPendingBookings().length > 0 ? 'text-emerald-600 animate-pulse' : 'text-slate-500'}`} />
+            {getPendingBookings().length > 0 && (
+              <span className="absolute -top-1 -right-1 h-3.5 w-3.5 md:h-4 md:w-4 flex items-center justify-center rounded-full bg-emerald-600 text-white text-[8px] font-black border-2 border-white shadow-sm animate-bounce">
+                {getPendingBookings().length}
+              </span>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-80 p-2 rounded-2xl shadow-2xl border-slate-200 animate-in fade-in zoom-in-95 duration-200" align="end">
+          <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2 py-1.5 flex justify-between items-center">
+            <span>Incoming Requirements</span>
+            <Badge variant="outline" className="text-[9px] border-emerald-200 text-emerald-600 bg-emerald-50 font-black">APPROVALS</Badge>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator className="my-1 bg-slate-100" />
+          <div className="max-h-[400px] overflow-y-auto custom-scrollbar p-1">
+            {getPendingBookings().length === 0 ? (
+              <div className="py-8 px-4 text-center space-y-2">
+                <CheckCircle2 className="h-8 w-8 text-slate-100 mx-auto" />
+                <p className="text-xs font-bold text-slate-400">All Requests Managed</p>
+              </div>
+            ) : (
+              getPendingBookings().map(b => (
+                <div key={b.id} className="p-3 mb-2 bg-white hover:bg-slate-50/80 rounded-xl border border-slate-100 hover:border-emerald-100 transition-all group/item shadow-sm">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-slate-900 leading-none tracking-tight">#{(b.booking_id || b.id).slice(0, 8).toUpperCase()}</span>
+                        {b.urgency === 'emergency' && <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping" />}
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-500 mt-1.5 uppercase tracking-wide">{getPatientName(b.patientId)}</span>
+                    </div>
+                    <Badge className={`text-[9px] font-black uppercase tracking-tighter ${b.urgency === 'emergency' ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-blue-50 text-blue-700 border-blue-100'} border`}>
+                      {b.urgency}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button size="sm" className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-emerald-100 transition-all active:scale-95" onClick={() => approveBooking(b.id)}>Approve</Button>
+                    <Button size="sm" variant="outline" className="h-8 border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all active:scale-95" onClick={() => rejectBooking(b.id)}>Reject</Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
       {/* Unified Filter Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -855,13 +939,13 @@ const Hospitals = () => {
             <span className="uppercase tracking-wider sm:hidden">Add</span>
           </Button>
         </DialogTrigger>
-        <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-          <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-            <DialogTitle className="text-white text-xl">{dialog.mode === 'Add' ? '➕ Add New Hospital' : `✏️ Edit Hospital - ${formData.name}`}</DialogTitle>
-            <DialogDescription className="text-blue-100">Enter hospital details and capacity information</DialogDescription>
+        <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+          <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
+            <DialogTitle className="text-white text-lg font-black tracking-tight">{dialog.mode === 'Add' ? '🏛️ Register Medical Institution' : '🏗️ Refine Infrastructure Details'}</DialogTitle>
+            <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Healthcare Facility Management</DialogDescription>
           </DialogHeader>
 
-          <div className="p-6 space-y-4 overflow-y-auto flex-1">
+          <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 text-black bg-slate-50/20">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <div className="sm:col-span-2 space-y-1.5">
                 <Label className="font-semibold">🏥 Hospital Name *</Label>
@@ -1007,7 +1091,7 @@ const Hospitals = () => {
                       onClick={handleMapSearch}
                       disabled={isSearchingMap}
                     >
-                      {isSearchingMap ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Search'}
+                      {isSearchingMap ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : 'Search'}
                     </Button>
                   </div>
                 </div>
@@ -1053,18 +1137,13 @@ const Hospitals = () => {
       <div className="space-y-6">
 
         {/* Hospital Detail View Dialog */}
-        <Dialog open={Boolean(selectedHospital)} onOpenChange={(open) => { if (!open) setSelectedHospital(null); }}>
-          <DialogContent className="w-[85vw] max-w-none max-h-[85vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-            <DialogHeader className="bg-blue-600 text-white px-6 py-4 shrink-0">
-              <DialogTitle className="text-white text-xl">
-                🏥 Hospital Detail View - {selectedHospital?.name}
-              </DialogTitle>
-              <DialogDescription className="text-blue-100">
-                Full facility details and contact information for {selectedHospital?.name}
-              </DialogDescription>
+        <Dialog open={!!selectedHospital} onOpenChange={(open) => !open && setSelectedHospital(null)}>
+          <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+            <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
+              <DialogTitle className="text-white text-lg font-black tracking-tight">Hospital Intelligence — {selectedHospital?.name}</DialogTitle>
+              <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Operational Metrics Overview</DialogDescription>
             </DialogHeader>
-
-            <div className="p-8 space-y-8 overflow-y-auto flex-1 text-black">
+            <div className="p-5 space-y-5 overflow-y-auto custom-scrollbar flex-1 text-black">
               {selectedHospital && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                   <div className="space-y-6">
@@ -1153,124 +1232,6 @@ const Hospitals = () => {
             </div>
           </DialogContent>
         </Dialog>
-
-        {/* Pending Booking Approvals */}
-        {getPendingBookings().length > 0 && (
-          <Card className="border-2 border-gray-300 shadow-lg bg-white mb-6">
-            <CardContent className="pt-8">
-              <h2 className="text-3xl font-bold mb-6 flex items-center gap-3 text-black">
-                <AlertCircle className="h-8 w-8 text-gray-600" />
-                Pending Booking Approvals
-                <Badge className="ml-auto bg-gray-600 text-white text-lg px-3 py-1">
-                  {getPendingBookings().length}
-                </Badge>
-              </h2>
-
-              <div className="space-y-4">
-                {getPendingBookings().map((booking) => (
-                  <div key={booking.id} className="border-2 border-gray-300 rounded-xl p-6 bg-white shadow-md hover:shadow-xl transition-all duration-300">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-lg font-bold text-gray-900">Booking #{booking.id.slice(0, 8)}</h3>
-                        <p className="text-sm text-gray-500">Requested: {booking.requestedAt ? new Date(booking.requestedAt).toLocaleDateString() : 'N/A'}</p>
-                      </div>
-                      <Badge className={`text-black border border-gray-400 bg-white ${booking.urgency === 'emergency' ? 'border-gray-600' :
-                        booking.urgency === 'urgent' ? 'border-gray-500' :
-                          'border-gray-300'
-                        }`}>
-                        {booking.urgency?.toUpperCase()}
-                      </Badge>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 bg-gray-50 p-3 rounded">
-                      <div>
-                        <p className="text-xs font-semibold text-gray-600">Patient</p>
-                        <p className="font-semibold text-gray-900">{booking.patient?.name || 'Unknown'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-gray-600">From</p>
-                        <p className="font-semibold text-gray-900">{booking.originHospital?.name || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-gray-600">To</p>
-                        <p className="font-semibold text-gray-900">{booking.destinationHospital?.name || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-gray-600">Duration</p>
-                        <p className="font-semibold text-gray-900">{booking.estimatedFlightTime || 'TBD'} min</p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3">
-                      <Dialog open={selectedBookingForApproval === booking.id} onOpenChange={(open) => {
-                        if (open) setSelectedBookingForApproval(booking.id);
-                        else {
-                          setSelectedBookingForApproval(null);
-                          setApprovalNotes('');
-                        }
-                      }}>
-                        <DialogTrigger asChild>
-                          <Button size="lg" className="gap-2 bg-white hover:bg-gray-100 text-black font-semibold flex-1 border border-gray-300">
-                            <CheckCircle2 className="h-5 w-5" />
-                            Approve Booking
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
-                          <DialogHeader>
-                            <DialogTitle className="text-xl">Approve Booking</DialogTitle>
-                            <DialogDescription>Patient: {booking.patient?.name} | Urgency: {booking.urgency}</DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <Label className="text-base font-semibold">Approval Notes (Optional)</Label>
-                            <Textarea
-                              placeholder="Add approval notes here..."
-                              value={approvalNotes}
-                              onChange={(e) => setApprovalNotes(e.target.value)}
-                              className="min-h-24"
-                            />
-                          </div>
-                          <DialogFooter className="gap-2">
-                            <Button variant="outline" onClick={() => setSelectedBookingForApproval(null)}>Cancel</Button>
-                            <Button onClick={() => approveBooking(booking.id)} className="bg-white hover:bg-gray-100 text-black border border-gray-300">Approve</Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button size="lg" className="gap-2 text-gray-600 font-semibold flex-1 bg-white hover:bg-gray-100 border border-gray-300">
-                            <XCircle className="h-5 w-5" />
-                            Reject Booking
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
-                          <DialogHeader>
-                            <DialogTitle className="text-xl">Reject Booking</DialogTitle>
-                            <DialogDescription>Patient: {booking.patient?.name}</DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <Label className="text-base font-semibold">Rejection Reason</Label>
-                            <Textarea
-                              placeholder="Provide rejection reason..."
-                              value={approvalNotes}
-                              onChange={(e) => setApprovalNotes(e.target.value)}
-                              className="min-h-24"
-                            />
-                          </div>
-                          <DialogFooter className="gap-2">
-                            <Button variant="outline" onClick={() => setApprovalNotes('')}>Cancel</Button>
-                            <Button variant="destructive" onClick={() => rejectBooking(booking.id)}>Reject</Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
 
 
         {error && (
