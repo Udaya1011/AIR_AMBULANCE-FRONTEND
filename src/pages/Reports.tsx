@@ -667,18 +667,18 @@ export default function Reports() {
               {/* 📋 BOOKING REPORTS TAB */}
               <TabsContent value="bookings" className="m-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-xl overflow-hidden flex flex-col">
-                  <div className="flex-1 overflow-auto custom-scrollbar">
+                  <div className="max-h-[380px] overflow-auto custom-scrollbar">
                     <div className="min-w-[800px] md:min-w-0">
                       <table className="w-full border-collapse">
-                        <thead className="sticky top-0 z-20">
-                          <tr className="bg-[#f8fafc] border-b border-slate-200">
-                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Booking ID</th>
-                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Patient</th>
-                            <th className="hidden lg:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Path</th>
-                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Status</th>
-                            <th className="hidden md:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Urgency</th>
-                            <th className="hidden sm:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Revenue</th>
-                            <th className="px-6 py-4 text-center text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
+                        <thead className="sticky top-0 z-20 shadow-sm">
+                          <tr className="bg-[#f8fafc] border-b-2 border-slate-300">
+                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc] sticky top-0">Booking ID</th>
+                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc] sticky top-0">Patient</th>
+                            <th className="hidden lg:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc] sticky top-0">Path</th>
+                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc] sticky top-0">Status</th>
+                            <th className="hidden md:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc] sticky top-0">Urgency</th>
+                            <th className="hidden sm:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc] sticky top-0">Revenue</th>
+                            <th className="px-6 py-4 text-center text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc] sticky top-0">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">

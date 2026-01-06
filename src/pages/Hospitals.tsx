@@ -311,7 +311,7 @@ const Hospitals = () => {
   const paginatedHospitals = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return visible.slice(start, start + itemsPerPage);
-  }, [visible, currentPage]);
+  }, [visible, currentPage, itemsPerPage]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -1476,7 +1476,7 @@ const Hospitals = () => {
             <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 w-full sm:w-auto">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Show:</span>
-                <Select value={itemsPerPage.toString()} onValueChange={(v) => setItemsPerPage(parseInt(v))}>
+                <Select value={itemsPerPage.toString()} onValueChange={(v) => { setItemsPerPage(parseInt(v)); setCurrentPage(1); }}>
                   <SelectTrigger className="h-8 md:h-9 w-16 md:w-20 bg-white border-slate-200 rounded-xl text-xs font-black text-slate-700 shadow-sm focus:ring-2 focus:ring-blue-100">
                     <SelectValue />
                   </SelectTrigger>
