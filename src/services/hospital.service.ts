@@ -92,6 +92,16 @@ export const HospitalService = {
       if (hospital.occupiedBeds !== undefined) hospitalData.occupied_beds = hospital.occupiedBeds;
       if (hospital.address) hospitalData.preferred_pickup_location = hospital.address;
 
+      // Include contact information in update
+      if (hospital.contactPerson || hospital.email || hospital.phone) {
+        hospitalData.contact_information = {
+          name: hospital.contactPerson || '',
+          email: hospital.email || '',
+          phone: hospital.phone || '',
+          position: 'Administrator'
+        };
+      }
+
       return apiClient.put(`/api/hospitals/${id}`, hospitalData);
     } catch (error) {
       console.error('Error updating hospital:', error);

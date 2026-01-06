@@ -114,6 +114,7 @@ const Aircraft: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [trackingId, setTrackingId] = useState<string | null>(null);
+  const [isTrackingDialogOpen, setIsTrackingDialogOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<AircraftStatus | "all">("all");
@@ -182,7 +183,7 @@ const Aircraft: React.FC = () => {
 
   // PAGINATION
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginatedAircraft = useMemo(() => {
@@ -284,27 +285,24 @@ const Aircraft: React.FC = () => {
       return;
     }
 
+    const normalizedForm = {
+      ...form,
+      medicalEquipment: typeof form.medicalEquipment === 'string'
+        ? form.medicalEquipment.split(',').map(s => s.trim()).filter(Boolean)
+        : form.medicalEquipment || []
+    };
+
     try {
       if (editItem) {
-        await AircraftService.updateAircraft(editItem.id, form);
+        await AircraftService.updateAircraft(editItem.id, normalizedForm);
         toast({ title: 'Success', description: 'Aircraft updated successfully' });
         setEditItem(null);
       } else {
-        const payload = {
-          ...form,
-          registration: form.registration || "",
-          type: form.type || "fixed_wing",
-          status: form.status || "available",
-          medicalEquipment: typeof form.medicalEquipment === 'string'
-            ? form.medicalEquipment.split(',').map(s => s.trim()).filter(Boolean)
-            : form.medicalEquipment
-        };
-        await AircraftService.createAircraft(payload);
-        toast({ title: 'Success', description: 'Aircraft created successfully' });
+        await AircraftService.createAircraft(normalizedForm as any);
+        toast({ title: 'Success', description: 'Aircraft added successfully' });
       }
-
-      setForm({});
       setIsAddOpen(false);
+      setForm({});
       await fetchAircraft();
     } catch (err: any) {
       console.error('Error saving aircraft:', err);
@@ -680,7 +678,7 @@ const Aircraft: React.FC = () => {
   return (
     <Layout subTitle="Fleet Tracking & Dispatch" headerActions={headerActions}>
       <TooltipProvider>
-        <div className="space-y-4">
+        <div className="space-y-4 h-full flex flex-col">
           {loading ? (
             <LoadingSpinner />
           ) : (
@@ -691,7 +689,10 @@ const Aircraft: React.FC = () => {
                   <Button
                     variant="outline"
                     className={`h-9 ${view === "list" ? "bg-blue-600 text-white" : ""}`}
-                    onClick={() => setView("list")}
+                    onClick={() => {
+                      setView("list");
+                      setTrackingId(null);
+                    }}
                   >
                     <List className="w-4 h-4 mr-2" /> List
                   </Button>
@@ -777,7 +778,7 @@ const Aircraft: React.FC = () => {
                                       className="h-7 w-full px-2 text-[9px] font-black uppercase tracking-tighter bg-slate-900 text-white hover:bg-slate-800 shadow-md"
                                       onClick={() => {
                                         setTrackingId(ac.id);
-                                        setView("map");
+                                        setIsTrackingDialogOpen(true);
                                       }}
                                     >
                                       <Map className="h-3 w-3 mr-1" /> Track Live
@@ -864,8 +865,11 @@ const Aircraft: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 rounded-2xl border-2 border-slate-300 bg-white shadow-xl overflow-hidden relative min-h-0">
-                  <LiveMapComponent aircraftData={aircraft} initialTrackedId={trackingId} />
+                <div className="flex-1 rounded-2xl border-2 border-slate-300 bg-white shadow-xl overflow-hidden relative min-h-[600px] h-[75vh]">
+                  <LiveMapComponent
+                    aircraftData={(aircraft || []).filter(a => a && typeof a.latitude === 'number' && typeof a.longitude === 'number')}
+                    initialTrackedId={trackingId}
+                  />
                 </div>
               )}
             </div>
@@ -993,13 +997,11 @@ const Aircraft: React.FC = () => {
                             className="w-full h-8 text-[11px] font-bold"
                             variant="default"
                             onClick={() => {
-                              setSelectedAircraft(null);
-                              setView("map");
-                              setTimeout(() => {
-                                window.dispatchEvent(new CustomEvent("flyToAircraft", {
-                                  detail: { id: selectedAircraft.id, lat: selectedAircraft.latitude, lng: selectedAircraft.longitude }
-                                }));
-                              }, 250);
+                              if (!selectedAircraft) return;
+                              const currentId = selectedAircraft.id;
+                              setSelectedAircraft(null); // Close detail dialog
+                              setTrackingId(currentId);
+                              setIsTrackingDialogOpen(true); // Open tracking dialog
                             }}
                           >
                             TRACK IN LIVE MAP
@@ -1088,9 +1090,47 @@ const Aircraft: React.FC = () => {
               </Button>
             )}
           </div>
-        </div >
-      </TooltipProvider >
-    </Layout >
+
+          {/* 🛰️ LIVE TRACKING MAP DIALOG */}
+          <Dialog open={isTrackingDialogOpen} onOpenChange={(open) => !open && setIsTrackingDialogOpen(false)}>
+            <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none bg-white p-6 overflow-hidden rounded-xl border-2 border-slate-200 shadow-2xl flex flex-col gap-0 backdrop-blur-sm">
+              <DialogHeader className="mb-4 shrink-0">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <DialogTitle className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+                      <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100">
+                        <Navigation className="h-5 w-5 text-white animate-pulse" />
+                      </div>
+                      Live Fleet Surveillance
+                    </DialogTitle>
+                    <DialogDescription className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.2em] mt-1 ml-12">
+                      Real-time Positioning & Telemetry Tracking
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+              <div className="flex-1 rounded-2xl border-4 border-slate-100 bg-white overflow-hidden relative min-h-[500px] h-[70vh] shadow-inner">
+                <LiveMapComponent
+                  aircraftData={(aircraft || []).filter(a => a && typeof a.latitude === 'number' && typeof a.longitude === 'number')}
+                  initialTrackedId={trackingId}
+                />
+
+                {/* Overlay with instructions */}
+                <div className="absolute top-4 right-4 z-[1000] bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-slate-200">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Navigation Legend</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
+                    <span className="text-[10px] font-bold text-slate-700">In Flight</span>
+                    <div className="w-2 h-2 rounded-full bg-green-600"></div>
+                    <span className="text-[10px] font-bold text-slate-700">Available</span>
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </TooltipProvider>
+    </Layout>
   );
 };
 

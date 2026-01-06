@@ -58,6 +58,13 @@ const Patients = () => {
     vitals?: string;
     specialEquipment?: string[];
     hospital_id?: string;
+    insurance_provider?: string;
+    insurance_policy_number?: string;
+    insurance_group_number?: string;
+    kin_name?: string;
+    kin_relationship?: string;
+    kin_phone?: string;
+    kin_email?: string;
   }>({
     name: '',
     dob: '',
@@ -69,6 +76,13 @@ const Patients = () => {
     allergies: '',
     vitals: '',
     hospital_id: 'no_hospital',
+    insurance_provider: '',
+    insurance_policy_number: '',
+    insurance_group_number: '',
+    kin_name: '',
+    kin_relationship: '',
+    kin_phone: '',
+    kin_email: '',
   });
   const [editingPatientId, setEditingPatientId] = useState<string | null>(null);
   const params = useParams();
@@ -499,7 +513,28 @@ const Patients = () => {
           <Button
             variant="outline"
             className="h-10 px-6 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-bold rounded-xl shadow-sm flex items-center gap-2 transition-all active:scale-95 group"
-            onClick={() => { setForm({}); setIsDialogOpen(true); }}
+            onClick={() => {
+              setForm({
+                name: '',
+                dob: '',
+                gender: 'other',
+                weight: 0,
+                diagnosis: '',
+                acuity_level: 'stable',
+                blood_group: 'O+',
+                allergies: '',
+                vitals: '',
+                hospital_id: 'no_hospital',
+                insurance_provider: '',
+                insurance_policy_number: '',
+                insurance_group_number: '',
+                kin_name: '',
+                kin_relationship: '',
+                kin_phone: '',
+                kin_email: '',
+              });
+              setIsDialogOpen(true);
+            }}
           >
             <Plus className="h-4 w-4 stroke-[3px] group-hover:rotate-90 transition-transform" />
             Add Patient
@@ -586,7 +621,91 @@ const Patients = () => {
               </div>
             </div>
 
-            {/* ROW 4: Hospital Assignment */}
+            {/* ROW 4: Insurance Details */}
+            <div className="space-y-1.5">
+              <Label className="font-semibold text-sm flex items-center gap-2">
+                <FileText className="h-4 w-4 text-blue-600" />
+                💳 Insurance Details
+              </Label>
+              <div className="grid grid-cols-3 gap-4 p-4 bg-blue-50/30 rounded-lg border border-blue-100">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-gray-600">Provider</Label>
+                  <Input
+                    placeholder="Insurance Provider"
+                    value={form.insurance_provider || ''}
+                    onChange={(e) => setForm({ ...form, insurance_provider: e.target.value })}
+                    className="h-9 bg-white"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-gray-600">Policy Number</Label>
+                  <Input
+                    placeholder="Policy #"
+                    value={form.insurance_policy_number || ''}
+                    onChange={(e) => setForm({ ...form, insurance_policy_number: e.target.value })}
+                    className="h-9 bg-white"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-gray-600">Group Number</Label>
+                  <Input
+                    placeholder="Group #"
+                    value={form.insurance_group_number || ''}
+                    onChange={(e) => setForm({ ...form, insurance_group_number: e.target.value })}
+                    className="h-9 bg-white"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* ROW 5: Next of Kin Details */}
+            <div className="space-y-1.5">
+              <Label className="font-semibold text-sm flex items-center gap-2">
+                <Phone className="h-4 w-4 text-blue-600" />
+                👨‍👩‍👧 Next of Kin / Emergency Contact
+              </Label>
+              <div className="grid grid-cols-2 gap-4 p-4 bg-green-50/30 rounded-lg border border-green-100">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-gray-600">Full Name *</Label>
+                  <Input
+                    placeholder="Contact Name"
+                    value={form.kin_name || ''}
+                    onChange={(e) => setForm({ ...form, kin_name: e.target.value })}
+                    className="h-9 bg-white"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-gray-600">Relationship</Label>
+                  <Input
+                    placeholder="e.g., Spouse, Parent, Sibling"
+                    value={form.kin_relationship || ''}
+                    onChange={(e) => setForm({ ...form, kin_relationship: e.target.value })}
+                    className="h-9 bg-white"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-gray-600">Phone Number *</Label>
+                  <Input
+                    placeholder="Contact Phone"
+                    value={form.kin_phone || ''}
+                    onChange={(e) => setForm({ ...form, kin_phone: e.target.value })}
+                    className="h-9 bg-white"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-gray-600">Email</Label>
+                  <Input
+                    type="email"
+                    placeholder="Contact Email"
+                    value={form.kin_email || ''}
+                    onChange={(e) => setForm({ ...form, kin_email: e.target.value })}
+                    className="h-9 bg-white"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* ROW 6: Hospital Assignment */}
             <div className="space-y-1.5">
               <Label className="font-semibold">🏥 Assigned Hospital</Label>
               <Select value={form.hospital_id || 'no_hospital'} onValueChange={(v) => setForm({ ...form, hospital_id: v })}>
@@ -619,6 +738,13 @@ const Patients = () => {
                     toast({ title: 'Validation', description: 'Name and DOB are required', variant: 'destructive' });
                     return;
                   }
+
+                  // Validate next of kin required fields
+                  if (form.kin_name && !form.kin_phone) {
+                    toast({ title: 'Validation', description: 'Next of Kin phone number is required when contact name is provided', variant: 'destructive' });
+                    return;
+                  }
+
                   try {
                     const payload: any = {
                       full_name: form.name as string,
@@ -638,16 +764,16 @@ const Patients = () => {
                       },
                       special_equipment_needed: [],
                       insurance_details: {
-                        provider: "N/A",
-                        policy_number: "N/A",
-                        group_number: "N/A",
-                        verification_status: "pending"
+                        provider: form.insurance_provider || "N/A",
+                        policy_number: form.insurance_policy_number || "N/A",
+                        group_number: form.insurance_group_number || "N/A",
+                        verification_status: form.insurance_policy_number ? "pending" : "not_provided"
                       },
                       next_of_kin: {
-                        name: "N/A",
-                        relationship: "N/A",
-                        phone: "N/A",
-                        email: "na@example.com"
+                        name: form.kin_name || "N/A",
+                        relationship: form.kin_relationship || "N/A",
+                        phone: form.kin_phone || "N/A",
+                        email: form.kin_email || "na@example.com"
                       },
                       assigned_hospital_id: form.hospital_id === 'no_hospital' ? undefined : form.hospital_id
                     };
@@ -839,6 +965,13 @@ const Patients = () => {
                                     allergies: Array.isArray(patient.allergies) ? patient.allergies.join(', ') : patient.allergies || '',
                                     vitals: patient.current_vitals ? JSON.stringify(patient.current_vitals) : '',
                                     hospital_id: patient.assigned_hospital_id || 'no_hospital',
+                                    insurance_provider: patient.insurance_details?.provider || '',
+                                    insurance_policy_number: patient.insurance_details?.policy_number || '',
+                                    insurance_group_number: patient.insurance_details?.group_number || '',
+                                    kin_name: patient.next_of_kin?.name || '',
+                                    kin_relationship: patient.next_of_kin?.relationship || '',
+                                    kin_phone: patient.next_of_kin?.phone || '',
+                                    kin_email: patient.next_of_kin?.email || '',
                                   });
                                   setIsEditOpen(true);
                                 }}
@@ -1192,7 +1325,91 @@ const Patients = () => {
                 </div>
               </div>
 
-              {/* ROW 4: Hospital Assignment */}
+              {/* ROW 4: Insurance Details */}
+              <div className="space-y-1.5">
+                <Label className="font-semibold text-sm flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-blue-600" />
+                  💳 Insurance Details
+                </Label>
+                <div className="grid grid-cols-3 gap-4 p-4 bg-blue-50/30 rounded-lg border border-blue-100">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-gray-600">Provider</Label>
+                    <Input
+                      placeholder="Insurance Provider"
+                      value={form.insurance_provider || ''}
+                      onChange={(e) => setForm({ ...form, insurance_provider: e.target.value })}
+                      className="h-9 bg-white"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-gray-600">Policy Number</Label>
+                    <Input
+                      placeholder="Policy #"
+                      value={form.insurance_policy_number || ''}
+                      onChange={(e) => setForm({ ...form, insurance_policy_number: e.target.value })}
+                      className="h-9 bg-white"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-gray-600">Group Number</Label>
+                    <Input
+                      placeholder="Group #"
+                      value={form.insurance_group_number || ''}
+                      onChange={(e) => setForm({ ...form, insurance_group_number: e.target.value })}
+                      className="h-9 bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* ROW 5: Next of Kin Details */}
+              <div className="space-y-1.5">
+                <Label className="font-semibold text-sm flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-blue-600" />
+                  👨‍👩‍👧 Next of Kin / Emergency Contact
+                </Label>
+                <div className="grid grid-cols-2 gap-4 p-4 bg-green-50/30 rounded-lg border border-green-100">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-gray-600">Full Name</Label>
+                    <Input
+                      placeholder="Contact Name"
+                      value={form.kin_name || ''}
+                      onChange={(e) => setForm({ ...form, kin_name: e.target.value })}
+                      className="h-9 bg-white"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-gray-600">Relationship</Label>
+                    <Input
+                      placeholder="e.g., Spouse, Parent, Sibling"
+                      value={form.kin_relationship || ''}
+                      onChange={(e) => setForm({ ...form, kin_relationship: e.target.value })}
+                      className="h-9 bg-white"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-gray-600">Phone Number</Label>
+                    <Input
+                      placeholder="Contact Phone"
+                      value={form.kin_phone || ''}
+                      onChange={(e) => setForm({ ...form, kin_phone: e.target.value })}
+                      className="h-9 bg-white"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-gray-600">Email</Label>
+                    <Input
+                      type="email"
+                      placeholder="Contact Email"
+                      value={form.kin_email || ''}
+                      onChange={(e) => setForm({ ...form, kin_email: e.target.value })}
+                      className="h-9 bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* ROW 6: Hospital Assignment */}
               <div className="space-y-1.5">
                 <Label className="font-semibold">🏥 Assigned Hospital</Label>
                 <Select value={form.hospital_id || 'no_hospital'} onValueChange={(v) => setForm({ ...form, hospital_id: v })}>
@@ -1248,8 +1465,18 @@ const Patients = () => {
                           blood_pressure: "120/80"
                         },
                         // Handle update logic properly, partial updates might be safer but replacing for now
-                        insurance_details: { provider: "N/A", policy_number: "N/A" },
-                        next_of_kin: { name: "N/A", relationship: "N/A", phone: "N/A" },
+                        insurance_details: {
+                          provider: form.insurance_provider || "N/A",
+                          policy_number: form.insurance_policy_number || "N/A",
+                          group_number: form.insurance_group_number || "N/A",
+                          verification_status: form.insurance_policy_number ? "pending" : "not_provided"
+                        },
+                        next_of_kin: {
+                          name: form.kin_name || "N/A",
+                          relationship: form.kin_relationship || "N/A",
+                          phone: form.kin_phone || "N/A",
+                          email: form.kin_email || "na@example.com"
+                        },
                         assigned_hospital_id: form.hospital_id === 'no_hospital' ? null : form.hospital_id
                       };
 

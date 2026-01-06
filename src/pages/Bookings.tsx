@@ -97,16 +97,8 @@ const Bookings = () => {
     try {
       setLoading(true);
       const data = await BookingService.list();
-      // Enforce strict data validation - only show records with verified links
-      const validData = (data || []).filter((b: any) => {
-        if (!b || !(b.id || b._id)) return false;
-        const patientExists = !!getPatientById(b.patientId);
-        // Note: hospitals state might not be populated yet if parallel, so we just check for ID existence
-        // or check against the fetched hospitals in the next step.
-        // Actually fetchHospitals is in the same useEffect, but called after fetchBookings.
-        // Best to filter in filteredBookings computed property for reactive updates.
-        return patientExists && b.originHospitalId && b.destinationHospitalId;
-      });
+      // Store raw bookings - filtering for 'Unknown' records will happen reactively in the filtered computed property
+      const validData = (data || []).filter((b: any) => b && (b.id || b._id));
       setBookings(validData);
       setError(null);
     } catch (err) {
@@ -154,12 +146,11 @@ const Bookings = () => {
   // Filter logic
   const filteredBookings = (bookings || []).filter(booking => {
     // Robust check for empty/invalid records
-    if (!booking || !booking.id || !booking.patientId) return false;
+    if (!booking || !(booking.id || booking._id)) return false;
 
     const patient = getPatientById(booking.patientId);
-    if (!patient) return false;
-
-    const patientName = (patient.name || patient.full_name || "").toLowerCase();
+    // Use fallback names if lookup fails
+    const patientName = (patient?.name || patient?.full_name || booking.patientName || "Restricted Info").toLowerCase();
     const bookingId = (booking.booking_id || booking.id || "").toLowerCase();
     const search = searchTerm.toLowerCase();
 

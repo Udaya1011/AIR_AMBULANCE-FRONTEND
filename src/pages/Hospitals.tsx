@@ -1047,7 +1047,7 @@ const Hospitals = () => {
                 <Input
                   type="number"
                   value={formData.coordinates?.lat || 0}
-                  onChange={(e) => setFormData({ ...formData, coordinates: { ...formData.coordinates!, lat: parseFloat(e.target.value) } })}
+                  onChange={(e) => setFormData({ ...formData, coordinates: { lat: parseFloat(e.target.value) || 0, lng: formData.coordinates?.lng || 0 } })}
                   className="h-9"
                 />
               </div>
@@ -1056,7 +1056,7 @@ const Hospitals = () => {
                 <Input
                   type="number"
                   value={formData.coordinates?.lng || 0}
-                  onChange={(e) => setFormData({ ...formData, coordinates: { ...formData.coordinates!, lng: parseFloat(e.target.value) } })}
+                  onChange={(e) => setFormData({ ...formData, coordinates: { lat: formData.coordinates?.lat || 0, lng: parseFloat(e.target.value) || 0 } })}
                   className="h-9"
                 />
               </div>
