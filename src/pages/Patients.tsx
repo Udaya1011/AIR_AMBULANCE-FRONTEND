@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/popover";
 import { Patient, AcuityLevel, Hospital } from '@/types';
 import { usePatients } from '@/contexts/PatientsContext';
-import { Plus, Search, Filter, Edit, Trash2, Heart, Activity, User, Calendar, MapPin, Hash, Phone, AlertCircle, FileText, Download, MoreVertical, MessageCircle, X, Send, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, BarChart3, Users, CheckCircle2, Building2, Eye } from 'lucide-react';
+import { Plus, Search, Filter, Edit, Trash2, Heart, Activity, User, Calendar, MapPin, Hash, Phone, AlertCircle, FileText, Download, MoreVertical, MessageCircle, X, Send, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, BarChart3, Users, CheckCircle2, Building2, Eye, Camera } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { toast } from '@/components/ui/use-toast';
@@ -65,6 +65,7 @@ const Patients = () => {
     kin_relationship?: string;
     kin_phone?: string;
     kin_email?: string;
+    photo_url?: string;
   }>({
     name: '',
     dob: '',
@@ -83,6 +84,7 @@ const Patients = () => {
     kin_relationship: '',
     kin_phone: '',
     kin_email: '',
+    photo_url: '',
   });
   const [editingPatientId, setEditingPatientId] = useState<string | null>(null);
   const params = useParams();
@@ -98,6 +100,23 @@ const Patients = () => {
   // Wizard Step State
   const [step, setStep] = useState(1);
   const totalSteps = 3;
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const cameraInputRef = React.useRef<HTMLInputElement>(null);
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5000000) { // 5MB limit
+        toast({ title: "File too large", description: "Image must be less than 5MB", variant: "destructive" });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setForm(prev => ({ ...prev, photo_url: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const isLoading = patientsLoading || hospitalsLoading;
 
@@ -587,6 +606,48 @@ const Patients = () => {
                     <User className="h-4 w-4" /> Identity & Demographics
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                    {/* Photo Upload */}
+                    <div className="md:col-span-4 flex flex-col items-center justify-center mb-4">
+                      <div className="relative group transition-transform hover:scale-105 active:scale-95">
+                        <div
+                          className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-slate-50 flex items-center justify-center cursor-pointer"
+                          onClick={() => fileInputRef.current?.click()}
+                          title="Upload from Device"
+                        >
+                          {form.photo_url ? (
+                            <img src={form.photo_url} alt="Profile" className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="h-10 w-10 text-slate-300" />
+                          )}
+                        </div>
+                        <div
+                          className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full text-white shadow-md border-2 border-white hover:bg-blue-700 transition-colors cursor-pointer z-10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            cameraInputRef.current?.click();
+                          }}
+                          title="Capture with Camera"
+                        >
+                          <Camera className="h-3.5 w-3.5" />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">Upload or Capture</p>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                      />
+                      <input
+                        type="file"
+                        ref={cameraInputRef}
+                        className="hidden"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleImageUpload}
+                      />
+                    </div>
                     <div className="md:col-span-2 space-y-1.5">
                       <Label className="text-xs font-bold text-slate-700">Full Name <span className="text-red-500">*</span></Label>
                       <Input
@@ -932,6 +993,7 @@ const Patients = () => {
                           phone: form.kin_phone || "N/A",
                           email: form.kin_email || "na@example.com"
                         },
+                        photo_url: form.photo_url || null,
                         assigned_hospital_id: form.hospital_id === 'no_hospital' ? undefined : form.hospital_id
                       };
 
@@ -975,7 +1037,12 @@ const Patients = () => {
               <User className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
               <div className="relative z-10">
                 <DialogTitle className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-                  <User className="h-6 w-6" /> Patient Intelligence Profile — {selectedPatient?.full_name || selectedPatient?.name}
+                  {selectedPatient?.photo_url ? (
+                    <img src={selectedPatient.photo_url} className="h-10 w-10 rounded-full object-cover border-2 border-white/20 shadow-sm" alt="Profile" />
+                  ) : (
+                    <User className="h-6 w-6" />
+                  )}
+                  Patient Intelligence Profile — {selectedPatient?.full_name || selectedPatient?.name}
                 </DialogTitle>
                 <DialogDescription className="text-blue-100 text-xs font-bold uppercase tracking-widest mt-1">Advanced Clinical Analytics</DialogDescription>
               </div>

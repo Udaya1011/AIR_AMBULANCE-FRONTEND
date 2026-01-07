@@ -27,6 +27,7 @@ export interface Patient {
     blood_group?: string;
     assigned_hospital_id?: string;
     allergies: string[];    // Backend expects list of strings
+    photo_url?: string;
 
     current_vitals?: {
         heart_rate?: number;

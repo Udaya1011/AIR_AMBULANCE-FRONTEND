@@ -30,7 +30,8 @@ export const PatientsService = {
       special_equipment_needed: patient.special_equipment_needed || [],
       insurance_details: patient.insurance_details || { provider: "N/A", policy_number: "N/A" },
       next_of_kin: patient.next_of_kin || { name: "N/A", relationship: "N/A", phone: "N/A" },
-      assigned_hospital_id: patient.assigned_hospital_id
+      assigned_hospital_id: patient.assigned_hospital_id,
+      photo_url: patient.photo_url
     };
 
     const response = await apiClient.post('/api/patients', payload);

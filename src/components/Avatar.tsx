@@ -10,11 +10,13 @@ const Avatar: React.FC<AvatarProps> = ({ gender = '', size = 32, className = '' 
     const lower = gender?.toLowerCase();
     const src = lower === 'male' ? '/avatars/male.png' : lower === 'female' ? '/avatars/female.png' : null;
     const alt = lower === 'male' ? 'Male' : lower === 'female' ? 'Female' : 'Avatar';
-    const baseClass = `w-${size} h-${size} rounded-full overflow-hidden border-2 border-blue-200 shrink-0 bg-white ${className}`;
+    const baseClass = `rounded-full overflow-hidden border-2 border-blue-200 shrink-0 bg-white object-cover ${className}`;
+    const style = { width: `${size}px`, height: `${size}px` };
+
     return src ? (
-        <img src={src} alt={alt} className={baseClass} />
+        <img src={src} alt={alt} className={baseClass} style={style} />
     ) : (
-        <div className={baseClass}>
+        <div className={baseClass} style={style}>
             <span className="flex items-center justify-center w-full h-full text-xs text-slate-400">👤</span>
         </div>
     );
