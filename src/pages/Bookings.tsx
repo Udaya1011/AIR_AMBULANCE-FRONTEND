@@ -590,9 +590,14 @@ const Bookings = () => {
           </Button>
         </DialogTrigger>
         <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-          <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
-            <DialogTitle className="text-white text-lg font-black tracking-tight">{editingBookingId ? 'Refine Transfer Request' : 'Initialize Medical Dispatch'}</DialogTitle>
-            <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Emergency logistics coordination</DialogDescription>
+          <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
+            <FileText className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
+            <div className="relative z-10">
+              <DialogTitle className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                <FileText className="h-6 w-6" /> {editingBookingId ? 'Refine Transfer Request' : 'Initialize Medical Dispatch'}
+              </DialogTitle>
+              <DialogDescription className="text-blue-100 text-xs font-bold uppercase tracking-widest mt-1">Emergency logistics coordination</DialogDescription>
+            </div>
           </DialogHeader>
 
           <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/10">

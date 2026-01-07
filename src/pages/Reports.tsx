@@ -1054,8 +1054,14 @@ export default function Reports() {
             {/* 📁 OPERATIONAL DIALOGS */}
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
               <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-                <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
-                  <DialogTitle className="text-white font-black uppercase tracking-widest text-lg">Update Data Record</DialogTitle>
+                <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
+                  <Edit className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
+                  <div className="relative z-10">
+                    <DialogTitle className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                      <Edit className="h-6 w-6" /> Update Data Record
+                    </DialogTitle>
+                    <p className="text-blue-100 text-xs font-bold uppercase tracking-widest mt-1">Modify Operational Parameters</p>
+                  </div>
                 </DialogHeader>
                 <div className="p-4 space-y-4 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/20 text-black">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1078,8 +1084,14 @@ export default function Reports() {
 
             <Dialog open={!!viewBooking} onOpenChange={() => setViewBooking(null)}>
               <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-                <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
-                  <DialogTitle className="text-white font-black uppercase tracking-widest text-lg">Booking Intelligence Report</DialogTitle>
+                <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
+                  <Plane className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
+                  <div className="relative z-10">
+                    <DialogTitle className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                      <Plane className="h-6 w-6" /> Booking Intelligence Report
+                    </DialogTitle>
+                    <p className="text-blue-100 text-xs font-bold uppercase tracking-widest mt-1">Comprehensive Flight Analysis</p>
+                  </div>
                 </DialogHeader>
                 <div className="p-5 flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 text-black">
                   {viewBooking && (
@@ -1109,8 +1121,14 @@ export default function Reports() {
 
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
               <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-                <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
-                  <DialogTitle className="text-white font-black uppercase tracking-widest text-lg">Initialize System Entry</DialogTitle>
+                <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
+                  <Plus className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
+                  <div className="relative z-10">
+                    <DialogTitle className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                      <Plus className="h-6 w-6" /> Initialize System Entry
+                    </DialogTitle>
+                    <p className="text-blue-100 text-xs font-bold uppercase tracking-widest mt-1">Create New Analytics Record</p>
+                  </div>
                 </DialogHeader>
                 <div className="p-5 space-y-5 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/20 text-black">
                   <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Record Identifier (Primary Key)</label><Input value={form.id || ""} onChange={(e) => setForm({ ...form, id: e.target.value })} placeholder="Reference..." className="h-10 rounded-xl border-slate-200 font-black shadow-inner text-sm" /></div>

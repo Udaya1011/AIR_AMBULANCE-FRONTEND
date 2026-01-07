@@ -62,11 +62,12 @@ export const PatientsService = {
     const response = await apiClient.put(`/api/patients/${id}`, payload);
     return {
       ...response,
+      ...payload, // Ensure local updates are reflected immediately
       id: response.id || response._id,
       patient_id: response.patient_id,
-      name: response.full_name || response.name,
-      dob: response.date_of_birth || response.dob,
-      weight: response.weight_kg || response.weight
+      name: payload.full_name || response.full_name || response.name,
+      dob: payload.date_of_birth || response.date_of_birth || response.dob,
+      weight: payload.weight_kg || response.weight_kg || response.weight
     };
   },
 

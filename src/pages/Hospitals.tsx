@@ -263,13 +263,14 @@ const Hospitals = () => {
     try {
       setLoading(true);
       const data = await HospitalService.getHospitals();
-      setHospitals(data.filter(Boolean));
+      const validHospitals = data.filter((h: any) => h && (h.id || h._id) && h.name && h.name.trim().length > 0);
+      setHospitals(validHospitals);
       setError(null);
     } catch (err) {
       console.error("Error fetching hospitals:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch hospitals");
       if (process.env.NODE_ENV === "development") {
-        setHospitals(mockHospitals);
+        setHospitals(mockHospitals.filter((h: any) => h && h.name));
         toast({
           title: "Development Mode",
           description: "Using mock data for development",
@@ -940,9 +941,14 @@ const Hospitals = () => {
           </Button>
         </DialogTrigger>
         <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-          <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
-            <DialogTitle className="text-white text-lg font-black tracking-tight">{dialog.mode === 'Add' ? '🏛️ Register Medical Institution' : '🏗️ Refine Infrastructure Details'}</DialogTitle>
-            <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Healthcare Facility Management</DialogDescription>
+          <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
+            <Building2 className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
+            <div className="relative z-10">
+              <DialogTitle className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                <Building2 className="h-6 w-6" /> {dialog.mode === 'Add' ? 'Register Medical Institution' : 'Refine Infrastructure Details'}
+              </DialogTitle>
+              <DialogDescription className="text-blue-100 text-xs font-bold uppercase tracking-widest mt-1">Healthcare Facility Management</DialogDescription>
+            </div>
           </DialogHeader>
 
           <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 text-black bg-slate-50/20">
@@ -1139,9 +1145,14 @@ const Hospitals = () => {
         {/* Hospital Detail View Dialog */}
         <Dialog open={!!selectedHospital} onOpenChange={(open) => !open && setSelectedHospital(null)}>
           <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-            <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
-              <DialogTitle className="text-white text-lg font-black tracking-tight">Hospital Intelligence — {selectedHospital?.name}</DialogTitle>
-              <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Operational Metrics Overview</DialogDescription>
+            <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
+              <Activity className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
+              <div className="relative z-10">
+                <DialogTitle className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                  <Activity className="h-6 w-6" /> Hospital Intelligence — {selectedHospital?.name}
+                </DialogTitle>
+                <DialogDescription className="text-blue-100 text-xs font-bold uppercase tracking-widest mt-1">Operational Metrics Overview</DialogDescription>
+              </div>
             </DialogHeader>
             <div className="p-5 space-y-5 overflow-y-auto custom-scrollbar flex-1 text-black">
               {selectedHospital && (

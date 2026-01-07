@@ -95,6 +95,10 @@ const Patients = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditOpen, setIsEditOpen] = useState(false);
 
+  // Wizard Step State
+  const [step, setStep] = useState(1);
+  const totalSteps = 3;
+
   const isLoading = patientsLoading || hospitalsLoading;
 
   const fetchHospitals = async () => {
@@ -528,11 +532,11 @@ const Patients = () => {
                 insurance_provider: '',
                 insurance_policy_number: '',
                 insurance_group_number: '',
-                kin_name: '',
                 kin_relationship: '',
                 kin_phone: '',
                 kin_email: '',
               });
+              setStep(1); // Reset to first step
               setIsDialogOpen(true);
             }}
           >
@@ -540,264 +544,417 @@ const Patients = () => {
             Add Patient
           </Button>
         </DialogTrigger>
-        <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-          <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
-            <DialogTitle className="text-white text-lg font-black tracking-tight">Patient Intake Registration</DialogTitle>
-            <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Clinical Profile Entry</DialogDescription>
+        <DialogContent className="w-full max-w-[900px] h-[85vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-2xl border-none shadow-2xl">
+          {/* Header with Progress */}
+          <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-4 shrink-0 relative overflow-hidden">
+
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <Activity className="h-32 w-32 -rotate-12" />
+            </div>
+
+            <div className="relative z-10 flex justify-between items-start">
+              <div>
+                <DialogTitle className="text-xl font-black tracking-tight flex items-center gap-2">
+                  {step === 1 && "Patient Clinical Profile"}
+                  {step === 2 && "Insurance & Billing"}
+                  {step === 3 && "Emergency Contacts"}
+                </DialogTitle>
+                <DialogDescription className="text-blue-100 text-[11px] uppercase font-bold tracking-widest mt-1">
+                  Step {step} of {totalSteps}: {step === 1 ? "Basic Information" : step === 2 ? "Coverage Details" : "Next of Kin"}
+                </DialogDescription>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md rounded-lg p-1 flex gap-1">
+                {[1, 2, 3].map((s) => (
+                  <div
+                    key={s}
+                    className={`h-1.5 w-8 rounded-full transition-all duration-300 ${s <= step ? 'bg-white' : 'bg-white/20'}`}
+                  />
+                ))}
+              </div>
+            </div>
           </DialogHeader>
-          <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 bg-white">
-            {/* ROW 1: Basics */}
-            <div className="grid grid-cols-4 gap-4">
-              <div className="space-y-1.5">
-                <Label className="font-semibold">👤 Full Name *</Label>
-                <Input placeholder="Full Name" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-9" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="font-semibold">📅 DOB *</Label>
-                <Input type="date" value={form.dob || ''} onChange={(e) => setForm({ ...form, dob: e.target.value })} className="h-9" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="font-semibold">⚧ Gender</Label>
-                <Select value={form.gender || 'other'} onValueChange={(v) => setForm({ ...form, gender: v as any })}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">🧑 Male</SelectItem>
-                    <SelectItem value="female">👩 Female</SelectItem>
-                    <SelectItem value="other">⚧ Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="font-semibold">⚖️ Weight (kg)</Label>
-                <Input type="number" placeholder="kg" value={form.weight as number | undefined} onChange={(e) => setForm({ ...form, weight: parseFloat(e.target.value) || 0 })} className="h-9" />
-              </div>
-            </div>
 
-            {/* ROW 2: Medical */}
-            <div className="grid grid-cols-4 gap-4">
-              <div className="space-y-1.5">
-                <Label className="font-semibold">🩸 Blood Group</Label>
-                <Select value={form.blood_group || 'O+'} onValueChange={(v) => setForm({ ...form, blood_group: v })}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Blood Group" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
-                      <SelectItem key={bg} value={bg}>{bg}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-2 space-y-1.5">
-                <Label className="font-semibold">🩺 Diagnosis</Label>
-                <Input placeholder="Diagnosis" value={form.diagnosis || ''} onChange={(e) => setForm({ ...form, diagnosis: e.target.value })} className="h-9" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="font-semibold">🚨 Acuity</Label>
-                <Select value={form.acuity_level || 'stable'} onValueChange={(v) => setForm({ ...form, acuity_level: v as AcuityLevel })}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Acuity" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="critical">🔴 Critical</SelectItem>
-                    <SelectItem value="urgent">🟡 Urgent</SelectItem>
-                    <SelectItem value="stable">🟢 Stable</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+          {/* Scrollable Content Area */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 p-6">
 
-            {/* ROW 3: Details */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="font-semibold">🧬 Allergies</Label>
-                <Input placeholder="Allergies (comma separated)" value={form.allergies || ''} onChange={(e) => setForm({ ...form, allergies: e.target.value })} className="h-9" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="font-semibold">💓 Current Vitals</Label>
-                <Input placeholder="BP, HR, SpO2..." value={form.vitals || ''} onChange={(e) => setForm({ ...form, vitals: e.target.value })} className="h-9" />
-              </div>
-            </div>
+            {/* STEP 1: PATIENT DETAILS */}
+            {step === 1 && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
 
-            {/* ROW 4: Insurance Details */}
-            <div className="space-y-1.5">
-              <Label className="font-semibold text-sm flex items-center gap-2">
-                <FileText className="h-4 w-4 text-blue-600" />
-                💳 Insurance Details
-              </Label>
-              <div className="grid grid-cols-3 gap-4 p-4 bg-blue-50/30 rounded-lg border border-blue-100">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-gray-600">Provider</Label>
-                  <Input
-                    placeholder="Insurance Provider"
-                    value={form.insurance_provider || ''}
-                    onChange={(e) => setForm({ ...form, insurance_provider: e.target.value })}
-                    className="h-9 bg-white"
-                  />
+                {/* Section: Identity */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <User className="h-4 w-4" /> Identity & Demographics
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                    <div className="md:col-span-2 space-y-1.5">
+                      <Label className="text-xs font-bold text-slate-700">Full Name <span className="text-red-500">*</span></Label>
+                      <Input
+                        placeholder="e.g. John Doe"
+                        value={form.name || ''}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        className="h-10 bg-slate-50 focus:bg-white transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold text-slate-700">Date of Birth <span className="text-red-500">*</span></Label>
+                      <Input
+                        type="date"
+                        value={form.dob || ''}
+                        onChange={(e) => setForm({ ...form, dob: e.target.value })}
+                        className="h-10 bg-slate-50 focus:bg-white transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold text-slate-700">Gender</Label>
+                      <Select value={form.gender || 'other'} onValueChange={(v) => setForm({ ...form, gender: v as any })}>
+                        <SelectTrigger className="h-10 bg-slate-50">
+                          <SelectValue placeholder="Gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">🧑 Male</SelectItem>
+                          <SelectItem value="female">👩 Female</SelectItem>
+                          <SelectItem value="other">⚧ Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-gray-600">Policy Number</Label>
-                  <Input
-                    placeholder="Policy #"
-                    value={form.insurance_policy_number || ''}
-                    onChange={(e) => setForm({ ...form, insurance_policy_number: e.target.value })}
-                    className="h-9 bg-white"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-gray-600">Group Number</Label>
-                  <Input
-                    placeholder="Group #"
-                    value={form.insurance_group_number || ''}
-                    onChange={(e) => setForm({ ...form, insurance_group_number: e.target.value })}
-                    className="h-9 bg-white"
-                  />
-                </div>
-              </div>
-            </div>
 
-            {/* ROW 5: Next of Kin Details */}
-            <div className="space-y-1.5">
-              <Label className="font-semibold text-sm flex items-center gap-2">
-                <Phone className="h-4 w-4 text-blue-600" />
-                👨‍👩‍👧 Next of Kin / Emergency Contact
-              </Label>
-              <div className="grid grid-cols-2 gap-4 p-4 bg-green-50/30 rounded-lg border border-green-100">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-gray-600">Full Name *</Label>
-                  <Input
-                    placeholder="Contact Name"
-                    value={form.kin_name || ''}
-                    onChange={(e) => setForm({ ...form, kin_name: e.target.value })}
-                    className="h-9 bg-white"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-gray-600">Relationship</Label>
-                  <Input
-                    placeholder="e.g., Spouse, Parent, Sibling"
-                    value={form.kin_relationship || ''}
-                    onChange={(e) => setForm({ ...form, kin_relationship: e.target.value })}
-                    className="h-9 bg-white"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-gray-600">Phone Number *</Label>
-                  <Input
-                    placeholder="Contact Phone"
-                    value={form.kin_phone || ''}
-                    onChange={(e) => setForm({ ...form, kin_phone: e.target.value })}
-                    className="h-9 bg-white"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-gray-600">Email</Label>
-                  <Input
-                    type="email"
-                    placeholder="Contact Email"
-                    value={form.kin_email || ''}
-                    onChange={(e) => setForm({ ...form, kin_email: e.target.value })}
-                    className="h-9 bg-white"
-                  />
-                </div>
-              </div>
-            </div>
+                {/* Section: Clinical */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Activity className="h-4 w-4" /> Clinical Status
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold text-slate-700">Weight (kg)</Label>
+                      <Input
+                        type="number"
+                        placeholder="0.0"
+                        value={form.weight as number | undefined}
+                        onChange={(e) => setForm({ ...form, weight: parseFloat(e.target.value) || 0 })}
+                        className="h-10 bg-slate-50 focus:bg-white"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold text-slate-700">Blood Group</Label>
+                      <Select value={form.blood_group || 'O+'} onValueChange={(v) => setForm({ ...form, blood_group: v })}>
+                        <SelectTrigger className="h-10 bg-slate-50">
+                          <SelectValue placeholder="Blood Group" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                            <SelectItem key={bg} value={bg}>{bg}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold text-slate-700">Acuity Level</Label>
+                      <Select value={form.acuity_level || 'stable'} onValueChange={(v) => setForm({ ...form, acuity_level: v as AcuityLevel })}>
+                        <SelectTrigger className="h-10 bg-slate-50">
+                          <SelectValue placeholder="Acuity" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="critical">🔴 Critical</SelectItem>
+                          <SelectItem value="urgent">🟡 Urgent</SelectItem>
+                          <SelectItem value="stable">🟢 Stable</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="md:col-span-3 space-y-1.5">
+                      <Label className="text-xs font-bold text-slate-700">Primary Diagnosis</Label>
+                      <Input
+                        placeholder="e.g. Acute Cardiac Arrest"
+                        value={form.diagnosis || ''}
+                        onChange={(e) => setForm({ ...form, diagnosis: e.target.value })}
+                        className="h-10 bg-slate-50 focus:bg-white"
+                      />
+                    </div>
+                  </div>
 
-            {/* ROW 6: Hospital Assignment */}
-            <div className="space-y-1.5">
-              <Label className="font-semibold">🏥 Assigned Hospital</Label>
-              <Select value={form.hospital_id || 'no_hospital'} onValueChange={(v) => setForm({ ...form, hospital_id: v })}>
-                <SelectTrigger className="h-10 border-gray-300">
-                  <SelectValue placeholder="Select a hospital to assign..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no_hospital">None (Not Assigned)</SelectItem>
-                  {hospitals.map(h => (
-                    <SelectItem key={h.id} value={h.id} disabled={(h.icuCapacity - (h.occupiedBeds || 0)) <= 0}>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-blue-500" />
-                        <span>{h.name}</span>
-                        <Badge variant="outline" className="text-[10px] ml-1">{h.levelOfCare}</Badge>
-                        <span className={`text-[10px] font-bold ml-auto ${(h.icuCapacity - (h.occupiedBeds || 0)) <= 2 ? 'text-red-500' : 'text-green-600'}`}>
-                          Available: {h.icuCapacity - (h.occupiedBeds || 0)} Seats
-                        </span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold text-slate-700">Known Allergies</Label>
+                      <Input
+                        placeholder="e.g. Penicillin, Peanuts"
+                        value={form.allergies || ''}
+                        onChange={(e) => setForm({ ...form, allergies: e.target.value })}
+                        className="h-10 bg-slate-50 focus:bg-white"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold text-slate-700">Current Vitals</Label>
+                      <Input
+                        placeholder="e.g. BP 120/80, HR 72"
+                        value={form.vitals || ''}
+                        onChange={(e) => setForm({ ...form, vitals: e.target.value })}
+                        className="h-10 bg-slate-50 focus:bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section: Hospital Assignment */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Building2 className="h-4 w-4" /> Facility Assignment
+                  </h4>
+                  <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold text-slate-700">Assign to Hospital</Label>
+                      <Select value={form.hospital_id || 'no_hospital'} onValueChange={(v) => setForm({ ...form, hospital_id: v })}>
+                        <SelectTrigger className="h-11 bg-slate-50 border-slate-200">
+                          <SelectValue placeholder="Select a hospital..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[240px]">
+                          <SelectItem value="no_hospital">None (Not Assigned)</SelectItem>
+                          {hospitals.map(h => (
+                            <SelectItem key={h.id} value={h.id} disabled={(h.icuCapacity - (h.occupiedBeds || 0)) <= 0}>
+                              <div className="flex items-center justify-between w-full min-w-[300px] gap-4">
+                                <span className="font-semibold">{h.name}</span>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-[10px] bg-slate-50">{h.levelOfCare}</Badge>
+                                  <span className={`text-[10px] font-bold ${(h.icuCapacity - (h.occupiedBeds || 0)) <= 2 ? 'text-red-500' : 'text-emerald-600'}`}>
+                                    {(h.icuCapacity - (h.occupiedBeds || 0))} Beds
+                                  </span>
+                                </div>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* STEP 2: INSURANCE */}
+            {step === 2 && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex flex-col items-center justify-center py-6 text-center space-y-2">
+                  <div className="bg-blue-50 p-4 rounded-full mb-2">
+                    <FileText className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-lg font-black text-slate-800">Insurance Information</h3>
+                  <p className="text-sm text-slate-500 max-w-sm">
+                    Please provide valid insurance details for billing and claims processing.
+                  </p>
+                </div>
+
+                <div className="max-w-xl mx-auto space-y-4">
+                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-slate-700">Insurance Provider</Label>
+                      <div className="relative">
+                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input
+                          placeholder="e.g. Blue Cross Blue Shield"
+                          value={form.insurance_provider || ''}
+                          onChange={(e) => setForm({ ...form, insurance_provider: e.target.value })}
+                          className="pl-10 h-11 bg-slate-50 focus:bg-white"
+                        />
                       </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* ACTION BUTTONS */}
-            <div className="flex gap-4 pt-6 border-t">
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-slate-700">Policy Number</Label>
+                        <Input
+                          placeholder="XXXXXXXX"
+                          value={form.insurance_policy_number || ''}
+                          onChange={(e) => setForm({ ...form, insurance_policy_number: e.target.value })}
+                          className="h-11 bg-slate-50 focus:bg-white font-mono text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-slate-700">Group Number</Label>
+                        <Input
+                          placeholder="GRP-XXXX"
+                          value={form.insurance_group_number || ''}
+                          onChange={(e) => setForm({ ...form, insurance_group_number: e.target.value })}
+                          className="h-11 bg-slate-50 focus:bg-white font-mono text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+                    <div>
+                      <h5 className="text-sm font-bold text-blue-800">Verification Pending</h5>
+                      <p className="text-xs text-blue-600/80 mt-1">
+                        Insurance coverage will be verified automatically after patient creation. Please ensure policy numbers are accurate.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: EMERGENCY CONTACT */}
+            {step === 3 && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex flex-col items-center justify-center py-6 text-center space-y-2">
+                  <div className="bg-rose-50 p-4 rounded-full mb-2">
+                    <Phone className="h-8 w-8 text-rose-600" />
+                  </div>
+                  <h3 className="text-lg font-black text-slate-800">Emergency Contact</h3>
+                  <p className="text-sm text-slate-500 max-w-sm">
+                    Next of Kin details are required for critical care authorization and emergency notifications.
+                  </p>
+                </div>
+
+                <div className="max-w-xl mx-auto space-y-4">
+                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-slate-700">Full Name</Label>
+                      <Input
+                        placeholder="Contact Person Name"
+                        value={form.kin_name || ''}
+                        onChange={(e) => setForm({ ...form, kin_name: e.target.value })}
+                        className="h-11 bg-slate-50 focus:bg-white"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-slate-700">Relationship to Patient</Label>
+                      <Input
+                        placeholder="e.g. Spouse, Parent, Sibling"
+                        value={form.kin_relationship || ''}
+                        onChange={(e) => setForm({ ...form, kin_relationship: e.target.value })}
+                        className="h-11 bg-slate-50 focus:bg-white"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-slate-700">Phone Number <span className="text-red-500">*</span></Label>
+                        <Input
+                          placeholder="+1 (555) 000-0000"
+                          value={form.kin_phone || ''}
+                          onChange={(e) => setForm({ ...form, kin_phone: e.target.value })}
+                          className="h-11 bg-slate-50 focus:bg-white"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-slate-700">Email Address</Label>
+                        <Input
+                          type="email"
+                          placeholder="contact@example.com"
+                          value={form.kin_email || ''}
+                          onChange={(e) => setForm({ ...form, kin_email: e.target.value })}
+                          className="h-11 bg-slate-50 focus:bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          {/* Footer Actions */}
+          <div className="px-6 py-4 bg-gray-50 border-t border-slate-200 flex items-center justify-between shrink-0">
+            <Button
+              variant="outline"
+              onClick={() => step > 1 ? setStep(step - 1) : setIsDialogOpen(false)}
+              className="h-11 px-6 border-slate-300 text-slate-600 hover:bg-white hover:text-slate-900"
+            >
+              {step === 1 ? 'Cancel' : 'Back'}
+            </Button>
+
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1 mr-4">
+                {[1, 2, 3].map(s => (
+                  <div key={s} className={`h-2 w-2 rounded-full ${s === step ? 'bg-blue-600 scale-125' : 'bg-slate-300'}`} />
+                ))}
+              </div>
+
               <Button
-                className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base rounded-lg transition"
+                className={`h-11 px-8 font-bold text-sm shadow-lg transition-all active:scale-95 ${step === 3 ? 'bg-green-600 hover:bg-green-700 shadow-green-200' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200'}`}
                 onClick={async () => {
-                  if (!form.name || !form.dob) {
-                    toast({ title: 'Validation', description: 'Name and DOB are required', variant: 'destructive' });
+                  // Step 1 Validation
+                  if (step === 1) {
+                    if (!form.name || !form.dob) {
+                      toast({ title: 'Available Fields Required', description: 'Please enter Full Name and Date of Birth to proceed.', variant: 'destructive' });
+                      return;
+                    }
+                    setStep(2);
                     return;
                   }
 
-                  // Validate next of kin required fields
-                  if (form.kin_name && !form.kin_phone) {
-                    toast({ title: 'Validation', description: 'Next of Kin phone number is required when contact name is provided', variant: 'destructive' });
+                  // Step 2 Validation (Optional, can just pass through)
+                  if (step === 2) {
+                    setStep(3);
                     return;
                   }
 
-                  try {
-                    const payload: any = {
-                      full_name: form.name as string,
-                      date_of_birth: form.dob as string,
-                      gender: (form.gender as any) || 'other',
-                      weight_kg: (form.weight as number) || 70, // Default weight
-                      diagnosis: form.diagnosis || 'Not specified',
-                      acuity_level: (form.acuity_level as AcuityLevel) || 'stable',
-                      blood_group: form.blood_group || 'O+',
-                      allergies: form.allergies ? form.allergies.split(',').map(s => s.trim()) : [],
-                      current_vitals: {
-                        heart_rate: 80,
-                        blood_pressure: "120/80",
-                        oxygen_saturation: 98,
-                        temperature: 37.0,
-                        respiratory_rate: 16
-                      },
-                      special_equipment_needed: [],
-                      insurance_details: {
-                        provider: form.insurance_provider || "N/A",
-                        policy_number: form.insurance_policy_number || "N/A",
-                        group_number: form.insurance_group_number || "N/A",
-                        verification_status: form.insurance_policy_number ? "pending" : "not_provided"
-                      },
-                      next_of_kin: {
-                        name: form.kin_name || "N/A",
-                        relationship: form.kin_relationship || "N/A",
-                        phone: form.kin_phone || "N/A",
-                        email: form.kin_email || "na@example.com"
-                      },
-                      assigned_hospital_id: form.hospital_id === 'no_hospital' ? undefined : form.hospital_id
-                    };
+                  // Step 3: Final Submission
+                  if (step === 3) {
+                    if (form.kin_name && !form.kin_phone) {
+                      toast({ title: 'Contact Info Missing', description: 'Phone number is required if Next of Kin name is provided.', variant: 'destructive' });
+                      return;
+                    }
 
-                    const p = await addPatient(payload);
+                    try {
+                      // Construct Payload
+                      const payload: any = {
+                        full_name: form.name as string,
+                        date_of_birth: form.dob as string,
+                        gender: (form.gender as any) || 'other',
+                        weight_kg: (form.weight as number) || 70,
+                        diagnosis: form.diagnosis || 'Not specified',
+                        acuity_level: (form.acuity_level as AcuityLevel) || 'stable',
+                        blood_group: form.blood_group || 'O+',
+                        allergies: form.allergies ? form.allergies.split(',').map(s => s.trim()) : [],
+                        current_vitals: {
+                          heart_rate: 80,
+                          blood_pressure: "120/80",
+                          oxygen_saturation: 98,
+                          temperature: 37.0,
+                          respiratory_rate: 16
+                        },
+                        special_equipment_needed: [],
+                        insurance_details: {
+                          provider: form.insurance_provider || "N/A",
+                          policy_number: form.insurance_policy_number || "N/A",
+                          group_number: form.insurance_group_number || "N/A",
+                          verification_status: form.insurance_policy_number ? "pending" : "not_provided"
+                        },
+                        next_of_kin: {
+                          name: form.kin_name || "N/A",
+                          relationship: form.kin_relationship || "N/A",
+                          phone: form.kin_phone || "N/A",
+                          email: form.kin_email || "na@example.com"
+                        },
+                        assigned_hospital_id: form.hospital_id === 'no_hospital' ? undefined : form.hospital_id
+                      };
 
-                    // Refresh hospitals from server to get accurate occupancy from backend
-                    fetchHospitals();
-
-                    toast({ title: '✅ Patient Added', description: `${p.full_name || p.name} was successfully added.`, variant: 'default' });
-                    setIsDialogOpen(false);
-                  } catch (error) {
-                    toast({ title: '❌ Error', description: 'Failed to add patient.', variant: 'destructive' });
+                      const p = await addPatient(payload);
+                      fetchHospitals(); // Refresh occupancy
+                      toast({ title: '✅ Success', description: `Patient ${p.full_name || p.name} registered successfully!`, variant: 'default' });
+                      setIsDialogOpen(false);
+                      setStep(1); // Reset
+                    } catch (error) {
+                      toast({ title: '❌ Error', description: 'Failed to add patient to system.', variant: 'destructive' });
+                    }
                   }
                 }}
               >
-                💾 Save Patient
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1 h-11 text-base rounded-lg border border-gray-300 hover:bg-gray-50"
-                onClick={() => setIsDialogOpen(false)}
-              >
-                ❌ Cancel
+                {step === 3 ? (
+                  <>
+                    <CheckCircle2 className="mr-2 h-4 w-4" /> Save Patient
+                  </>
+                ) : (
+                  <>
+                    Next Step <ChevronRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -814,12 +971,14 @@ const Patients = () => {
         {/* Selected patient detail dialog (opens when navigating to /patients/:id) */}
         <Dialog open={Boolean(selectedPatient)} onOpenChange={(open) => { if (!open) { setSelectedPatient(null); navigate('/patients'); } }}>
           <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-            <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
-              <DialogTitle className="text-white text-lg font-black tracking-tight flex items-center gap-2">
-                <User className="h-5 w-5 text-blue-200" />
-                Patient Intelligence Profile — {selectedPatient?.full_name || selectedPatient?.name}
-              </DialogTitle>
-              <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Advanced Clinical Analytics</DialogDescription>
+            <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
+              <User className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
+              <div className="relative z-10">
+                <DialogTitle className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                  <User className="h-6 w-6" /> Patient Intelligence Profile — {selectedPatient?.full_name || selectedPatient?.name}
+                </DialogTitle>
+                <DialogDescription className="text-blue-100 text-xs font-bold uppercase tracking-widest mt-1">Advanced Clinical Analytics</DialogDescription>
+              </div>
             </DialogHeader>
             <div className="p-4 space-y-5 overflow-y-auto custom-scrollbar flex-1 text-black bg-slate-50/10">
               {selectedPatient && (
@@ -973,6 +1132,7 @@ const Patients = () => {
                                     kin_phone: patient.next_of_kin?.phone || '',
                                     kin_email: patient.next_of_kin?.email || '',
                                   });
+                                  setStep(1); // Reset wizard for edit
                                   setIsEditOpen(true);
                                 }}
                                 title="Edit Patient"
@@ -1202,316 +1362,408 @@ const Patients = () => {
 
         {/* EDIT DIALOG MOVED OUTSIDE LOOP */}
         <Dialog open={isEditOpen} onOpenChange={(open) => { setIsEditOpen(open); if (!open) setEditingPatientId(null); }}>
-          <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-            <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
-              <DialogTitle className="text-white text-lg font-black tracking-tight">✏️ Refine Patient Record</DialogTitle>
-              <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Clinical Profile Update</DialogDescription>
+          <DialogContent className="w-full max-w-[900px] h-[85vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-2xl border-none shadow-2xl">
+            {/* Header with Progress */}
+            <DialogHeader className="bg-gradient-to-r from-indigo-600 to-purple-700 text-white px-6 py-4 shrink-0 relative overflow-hidden">
+
+              <div className="absolute top-0 right-0 p-4 opacity-10">
+                <Edit className="h-32 w-32 -rotate-12" />
+              </div>
+
+              <div className="relative z-10 flex justify-between items-start">
+                <div>
+                  <DialogTitle className="text-xl font-black tracking-tight flex items-center gap-2">
+                    {step === 1 && "Edit Clinical Profile"}
+                    {step === 2 && "Edit Insurance"}
+                    {step === 3 && "Edit Emergency Contacts"}
+                  </DialogTitle>
+                  <DialogDescription className="text-indigo-100 text-[11px] uppercase font-bold tracking-widest mt-1">
+                    Step {step} of {totalSteps}: {step === 1 ? "Basic Information" : step === 2 ? "Coverage Details" : "Next of Kin"}
+                  </DialogDescription>
+                </div>
+                <div className="bg-white/10 backdrop-blur-md rounded-lg p-1 flex gap-1">
+                  {[1, 2, 3].map((s) => (
+                    <div
+                      key={s}
+                      className={`h-1.5 w-8 rounded-full transition-all duration-300 ${s <= step ? 'bg-white' : 'bg-white/20'}`}
+                    />
+                  ))}
+                </div>
+              </div>
             </DialogHeader>
 
-            <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 text-black bg-white">
-              {/* ROW 1: Basics */}
-              <div className="grid grid-cols-4 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="font-semibold">👤 Full Name</Label>
-                  <Input
-                    value={form.name || ""}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="h-9"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="font-semibold">📅 DOB</Label>
-                  <Input
-                    type="date"
-                    value={form.dob || ""}
-                    onChange={(e) => setForm({ ...form, dob: e.target.value })}
-                    className="h-9"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="font-semibold">⚧ Gender</Label>
-                  <Select value={form.gender || "other"} onValueChange={(v) => setForm({ ...form, gender: v as any })}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">🧑 Male</SelectItem>
-                      <SelectItem value="female">👩 Female</SelectItem>
-                      <SelectItem value="other">⚧ Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="font-semibold">⚖️ Weight (kg)</Label>
-                  <Input
-                    type="number"
-                    value={form.weight || 0}
-                    onChange={(e) => setForm({ ...form, weight: parseFloat(e.target.value) || 0 })}
-                    className="h-9"
-                  />
-                </div>
-              </div>
+            {/* Scrollable Content Area */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 p-6">
 
-              {/* ROW 2: Medical */}
-              <div className="grid grid-cols-4 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="font-semibold">🩸 Blood Group</Label>
-                  <Select value={form.blood_group || 'O+'} onValueChange={(v) => setForm({ ...form, blood_group: v })}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Blood Group" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
-                        <SelectItem key={bg} value={bg}>{bg}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-2 space-y-1.5">
-                  <Label className="font-semibold">🩺 Diagnosis</Label>
-                  <Input
-                    value={form.diagnosis || ""}
-                    onChange={(e) =>
-                      setForm({ ...form, diagnosis: e.target.value })
-                    }
-                    className="h-9"
-                  />
-                </div>
+              {/* STEP 1: PATIENT DETAILS */}
+              {step === 1 && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
 
-                <div className="space-y-1.5">
-                  <Label className="font-semibold">🚨 Acuity</Label>
-                  <Select
-                    value={form.acuity_level || "stable"}
-                    onValueChange={(v) =>
-                      setForm({ ...form, acuity_level: v as AcuityLevel })
-                    }
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Acuity" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="critical">🔴 Critical</SelectItem>
-                      <SelectItem value="urgent">🟡 Urgent</SelectItem>
-                      <SelectItem value="stable">🟢 Stable</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                  {/* Section: Identity */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <User className="h-4 w-4" /> Identity & Demographics
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                      <div className="md:col-span-2 space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-700">Full Name <span className="text-red-500">*</span></Label>
+                        <Input
+                          placeholder="e.g. John Doe"
+                          value={form.name || ''}
+                          onChange={(e) => setForm({ ...form, name: e.target.value })}
+                          className="h-10 bg-slate-50 focus:bg-white transition-colors"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-700">Date of Birth <span className="text-red-500">*</span></Label>
+                        <Input
+                          type="date"
+                          value={form.dob || ''}
+                          onChange={(e) => setForm({ ...form, dob: e.target.value })}
+                          className="h-10 bg-slate-50 focus:bg-white transition-colors"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-700">Gender</Label>
+                        <Select value={form.gender || 'other'} onValueChange={(v) => setForm({ ...form, gender: v as any })}>
+                          <SelectTrigger className="h-10 bg-slate-50">
+                            <SelectValue placeholder="Gender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="male">🧑 Male</SelectItem>
+                            <SelectItem value="female">👩 Female</SelectItem>
+                            <SelectItem value="other">⚧ Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
 
-              {/* ROW 3: Details */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="font-semibold">🧬 Allergies</Label>
-                  <Input
-                    placeholder="Allergies (comma separated)"
-                    value={form.allergies || ""}
-                    onChange={(e) =>
-                      setForm({ ...form, allergies: e.target.value })
-                    }
-                    className="h-9"
-                  />
-                </div>
+                  {/* Section: Clinical */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <Activity className="h-4 w-4" /> Clinical Status
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-700">Weight (kg)</Label>
+                        <Input
+                          type="number"
+                          placeholder="0.0"
+                          value={form.weight as number | undefined}
+                          onChange={(e) => setForm({ ...form, weight: parseFloat(e.target.value) || 0 })}
+                          className="h-10 bg-slate-50 focus:bg-white"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-700">Blood Group</Label>
+                        <Select value={form.blood_group || 'O+'} onValueChange={(v) => setForm({ ...form, blood_group: v })}>
+                          <SelectTrigger className="h-10 bg-slate-50">
+                            <SelectValue placeholder="Blood Group" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                              <SelectItem key={bg} value={bg}>{bg}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-700">Acuity Level</Label>
+                        <Select value={form.acuity_level || 'stable'} onValueChange={(v) => setForm({ ...form, acuity_level: v as AcuityLevel })}>
+                          <SelectTrigger className="h-10 bg-slate-50">
+                            <SelectValue placeholder="Acuity" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="critical">🔴 Critical</SelectItem>
+                            <SelectItem value="urgent">🟡 Urgent</SelectItem>
+                            <SelectItem value="stable">🟢 Stable</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="md:col-span-3 space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-700">Primary Diagnosis</Label>
+                        <Input
+                          placeholder="e.g. Acute Cardiac Arrest"
+                          value={form.diagnosis || ''}
+                          onChange={(e) => setForm({ ...form, diagnosis: e.target.value })}
+                          className="h-10 bg-slate-50 focus:bg-white"
+                        />
+                      </div>
+                    </div>
 
-                <div className="space-y-1.5">
-                  <Label className="font-semibold">💓 Vitals</Label>
-                  <Input
-                    placeholder="BP, HR, SpO2..."
-                    value={form.vitals || ""}
-                    onChange={(e) =>
-                      setForm({ ...form, vitals: e.target.value })
-                    }
-                    className="h-9"
-                  />
-                </div>
-              </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-700">Known Allergies</Label>
+                        <Input
+                          placeholder="e.g. Penicillin, Peanuts"
+                          value={form.allergies || ''}
+                          onChange={(e) => setForm({ ...form, allergies: e.target.value })}
+                          className="h-10 bg-slate-50 focus:bg-white"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-700">Current Vitals</Label>
+                        <Input
+                          placeholder="e.g. BP 120/80, HR 72"
+                          value={form.vitals || ''}
+                          onChange={(e) => setForm({ ...form, vitals: e.target.value })}
+                          className="h-10 bg-slate-50 focus:bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-              {/* ROW 4: Insurance Details */}
-              <div className="space-y-1.5">
-                <Label className="font-semibold text-sm flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-blue-600" />
-                  💳 Insurance Details
-                </Label>
-                <div className="grid grid-cols-3 gap-4 p-4 bg-blue-50/30 rounded-lg border border-blue-100">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-gray-600">Provider</Label>
-                    <Input
-                      placeholder="Insurance Provider"
-                      value={form.insurance_provider || ''}
-                      onChange={(e) => setForm({ ...form, insurance_provider: e.target.value })}
-                      className="h-9 bg-white"
-                    />
+                  {/* Section: Hospital Assignment */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <Building2 className="h-4 w-4" /> Facility Assignment
+                    </h4>
+                    <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-700">Assign to Hospital</Label>
+                        <Select value={form.hospital_id || 'no_hospital'} onValueChange={(v) => setForm({ ...form, hospital_id: v })}>
+                          <SelectTrigger className="h-11 bg-slate-50 border-slate-200">
+                            <SelectValue placeholder="Select a hospital..." />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[240px]">
+                            <SelectItem value="no_hospital">None (Not Assigned)</SelectItem>
+                            {hospitals.map(h => (
+                              <SelectItem key={h.id} value={h.id} disabled={(h.icuCapacity - (h.occupiedBeds || 0)) <= 0 && h.id !== form.hospital_id}>
+                                <div className="flex items-center justify-between w-full min-w-[300px] gap-4">
+                                  <span className="font-semibold">{h.name}</span>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-[10px] bg-slate-50">{h.levelOfCare}</Badge>
+                                    <span className={`text-[10px] font-bold ${(h.icuCapacity - (h.occupiedBeds || 0)) <= 2 ? 'text-red-500' : 'text-emerald-600'}`}>
+                                      {(h.icuCapacity - (h.occupiedBeds || 0))} Beds
+                                    </span>
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-gray-600">Policy Number</Label>
-                    <Input
-                      placeholder="Policy #"
-                      value={form.insurance_policy_number || ''}
-                      onChange={(e) => setForm({ ...form, insurance_policy_number: e.target.value })}
-                      className="h-9 bg-white"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-gray-600">Group Number</Label>
-                    <Input
-                      placeholder="Group #"
-                      value={form.insurance_group_number || ''}
-                      onChange={(e) => setForm({ ...form, insurance_group_number: e.target.value })}
-                      className="h-9 bg-white"
-                    />
-                  </div>
-                </div>
-              </div>
 
-              {/* ROW 5: Next of Kin Details */}
-              <div className="space-y-1.5">
-                <Label className="font-semibold text-sm flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-blue-600" />
-                  👨‍👩‍👧 Next of Kin / Emergency Contact
-                </Label>
-                <div className="grid grid-cols-2 gap-4 p-4 bg-green-50/30 rounded-lg border border-green-100">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-gray-600">Full Name</Label>
-                    <Input
-                      placeholder="Contact Name"
-                      value={form.kin_name || ''}
-                      onChange={(e) => setForm({ ...form, kin_name: e.target.value })}
-                      className="h-9 bg-white"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-gray-600">Relationship</Label>
-                    <Input
-                      placeholder="e.g., Spouse, Parent, Sibling"
-                      value={form.kin_relationship || ''}
-                      onChange={(e) => setForm({ ...form, kin_relationship: e.target.value })}
-                      className="h-9 bg-white"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-gray-600">Phone Number</Label>
-                    <Input
-                      placeholder="Contact Phone"
-                      value={form.kin_phone || ''}
-                      onChange={(e) => setForm({ ...form, kin_phone: e.target.value })}
-                      className="h-9 bg-white"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-gray-600">Email</Label>
-                    <Input
-                      type="email"
-                      placeholder="Contact Email"
-                      value={form.kin_email || ''}
-                      onChange={(e) => setForm({ ...form, kin_email: e.target.value })}
-                      className="h-9 bg-white"
-                    />
-                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* ROW 6: Hospital Assignment */}
-              <div className="space-y-1.5">
-                <Label className="font-semibold">🏥 Assigned Hospital</Label>
-                <Select value={form.hospital_id || 'no_hospital'} onValueChange={(v) => setForm({ ...form, hospital_id: v })}>
-                  <SelectTrigger className="h-10 border-gray-300">
-                    <SelectValue placeholder="Select a hospital to assign..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no_hospital">None (Not Assigned)</SelectItem>
-                    {hospitals.map(h => (
-                      <SelectItem key={h.id} value={h.id} disabled={(h.icuCapacity - (h.occupiedBeds || 0)) <= 0 && h.id !== form.hospital_id}>
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-blue-500" />
-                          <span>{h.name}</span>
-                          <Badge variant="outline" className="text-[10px] ml-1">{h.levelOfCare}</Badge>
-                          <span className={`text-[10px] font-bold ml-auto ${(h.icuCapacity - (h.occupiedBeds || 0)) <= 2 ? 'text-red-500' : 'text-green-600'}`}>
-                            Available: {h.icuCapacity - (h.occupiedBeds || 0)} Seats
-                          </span>
+              {/* STEP 2: INSURANCE */}
+              {step === 2 && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="flex flex-col items-center justify-center py-6 text-center space-y-2">
+                    <div className="bg-indigo-50 p-4 rounded-full mb-2">
+                      <FileText className="h-8 w-8 text-indigo-600" />
+                    </div>
+                    <h3 className="text-lg font-black text-slate-800">Insurance & Billing</h3>
+                    <p className="text-sm text-slate-500 max-w-sm">
+                      Update insurance policy details for billing and claims.
+                    </p>
+                  </div>
+
+                  <div className="max-w-xl mx-auto space-y-4">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-slate-700">Insurance Provider</Label>
+                        <div className="relative">
+                          <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                          <Input
+                            placeholder="e.g. Blue Cross Blue Shield"
+                            value={form.insurance_provider || ''}
+                            onChange={(e) => setForm({ ...form, insurance_provider: e.target.value })}
+                            className="pl-10 h-11 bg-slate-50 focus:bg-white"
+                          />
                         </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                      </div>
 
-              {/* SAVE */}
-              <div className="flex gap-4 pt-6 border-t mt-8 text-black">
+                      <div className="grid grid-cols-2 gap-5">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold text-slate-700">Policy Number</Label>
+                          <Input
+                            placeholder="XXXXXXXX"
+                            value={form.insurance_policy_number || ''}
+                            onChange={(e) => setForm({ ...form, insurance_policy_number: e.target.value })}
+                            className="h-11 bg-slate-50 focus:bg-white font-mono text-sm"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold text-slate-700">Group Number</Label>
+                          <Input
+                            placeholder="GRP-XXXX"
+                            value={form.insurance_group_number || ''}
+                            onChange={(e) => setForm({ ...form, insurance_group_number: e.target.value })}
+                            className="h-11 bg-slate-50 focus:bg-white font-mono text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: EMERGENCY CONTACT */}
+              {step === 3 && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="flex flex-col items-center justify-center py-6 text-center space-y-2">
+                    <div className="bg-rose-50 p-4 rounded-full mb-2">
+                      <Phone className="h-8 w-8 text-rose-600" />
+                    </div>
+                    <h3 className="text-lg font-black text-slate-800">Emergency Contact</h3>
+                    <p className="text-sm text-slate-500 max-w-sm">
+                      Next of Kin details are required for critical care authorization.
+                    </p>
+                  </div>
+
+                  <div className="max-w-xl mx-auto space-y-4">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-slate-700">Full Name</Label>
+                        <Input
+                          placeholder="Contact Person Name"
+                          value={form.kin_name || ''}
+                          onChange={(e) => setForm({ ...form, kin_name: e.target.value })}
+                          className="h-11 bg-slate-50 focus:bg-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-slate-700">Relationship to Patient</Label>
+                        <Input
+                          placeholder="e.g. Spouse, Parent, Sibling"
+                          value={form.kin_relationship || ''}
+                          onChange={(e) => setForm({ ...form, kin_relationship: e.target.value })}
+                          className="h-11 bg-slate-50 focus:bg-white"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold text-slate-700">Phone Number <span className="text-red-500">*</span></Label>
+                          <Input
+                            placeholder="+1 (555) 000-0000"
+                            value={form.kin_phone || ''}
+                            onChange={(e) => setForm({ ...form, kin_phone: e.target.value })}
+                            className="h-11 bg-slate-50 focus:bg-white"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold text-slate-700">Email Address</Label>
+                          <Input
+                            type="email"
+                            placeholder="contact@example.com"
+                            value={form.kin_email || ''}
+                            onChange={(e) => setForm({ ...form, kin_email: e.target.value })}
+                            className="h-11 bg-slate-50 focus:bg-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Footer Actions */}
+            <div className="px-6 py-4 bg-gray-50 border-t border-slate-200 flex items-center justify-between shrink-0">
+              <Button
+                variant="outline"
+                onClick={() => step > 1 ? setStep(step - 1) : setIsEditOpen(false)}
+                className="h-11 px-6 border-slate-300 text-slate-600 hover:bg-white hover:text-slate-900"
+              >
+                {step === 1 ? 'Cancel' : 'Back'}
+              </Button>
+
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1 mr-4">
+                  {[1, 2, 3].map(s => (
+                    <div key={s} className={`h-2 w-2 rounded-full ${s === step ? 'bg-indigo-600 scale-125' : 'bg-slate-300'}`} />
+                  ))}
+                </div>
+
                 <Button
-                  className="flex-1 h-11 bg-green-600 hover:bg-green-700 text-white font-semibold text-base rounded-lg transition"
+                  className={`h-11 px-8 font-bold text-sm shadow-lg transition-all active:scale-95 ${step === 3 ? 'bg-green-600 hover:bg-green-700 shadow-green-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'}`}
                   onClick={async () => {
-                    if (!form.name || !form.dob) {
-                      toast({
-                        title: "Validation",
-                        description: "Name and DOB are required",
-                        variant: "destructive",
-                      });
+                    // Step 1 Validation
+                    if (step === 1) {
+                      if (!form.name || !form.dob) {
+                        toast({ title: 'Available Fields Required', description: 'Please enter Full Name and Date of Birth to proceed.', variant: 'destructive' });
+                        return;
+                      }
+                      setStep(2);
                       return;
                     }
-                    try {
-                      if (!editingPatientId) return;
 
-                      const payload: any = {
-                        full_name: form.name,
-                        date_of_birth: form.dob,
-                        gender: form.gender,
-                        weight_kg: form.weight,
-                        diagnosis: form.diagnosis || 'Undiagnosed',
-                        acuity_level: form.acuity_level,
-                        blood_group: form.blood_group || 'O+',
-                        allergies: form.allergies ? form.allergies.split(',').map(s => s.trim()) : [],
-                        current_vitals: {
-                          // defaulting for update as well if empty/string
-                          heart_rate: 80,
-                          blood_pressure: "120/80"
-                        },
-                        // Handle update logic properly, partial updates might be safer but replacing for now
-                        insurance_details: {
-                          provider: form.insurance_provider || "N/A",
-                          policy_number: form.insurance_policy_number || "N/A",
-                          group_number: form.insurance_group_number || "N/A",
-                          verification_status: form.insurance_policy_number ? "pending" : "not_provided"
-                        },
-                        next_of_kin: {
-                          name: form.kin_name || "N/A",
-                          relationship: form.kin_relationship || "N/A",
-                          phone: form.kin_phone || "N/A",
-                          email: form.kin_email || "na@example.com"
-                        },
-                        assigned_hospital_id: form.hospital_id === 'no_hospital' ? null : form.hospital_id
-                      };
+                    // Step 2 Validation
+                    if (step === 2) {
+                      setStep(3);
+                      return;
+                    }
 
-                      const oldPatient = patients.find(p => p.id === editingPatientId);
-                      const oldHospitalId = oldPatient?.assigned_hospital_id;
-                      const newHospitalId = form.hospital_id === 'no_hospital' ? null : form.hospital_id;
+                    // Step 3: Final Submission
+                    if (step === 3) {
+                      if (form.kin_name && !form.kin_phone) {
+                        toast({ title: 'Contact Info Missing', description: 'Phone number is required if Next of Kin name is provided.', variant: 'destructive' });
+                        return;
+                      }
 
-                      await updatePatient(editingPatientId, payload);
+                      try {
+                        if (!editingPatientId) return;
 
-                      // Refresh hospitals from server to get accurate occupancy from backend
-                      fetchHospitals();
+                        const payload: any = {
+                          full_name: form.name,
+                          date_of_birth: form.dob,
+                          gender: form.gender,
+                          weight_kg: form.weight,
+                          diagnosis: form.diagnosis || 'Undiagnosed',
+                          acuity_level: form.acuity_level,
+                          blood_group: form.blood_group || 'O+',
+                          allergies: form.allergies ? form.allergies.split(',').map(s => s.trim()) : [],
+                          current_vitals: {
+                            heart_rate: 80,
+                            blood_pressure: "120/80"
+                          },
+                          insurance_details: {
+                            provider: form.insurance_provider || "N/A",
+                            policy_number: form.insurance_policy_number || "N/A",
+                            group_number: form.insurance_group_number || "N/A",
+                            verification_status: form.insurance_policy_number ? "pending" : "not_provided"
+                          },
+                          next_of_kin: {
+                            name: form.kin_name || "N/A",
+                            relationship: form.kin_relationship || "N/A",
+                            phone: form.kin_phone || "N/A",
+                            email: form.kin_email || "na@example.com"
+                          },
+                          assigned_hospital_id: form.hospital_id === 'no_hospital' ? null : form.hospital_id
+                        };
 
-                      toast({
-                        title: "✅ Patient Updated",
-                        description: `${form.name} was successfully updated.`,
-                      });
-                      setIsEditOpen(false);
-                      setEditingPatientId(null);
-                    } catch (error) {
-                      toast({
-                        title: "❌ Error",
-                        description: "Failed to update patient.",
-                        variant: "destructive",
-                      });
+                        await updatePatient(editingPatientId, payload);
+
+                        // Refresh hospitals
+                        fetchHospitals();
+
+                        toast({ title: '✅ Patient Updated', description: `${form.name} was successfully updated.`, variant: 'default' });
+                        setIsEditOpen(false);
+                        setEditingPatientId(null);
+                        setStep(1); // Reset
+                      } catch (error) {
+                        toast({ title: '❌ Error', description: 'Failed to update patient record.', variant: 'destructive' });
+                      }
                     }
                   }}
                 >
-                  💾 Save Changes
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 h-11 text-base rounded-lg border border-gray-300 hover:bg-gray-50 bg-white"
-                  onClick={() => { setIsEditOpen(false); setEditingPatientId(null); }}
-                >
-                  ❌ Cancel
+                  {step === 3 ? (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" /> Save Changes
+                    </>
+                  ) : (
+                    <>
+                      Next Step <ChevronRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
