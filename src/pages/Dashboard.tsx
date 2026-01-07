@@ -776,6 +776,7 @@ export default function Dashboard() {
           <>
 
             <div className="rounded-2xl border-2 border-slate-200 bg-white overflow-hidden shadow-xl">
+
               <div className="max-h-[380px] overflow-y-auto custom-scrollbar">
                 <table className="w-full border-collapse">
                   <thead className="sticky top-0 z-20">
