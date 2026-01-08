@@ -28,7 +28,7 @@ import { mockBookings, mockAircraft } from '@/data/mockData';
 import { usePatients } from '@/contexts/PatientsContext';
 import { Booking, BookingStatus, Patient, Hospital } from '@/types';
 import { exportBookings } from '@/utils/exportBookings';
-import { Plus, FileText, Trash, Edit2, Eye, Clock, AlertCircle, CheckCircle2, Bot, MessageCircle, Send, X, Settings, Zap, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MapPin, Activity, DollarSign, Users, Filter, BarChart3, Heart } from 'lucide-react';
+import { Plus, FileText, Trash, Edit2, Eye, Clock, AlertCircle, CheckCircle2, Bot, MessageCircle, Send, X, Settings, Zap, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MapPin, Activity, IndianRupee, Users, Filter, BarChart3, Heart } from 'lucide-react';
 import { format } from 'date-fns';
 import chatBotImage from '../emoji.jpeg';
 import { BookingService } from '@/services/booking.service';
@@ -778,7 +778,7 @@ const Bookings = () => {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Estimated Cost ($)</Label>
+                <Label>Estimated Cost (₹)</Label>
                 <Input
                   type="number"
                   placeholder="Calculating..."
@@ -903,7 +903,7 @@ const Bookings = () => {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -916,11 +916,11 @@ const Bookings = () => {
   };
 
   return (
-    <Layout subTitle="Medical Transport Requests" headerActions={headerActions}>
-      <div className="space-y-6">
+    <Layout subTitle="Medical Transport Requests" headerActions={headerActions} isFullHeight={true}>
+      <div className="p-4 lg:p-6 space-y-4 h-full flex flex-col">
         {/* Table */}
-        <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl overflow-hidden">
-          <div className="max-h-[380px] overflow-y-auto custom-scrollbar">
+        <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl overflow-hidden flex-1 flex flex-col min-h-0">
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
             <table className="w-full">
               <thead className="sticky top-0 z-20">
                 <tr className="bg-[#f8fafc] border-b border-slate-200">
@@ -995,11 +995,14 @@ const Bookings = () => {
                               <DialogContent
                                 className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl"
                               >
-                                <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
-                                  <DialogTitle className="text-white text-lg font-black tracking-tight">
-                                    Transfer Intelligence — #{(booking.booking_id || booking.id).toUpperCase().slice(0, 8)}
-                                  </DialogTitle>
-                                  <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Comprehensive audit trail and status</DialogDescription>
+                                <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
+                                  <Activity className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
+                                  <div className="relative z-10">
+                                    <DialogTitle className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                                      <Activity className="h-6 w-6" /> Transfer Intelligence — #{(booking.booking_id || booking.id).toUpperCase().slice(0, 8)}
+                                    </DialogTitle>
+                                    <p className="text-blue-100 text-[10px] uppercase font-bold tracking-widest mt-1">Comprehensive audit trail and status</p>
+                                  </div>
                                 </DialogHeader>
                                 <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/10">
 
@@ -1140,10 +1143,10 @@ const Bookings = () => {
                                             </div>
                                           </div>
                                           <div className="flex items-center gap-1.5 px-4 border-l border-r border-blue-100/30">
-                                            <DollarSign className="h-4 w-4 text-green-600" />
+                                            <IndianRupee className="h-4 w-4 text-green-600" />
                                             <div>
                                               <p className="text-[10px] text-gray-500 uppercase">Est. Cost</p>
-                                              <p className="text-sm font-bold text-green-700">${displayCost.toLocaleString()}</p>
+                                              <p className="text-sm font-bold text-green-700">₹{displayCost.toLocaleString()}</p>
                                             </div>
                                           </div>
                                           <div className="flex items-center gap-1.5">
@@ -1199,7 +1202,7 @@ const Bookings = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                    {[5, 10, 25, 50].map(val => (
+                    {[10, 25, 50, 100].map(val => (
                       <SelectItem key={val} value={val.toString()} className="text-xs font-black text-slate-600">{val}</SelectItem>
                     ))}
                   </SelectContent>

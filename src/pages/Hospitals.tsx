@@ -292,7 +292,7 @@ const Hospitals = () => {
 
   /* PAGINATION STATE */
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const visible = useMemo(() => {
     return hospitals.filter((h) => {
@@ -1139,8 +1139,8 @@ const Hospitals = () => {
   }
 
   return (
-    <Layout subTitle="Hospital Network Operations" headerActions={headerActions}>
-      <div className="space-y-6">
+    <Layout subTitle="Hospital Network Operations" headerActions={headerActions} isFullHeight={true}>
+      <div className="p-4 lg:p-6 space-y-4 h-full flex flex-col">
 
         {/* Hospital Detail View Dialog */}
         <Dialog open={!!selectedHospital} onOpenChange={(open) => !open && setSelectedHospital(null)}>
@@ -1253,8 +1253,8 @@ const Hospitals = () => {
         )}
 
         {/* Table Content */}
-        <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl overflow-hidden">
-          <div className="max-h-[380px] overflow-y-auto h-full overflow-x-auto custom-scrollbar">
+        <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl overflow-hidden flex-1 flex flex-col min-h-0">
+          <div className="flex-1 overflow-y-auto h-full overflow-x-auto custom-scrollbar">
             <table className="w-full border-collapse border-slate-200 min-w-[1000px]">
               <thead className="sticky top-0 z-20">
                 <tr className="bg-[#f8fafc] border-b border-slate-200">
@@ -1492,7 +1492,7 @@ const Hospitals = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                    {[5, 10, 25, 50].map(val => (
+                    {[10, 25, 50, 100].map(val => (
                       <SelectItem key={val} value={val.toString()} className="text-xs font-black text-slate-600">{val}</SelectItem>
                     ))}
                   </SelectContent>

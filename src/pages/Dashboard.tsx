@@ -57,6 +57,7 @@ import {
   Filter,
   Search,
   Building2,
+  IndianRupee,
 } from "lucide-react";
 import { DashboardService, DashboardStats } from "@/services/dashboard.service";
 import { BookingService } from "@/services/booking.service";
@@ -208,7 +209,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ stats, bookings, totalRevenue }) => {
     }
 
     if (/\b(revenue|total revenue|earnings)\b/.test(lower)) {
-      return reply(`Total revenue is $${totalRevenue.toLocaleString()}`);
+      return reply(`Total revenue is ₹${totalRevenue.toLocaleString()}`);
     }
 
     return reply("Sorry, I didn't understand. Try 'help'.");
@@ -305,7 +306,7 @@ export default function Dashboard() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Helper functions from Bookings page
   const getPatientName = (patientId: string) => {
@@ -525,17 +526,20 @@ export default function Dashboard() {
     const originName = origin?.name || origin?.hospital_name || booking.originHospitalId || "N/A";
     const destinationName = dest?.name || dest?.hospital_name || booking.destinationHospitalId || "N/A";
 
-    // Recalculate cost based on distance
+    // Recalculate cost and duration based on distance
     let calculatedCost = 0;
+    let calculatedDuration = 0;
     if (booking.originHospitalId && booking.destinationHospitalId) {
       const originH = hospitals.find(h => h.id === booking.originHospitalId);
       const destH = hospitals.find(h => h.id === booking.destinationHospitalId);
       if (originH?.coordinates && destH?.coordinates) {
         const dist = calculateDistance(originH.coordinates.lat, originH.coordinates.lng, destH.coordinates.lat, destH.coordinates.lng);
         calculatedCost = calculateRevenue(dist);
+        calculatedDuration = dist > 0 ? Math.round(dist / 8 + 15) : 0;
       }
     }
     const finalCost = calculatedCost > 0 ? calculatedCost : (Number(booking.estimatedCost) || Number(booking.actualCost) || 0);
+    const finalDuration = Number(booking.estimatedFlightTime) || calculatedDuration;
 
     return {
       ...booking,
@@ -547,7 +551,8 @@ export default function Dashboard() {
       origin: originName,
       destination: destinationName,
       displayCost: finalCost,
-      formattedCost: `$${finalCost.toLocaleString()}`,
+      formattedCost: `₹${finalCost.toLocaleString()}`,
+      estimatedFlightTime: finalDuration,
       // Ensure arrays exist and sanitize
       requiredEquipment: booking.requiredEquipment || booking.required_equipment || [],
       notes: booking.notes || booking.description || "",
@@ -599,7 +604,7 @@ export default function Dashboard() {
         b.destination_hospital?.hospital_name || "-",
         b.status,
         b.urgency,
-        `$${finalRevenue.toLocaleString()}`,
+        `₹${finalRevenue.toLocaleString()}`,
       ];
     });
 
@@ -681,7 +686,7 @@ export default function Dashboard() {
           </div>
           <div className="mt-4 p-4 bg-blue-600 rounded-2xl shadow-lg shadow-blue-100">
             <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1">Total Network Revenue</p>
-            <p className="text-2xl font-black text-white tracking-tighter">${summaryStats.totalRevenue.toLocaleString()}</p>
+            <p className="text-2xl font-black text-white tracking-tighter">₹{summaryStats.totalRevenue.toLocaleString()}</p>
           </div>
         </PopoverContent>
       </Popover>
@@ -767,17 +772,17 @@ export default function Dashboard() {
     <Layout
       subTitle="Precision Medical Logistics"
       headerActions={headerActions}
+      isFullHeight={true}
     >
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 h-full flex flex-col space-y-4">
 
         {loading ? (
           <LoadingSpinner text="" />
         ) : (
           <>
 
-            <div className="rounded-2xl border-2 border-slate-200 bg-white overflow-hidden shadow-xl">
-
-              <div className="max-h-[380px] overflow-y-auto custom-scrollbar">
+            <div className="rounded-2xl border-2 border-slate-200 bg-white overflow-hidden shadow-xl flex-1 flex flex-col min-h-0">
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <table className="w-full border-collapse">
                   <thead className="sticky top-0 z-20">
                     <tr className="bg-[#f8fafc] border-b border-slate-200">
@@ -954,7 +959,7 @@ export default function Dashboard() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {[5, 10, 25, 50].map(val => (
+                        {[10, 25, 50, 100].map(val => (
                           <SelectItem key={val} value={val.toString()}>{val}</SelectItem>
                         ))}
                       </SelectContent>

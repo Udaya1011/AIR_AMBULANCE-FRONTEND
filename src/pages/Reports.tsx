@@ -96,6 +96,7 @@ import {
   Search,
   Plane,
   Building2,
+  IndianRupee,
 } from "lucide-react";
 
 
@@ -182,7 +183,7 @@ export default function Reports() {
   // PAGINATION STATE
   const [currentPageBookings, setCurrentPageBookings] = useState(1);
 
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
 
   // CHATBOT STATE
@@ -437,12 +438,13 @@ export default function Reports() {
       </div>
 
       <Button
-        className="h-9 md:h-10 px-3 md:px-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] md:text-[11px] uppercase tracking-wider rounded-xl shadow-lg shadow-blue-100 flex items-center gap-2 transition-all active:scale-95 group border-b-4 border-blue-800"
+        variant="outline"
+        className="h-9 md:h-10 px-3 md:px-6 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-bold rounded-xl shadow-sm flex items-center gap-2 transition-all active:scale-95 group shrink-0"
         onClick={openAdd}
       >
-        <Plus className="h-3.5 w-3.5 md:h-4 md:w-4 stroke-[3px] group-hover:rotate-90 transition-transform" />
-        <span className="hidden sm:inline">New Booking</span>
-        <span className="sm:hidden">ADD</span>
+        <Plus className="h-4 w-4 stroke-[3px] group-hover:rotate-90 transition-transform" />
+        <span className="hidden sm:inline uppercase tracking-wider">New Booking</span>
+        <span className="sm:hidden uppercase tracking-wider">ADD</span>
       </Button>
     </div>
   );
@@ -483,7 +485,7 @@ export default function Reports() {
       if (lower.includes("filter completed")) {
         aiResponseText = "Use the Status dropdown and select 'Completed' to filter.";
       } else if (lower.includes("revenue")) {
-        aiResponseText = `Total revenue is $${summaryStats.totalRevenue.toLocaleString()}.`;
+        aiResponseText = `Total revenue is ₹${summaryStats.totalRevenue.toLocaleString()}.`;
       }
 
       const aiMessage = { id: Date.now() + 1, text: aiResponseText, sender: "ai", time: format(new Date(), "h:mm a") };
@@ -606,7 +608,7 @@ export default function Reports() {
         ["Date", b.requestedAt ? format(new Date(b.requestedAt), "PPpp") : "N/A"],
         ["Status", b.status || "N/A"],
         ["Urgency", b.urgency || "N/A"],
-        ["Estimated Revenue", `$${finalRevenue.toLocaleString()}`],
+        ["Estimated Revenue", `₹${finalRevenue.toLocaleString()}`],
         ["Flight Time", `${b.estimatedFlightTime ?? 0} min`],
       ];
 
@@ -633,8 +635,8 @@ export default function Reports() {
         <LoadingSpinner />
       ) : (
         <TooltipProvider>
-          <div className="flex-1 flex flex-col min-h-0">
-            <Tabs defaultValue="bookings" className="flex flex-col" onValueChange={(v) => setActiveTab(v)}>
+          <div className="p-4 lg:p-6 flex-1 flex flex-col min-h-0">
+            <Tabs defaultValue="bookings" className="flex-1 flex flex-col min-h-0" onValueChange={(v) => setActiveTab(v)}>
               <div className="mb-4 overflow-x-auto custom-scrollbar pb-1">
                 <TabsList className="bg-white/50 backdrop-blur-md border border-slate-200 p-1 rounded-2xl shadow-sm inline-flex min-w-max">
                   <TabsTrigger
@@ -665,9 +667,9 @@ export default function Reports() {
               </div>
 
               {/* 📋 BOOKING REPORTS TAB */}
-              <TabsContent value="bookings" className="m-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-xl overflow-hidden flex flex-col">
-                  <div className="max-h-[380px] overflow-auto custom-scrollbar">
+              <TabsContent value="bookings" className="m-0 animate-in fade-in slide-in-from-bottom-2 duration-300 flex-1 flex flex-col min-h-0">
+                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-xl overflow-hidden flex-1 flex flex-col min-h-0">
+                  <div className="flex-1 overflow-auto custom-scrollbar">
                     <div className="min-w-[800px] md:min-w-0">
                       <table className="w-full border-collapse">
                         <thead className="sticky top-0 z-20 shadow-sm">
@@ -722,7 +724,7 @@ export default function Reports() {
                                       }
                                     }
                                     const cost = calculated > 0 ? calculated : (Number(b.estimatedCost) || Number(b.actualCost) || 0);
-                                    return `$${cost.toLocaleString()}`;
+                                    return `₹${cost.toLocaleString()}`;
                                   })()}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -799,7 +801,7 @@ export default function Reports() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-slate-200 shadow-2xl">
-                              {[5, 10, 25, 50].map(val => (
+                              {[10, 25, 50, 100].map(val => (
                                 <SelectItem key={val} value={val.toString()} className="text-xs font-bold text-slate-600 rounded-lg focus:bg-blue-50 focus:text-blue-700">
                                   {val}
                                 </SelectItem>
@@ -914,8 +916,8 @@ export default function Reports() {
                   <div className="bg-white p-5 rounded-3xl border-2 border-slate-100 shadow-md hover:shadow-xl transition-all border-l-8 border-l-blue-600 group">
                     <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-3 opacity-60 group-hover:opacity-100 transition-opacity">Financial Intake</p>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black text-slate-900 tracking-tighter">${summaryStats.totalRevenue.toLocaleString()}</span>
-                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">USD</span>
+                      <span className="text-3xl font-black text-slate-900 tracking-tighter">₹{summaryStats.totalRevenue.toLocaleString()}</span>
+                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">INR</span>
                     </div>
                   </div>
                   <div className="bg-white p-5 rounded-3xl border-2 border-slate-100 shadow-md hover:shadow-xl transition-all border-l-8 border-l-emerald-600 group">
@@ -1074,7 +1076,7 @@ export default function Reports() {
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Forecast Revenue ($)</label><Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-10 rounded-lg border-slate-200 font-black text-sm" /></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Forecast Revenue (₹)</label><Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-10 rounded-lg border-slate-200 font-black text-sm" /></div>
                     <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Flight Chronology (min)</label><Input type="number" value={form.estimatedFlightTime ?? 0} onChange={(e) => setForm({ ...form, estimatedFlightTime: Number(e.target.value) })} className="h-10 rounded-lg border-slate-200 font-black text-sm" /></div>
                   </div>
                   <div className="flex justify-end gap-3 pt-6 border-t border-slate-100"><Button variant="ghost" onClick={() => setEditOpen(false)} className="h-10 px-6 rounded-xl font-black text-slate-400 hover:bg-slate-100 uppercase tracking-widest text-[10px]">Discard</Button><Button onClick={submitEdit} className="h-10 px-8 rounded-xl font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-700 text-white shadow-lg active:scale-95 transition-all text-[10px]">Submit Changes</Button></div>
@@ -1107,8 +1109,25 @@ export default function Reports() {
                             <tr className="border-b border-slate-50/50"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Patient Identity</td><td className="px-6 py-4"><span className="text-sm font-black">{getPatientName(viewBooking.patientId)}</span></td></tr>
                             <tr className="border-b border-slate-50/50"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Transfer Path</td><td className="px-6 py-4 flex items-center gap-4"><span className="font-black text-slate-900">{getHospitalName(viewBooking.originHospitalId)}</span><span className="text-blue-500">→</span><span className="font-black text-slate-900">{getHospitalName(viewBooking.destinationHospitalId)}</span></td></tr>
                             <tr className="border-b border-slate-50/50"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Temporal Stamp</td><td className="px-6 py-4">{viewBooking.requestedAt ? format(new Date(viewBooking.requestedAt), "PPP p") : "DATA_RESTRICTED"}</td></tr>
-                            <tr className="border-b border-slate-50/50"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Financial Resolution</td><td className="px-6 py-4 text-emerald-600 text-xl font-black tracking-tighter">${(viewBooking.estimatedCost ?? 0).toLocaleString()} <span className="text-[9px] text-slate-300 font-black ml-1 mt-auto">USD</span></td></tr>
-                            <tr><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Flight Duration</td><td className="px-6 py-4 font-black text-slate-900">{(viewBooking.estimatedFlightTime ?? 0)} MIN</td></tr>
+                            <tr className="border-b border-slate-50/50"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Financial Resolution</td><td className="px-6 py-4 text-emerald-600 text-xl font-black tracking-tighter">₹{(viewBooking.estimatedCost ?? 0).toLocaleString()} <span className="text-[9px] text-slate-300 font-black ml-1 mt-auto">INR</span></td></tr>
+                            <tr>
+                              <td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Flight Duration</td>
+                              <td className="px-6 py-4 font-black text-slate-900">
+                                {(() => {
+                                  if (viewBooking.estimatedFlightTime && viewBooking.estimatedFlightTime > 0) {
+                                    return `${viewBooking.estimatedFlightTime} MIN`;
+                                  }
+                                  const origin = hospitals.find(h => h.id === viewBooking.originHospitalId);
+                                  const dest = hospitals.find(h => h.id === viewBooking.destinationHospitalId);
+                                  if (origin?.coordinates && dest?.coordinates) {
+                                    const dist = calculateDistance(origin.coordinates.lat, origin.coordinates.lng, dest.coordinates.lat, dest.coordinates.lng);
+                                    const calcDur = dist > 0 ? Math.round(dist / 8 + 15) : 0;
+                                    return `${calcDur} MIN (EST)`;
+                                  }
+                                  return "0 MIN";
+                                })()}
+                              </td>
+                            </tr>
                           </tbody>
                         </table>
                       </div>
@@ -1137,7 +1156,7 @@ export default function Reports() {
                     <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Priority Flag</label><Select value={form.urgency || ""} onValueChange={(v) => setForm({ ...form, urgency: v })}><SelectTrigger className="h-10 rounded-xl text-sm"><SelectValue /></SelectTrigger><SelectContent className="rounded-xl"><SelectItem value="routine">Routine</SelectItem><SelectItem value="urgent">Urgent</SelectItem><SelectItem value="emergency">Emergency</SelectItem></SelectContent></Select></div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estimated Value ($)</label><Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-10 rounded-xl border-slate-200 font-black text-sm" /></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estimated Value (₹)</label><Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-10 rounded-xl border-slate-200 font-black text-sm" /></div>
                     <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Projected Time (min)</label><Input type="number" value={form.estimatedFlightTime ?? 0} onChange={(e) => setForm({ ...form, estimatedFlightTime: Number(e.target.value) })} className="h-10 rounded-xl border-slate-200 font-black text-sm" /></div>
                   </div>
                   <div className="flex justify-end gap-3 pt-6 border-t border-slate-100"><Button variant="ghost" onClick={() => setAddOpen(false)} className="h-10 px-8 rounded-xl font-black text-slate-400 uppercase tracking-widest text-[10px]">Cancel</Button><Button onClick={submitAdd} className="h-10 px-10 rounded-xl font-black uppercase tracking-widest bg-blue-600 text-white shadow-lg active:scale-95 transition-all text-[10px]">Initialize Record</Button></div>

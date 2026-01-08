@@ -1,5 +1,6 @@
 import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PatientsProvider } from "@/contexts/PatientsContext";
 import "@/App.css";
@@ -21,96 +22,98 @@ function App() {
   return (
     <div className="app-background">
       <Router>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/unauthorized" element={<Unauthorized />} />
+        <ThemeProvider>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/unauthorized" element={<Unauthorized />} />
 
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <PatientsProvider>
-                    <Dashboard />
-                  </PatientsProvider>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/bookings"
-              element={
-                <ProtectedRoute>
-                  <PatientsProvider>
-                    <Bookings />
-                  </PatientsProvider>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/patients"
-              element={
-                <ProtectedRoute>
-                  <PatientsProvider>
-                    <Patients />
-                  </PatientsProvider>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/hospitals"
-              element={
-                <ProtectedRoute>
-                  <PatientsProvider>
-                    <Hospitals />
-                  </PatientsProvider>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/aircraft"
-              element={
-                <ProtectedRoute>
-                  <Aircraft />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute>
-                  <Reports />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/livemap"
-              element={
-                <ProtectedRoute>
-                  <LiveMapComponent aircraftData={[]} />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/api-test"
-              element={
-                <ProtectedRoute>
-                  <ApiTest />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <PatientsProvider>
+                      <Dashboard />
+                    </PatientsProvider>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/bookings"
+                element={
+                  <ProtectedRoute>
+                    <PatientsProvider>
+                      <Bookings />
+                    </PatientsProvider>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patients"
+                element={
+                  <ProtectedRoute>
+                    <PatientsProvider>
+                      <Patients />
+                    </PatientsProvider>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hospitals"
+                element={
+                  <ProtectedRoute>
+                    <PatientsProvider>
+                      <Hospitals />
+                    </PatientsProvider>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/aircraft"
+                element={
+                  <ProtectedRoute>
+                    <Aircraft />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <ProtectedRoute>
+                    <Reports />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/livemap"
+                element={
+                  <ProtectedRoute>
+                    <LiveMapComponent aircraftData={[]} />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/api-test"
+                element={
+                  <ProtectedRoute>
+                    <ApiTest />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </ThemeProvider>
       </Router>
     </div>
   );

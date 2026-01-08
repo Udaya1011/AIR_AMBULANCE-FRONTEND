@@ -55,25 +55,86 @@ body {
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 32% 17%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 224 76% 48%;
+
+    /* Dark Sidebar */
+    --sidebar-background: 222 47% 9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 217 32% 15%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 32% 15%;
+    --sidebar-ring: 224 76% 48%;
+  }
+
   * {
     @apply border-border;
   }
 
   body {
-    @apply text-foreground antialiased;
+    @apply bg-background text-foreground antialiased;
   }
 }
 
 /* Status colors (unchanged) */
 @layer utilities {
-  .status-requested { @apply bg-blue-100 text-blue-800 border-blue-200; }
-  .status-clinical-review { @apply bg-purple-100 text-purple-800 border-purple-200; }
-  .status-dispatch-review { @apply bg-yellow-100 text-yellow-800 border-yellow-200; }
-  .status-airline-confirmed { @apply bg-teal-100 text-teal-800 border-teal-200; }
-  .status-in-transit { @apply bg-orange-100 text-orange-800 border-orange-200; }
-  .status-completed { @apply bg-green-100 text-green-800 border-green-200; }
-  .status-cancelled { @apply bg-red-100 text-red-800 border-red-200; }
-  .acuity-critical { @apply bg-red-50 border-red-300; }
-  .acuity-urgent { @apply bg-orange-50 border-orange-300; }
-  .acuity-stable { @apply bg-green-50 border-green-300; }
+  .status-requested {
+    @apply bg-blue-100 text-blue-800 border-blue-200;
+  }
+
+  .status-clinical-review {
+    @apply bg-purple-100 text-purple-800 border-purple-200;
+  }
+
+  .status-dispatch-review {
+    @apply bg-yellow-100 text-yellow-800 border-yellow-200;
+  }
+
+  .status-airline-confirmed {
+    @apply bg-teal-100 text-teal-800 border-teal-200;
+  }
+
+  .status-in-transit {
+    @apply bg-orange-100 text-orange-800 border-orange-200;
+  }
+
+  .status-completed {
+    @apply bg-green-100 text-green-800 border-green-200;
+  }
+
+  .status-cancelled {
+    @apply bg-red-100 text-red-800 border-red-200;
+  }
+
+  .acuity-critical {
+    @apply bg-red-50 border-red-300;
+  }
+
+  .acuity-urgent {
+    @apply bg-orange-50 border-orange-300;
+  }
+
+  .acuity-stable {
+    @apply bg-green-50 border-green-300;
+  }
 }

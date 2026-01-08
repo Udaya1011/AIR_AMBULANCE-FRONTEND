@@ -1,20 +1,20 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { motion } from "framer-motion";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Plane, AlertCircle, Eye, EyeOff } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+  Eye,
+  EyeOff,
+  ArrowRight,
+  User,
+  Mail,
+  Phone,
+  ShieldAlert,
+  Plane
+} from "lucide-react";
+import { toast } from "sonner";
 import { apiClient } from "@/services/apiClient";
+import innovativeBg from "../assets/innovative_bg.png";
 import "./Login.css";
-import bg from "../assets/bg.jpeg";
 
 interface SignupFormData {
   fullName: string;
@@ -27,10 +27,7 @@ interface SignupFormData {
 
 export default function Signup() {
   const navigate = useNavigate();
-  const containerRef = useRef<HTMLDivElement>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   const [formData, setFormData] = useState<SignupFormData>({
     fullName: "",
     email: "",
@@ -40,70 +37,27 @@ export default function Signup() {
     confirmPassword: "",
   });
 
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.style.setProperty("--bg-image", `url(${bg})`);
-    }
+    document.documentElement.style.setProperty("--bg-image", `url(${innovativeBg})`);
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }));
-    }
-  };
-
-  const validate = (): boolean => {
-    const newErrors: { [key: string]: string } = {};
-
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = "Full name is required";
-    } else if (formData.fullName.trim().length < 3) {
-      newErrors.fullName = "Name must be at least 3 characters";
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Enter a valid email address";
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Phone number is required";
-    } else if (!/^\d{10}$/.test(formData.phone.replace(/\D/g, ""))) {
-      newErrors.phone = "Phone must be 10 digits";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-
-    if (formData.confirmPassword !== formData.password) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess(false);
-
-    if (!validate()) return;
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Validation Error", { description: "Passwords do not match." });
+      return;
+    }
 
     setLoading(true);
     try {
-      const response = await apiClient.post("/api/auth/register", {
+      await apiClient.post("/api/auth/register", {
         full_name: formData.fullName,
         email: formData.email,
         phone: formData.phone,
@@ -111,136 +65,124 @@ export default function Signup() {
         password: formData.password,
       });
 
-      if (response) {
-        setSuccess(true);
-        setFormData({
-          fullName: "",
-          email: "",
-          phone: "",
-          role: "superadmin",
-          password: "",
-          confirmPassword: "",
-        });
+      toast.success("Account Created", {
+        description: "Your administrative profile has been established. Redirecting to login...",
+      });
 
-        setTimeout(() => {
-          navigate("/login");
-        }, 2000);
-      }
+      setTimeout(() => navigate("/login"), 2000);
     } catch (err: any) {
-      const errorMessage = 
-        typeof err?.message === 'string' ? err.message :
-        err?.data?.detail || 
-        err?.detail || 
-        "Registration failed. Please try again.";
-      setError(errorMessage);
+      toast.error("Registration Failed", {
+        description: err?.message || "Please check your details and try again.",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div ref={containerRef} className="login-container">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+    <div className="login-innovative">
+      {/* Static Background View */}
+      <div className="video-bg-container">
+        <div className="ai-video-canvas static-view"></div>
+      </div>
 
-      <div className="relative w-full max-w-xl space-y-8">
-        <div className="text-center text-white drop-shadow-lg">
-          <Plane className="w-20 h-20 text-cyan-400 mx-auto mb-4" />
-          <h1 className="text-5xl font-extrabold tracking-wide">Air Ambulance</h1>
-          <p className="text-xl text-gray-200 mt-2">Create Your Account</p>
-        </div>
+      {/* Primary Branding Only */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay: 0.2 }}
+        className="innovative-floating-info"
+      >
+        <h2>AIR <br />AMBULANCE <br />SERVICE</h2>
+      </motion.div>
 
-        <Card className="shadow-2xl border rounded-3xl bg-white/20 backdrop-blur-lg text-white">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-white">Sign Up</CardTitle>
-            <CardDescription className="text-gray-200">
-              Join the Air Medical Coordination System
-            </CardDescription>
-          </CardHeader>
+      {/* Immersive Right Panel */}
+      <motion.div
+        initial={{ x: 500, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ type: "spring", damping: 30, stiffness: 100, delay: 0.3 }}
+        className="innovative-right-panel"
+      >
+        <div className="scroll-content">
+          <div className="panel-top-branding">
+            <Plane className="w-5 h-5" />
+            <span>AIR AMBULANCE</span>
+          </div>
 
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {error && (
-                <Alert variant="destructive" className="bg-red-600/90 text-white border-none">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+          <div className="brand-header">
+            <motion.h1
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              Create Account
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+            >
+              Fill in your administrative credentials <br />
+              to request access to the coordination hub.
+            </motion.p>
+          </div>
 
-              {success && (
-                <Alert className="bg-green-600/90 text-white border-none">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>Account created! Redirecting to login...</AlertDescription>
-                </Alert>
-              )}
-
-              {/* FULL NAME */}
-              <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-white font-semibold">
-                  Full Name
-                </Label>
-                <Input
-                  id="fullName"
+          <form onSubmit={handleSubmit}>
+            <div className="innovative-form-group">
+              <label className="innovative-label">Full Name</label>
+              <div className="innovative-input-wrapper">
+                <input
                   name="fullName"
                   type="text"
-                  placeholder="Enter your full name"
+                  className="innovative-input"
+                  placeholder="Ex: John Doe"
                   value={formData.fullName}
                   onChange={handleChange}
-                  className="h-12 text-lg rounded-lg bg-white/70 border-white/50 text-black placeholder-gray-500"
                   required
                 />
-                {errors.fullName && <p className="text-red-300 text-sm">{errors.fullName}</p>}
               </div>
+            </div>
 
-              {/* EMAIL */}
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-white font-semibold">
-                  Email Address
-                </Label>
-                <Input
-                  id="email"
+            <div className="innovative-form-group">
+              <label className="innovative-label">Professional Email</label>
+              <div className="innovative-input-wrapper">
+                <input
                   name="email"
                   type="email"
-                  placeholder="your.email@example.com"
+                  className="innovative-input"
+                  placeholder="john.doe@hospital.com"
                   value={formData.email}
                   onChange={handleChange}
-                  className="h-12 text-lg rounded-lg bg-white/70 border-white/50 text-black placeholder-gray-500"
                   required
                 />
-                {errors.email && <p className="text-red-300 text-sm">{errors.email}</p>}
               </div>
+            </div>
 
-              {/* PHONE */}
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-white font-semibold">
-                  Phone Number
-                </Label>
-                <Input
-                  id="phone"
+            <div className="innovative-form-group">
+              <label className="innovative-label">Phone Coordination</label>
+              <div className="innovative-input-wrapper">
+                <input
                   name="phone"
                   type="text"
-                  placeholder="9876543210"
+                  className="innovative-input"
+                  placeholder="10 digit number"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="h-12 text-lg rounded-lg bg-white/70 border-white/50 text-black placeholder-gray-500"
                   required
                 />
-                {errors.phone && <p className="text-red-300 text-sm">{errors.phone}</p>}
               </div>
+            </div>
 
-              {/* ROLE */}
-              <div className="space-y-2">
-                <Label htmlFor="selectRole" className="text-white font-semibold block mb-2">
-                  Professional Role
-                </Label>
+            <div className="innovative-form-group">
+              <label className="innovative-label">Assigned Role</label>
+              <div className="innovative-input-wrapper">
                 <select
-                  id="selectRole"
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
-                  title="Select your professional role"
-                  className="h-12 text-lg rounded-lg bg-white/70 border border-white/50 text-black w-full px-3 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                  className="innovative-input innovative-select"
+                  required
                 >
-                  <option value="">-- Select a role --</option>
                   <option value="superadmin">Super Admin</option>
                   <option value="dispatcher">Dispatcher</option>
                   <option value="hospital_staff">Hospital Staff</option>
@@ -248,106 +190,67 @@ export default function Signup() {
                   <option value="airline_coordinator">Airline Coordinator</option>
                 </select>
               </div>
+            </div>
 
-              {/* PASSWORD */}
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-white font-semibold">
-                  Password
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="password"
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="innovative-form-group">
+                <label className="innovative-label">Password</label>
+                <div className="innovative-input-wrapper">
+                  <input
                     name="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="At least 6 characters"
+                    className="innovative-input"
+                    placeholder="••••••••"
                     value={formData.password}
                     onChange={handleChange}
-                    className="h-12 text-lg rounded-lg bg-white/70 border-white/50 text-black placeholder-gray-500 pr-10"
                     required
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-gray-600 hover:text-gray-800"
-                    title={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
                 </div>
-                {errors.password && <p className="text-red-300 text-sm">{errors.password}</p>}
               </div>
 
-              {/* CONFIRM PASSWORD */}
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-white font-semibold">
-                  Confirm Password
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
+              <div className="innovative-form-group">
+                <label className="innovative-label">Confirm</label>
+                <div className="innovative-input-wrapper">
+                  <input
                     name="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Re-enter your password"
+                    type={showPassword ? "text" : "password"}
+                    className="innovative-input"
+                    placeholder="••••••••"
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className="h-12 text-lg rounded-lg bg-white/70 border-white/50 text-black placeholder-gray-500 pr-10"
                     required
                   />
                   <button
                     type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-3 text-gray-600 hover:text-gray-800"
-                    title={showConfirmPassword ? "Hide password" : "Show password"}
+                    className="innovative-password-toggle"
+                    onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showConfirmPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                {errors.confirmPassword && (
-                  <p className="text-red-300 text-sm">{errors.confirmPassword}</p>
-                )}
               </div>
+            </div>
 
-              {/* SUBMIT BUTTON */}
-              <Button
-                type="submit"
-                className="w-full h-12 text-lg rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:brightness-110 shadow-lg"
-                disabled={loading || success}
-              >
-                {loading
-                  ? "Creating Account..."
-                  : success
-                  ? "Redirecting..."
-                  : "Create Account"}
-              </Button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="innovative-submit-btn"
+            >
+              <span className="flex items-center justify-center gap-2">
+                {loading ? "Establishing Profile..." : "Register Profile"}
+                {!loading && <ArrowRight className="w-5 h-5" />}
+              </span>
+            </button>
 
-              {/* DIVIDER */}
-              <div className="relative flex items-center justify-center">
-                <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
-                <span className="relative px-3 bg-white/10 text-sm text-gray-300">OR</span>
-              </div>
-
-              {/* LOGIN LINK */}
-              <p className="text-center text-gray-200">
-                Already have an account?{" "}
-                <Link
-                  to="/login"
-                  className="text-cyan-300 hover:text-cyan-200 font-semibold underline"
-                >
-                  Sign In
-                </Link>
+            <footer className="innovative-footer">
+              <p>
+                Already an established member?{" "}
+                <Link to="/login" className="innovative-link">Return to Login</Link>
               </p>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+            </footer>
+          </form>
+        </div>
+      </motion.div>
     </div>
   );
 }

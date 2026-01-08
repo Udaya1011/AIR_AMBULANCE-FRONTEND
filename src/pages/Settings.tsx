@@ -13,12 +13,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
-  Settings as SettingsIcon, User, Bell, Shield, Globe, Save
+  Settings as SettingsIcon, User, Bell, Shield, Globe, Save, Sun, Moon, Monitor
 } from 'lucide-react';
 
 const Settings = () => {
   const { user } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   return (
     <Layout>
@@ -222,12 +224,29 @@ const Settings = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Theme</Label>
-                    <Select defaultValue="light">
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                    <Select value={theme} onValueChange={(val: any) => setTheme(val)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select theme" />
+                      </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="light">Light</SelectItem>
-                        <SelectItem value="dark">Dark</SelectItem>
-                        <SelectItem value="system">System Default</SelectItem>
+                        <SelectItem value="light">
+                          <div className="flex items-center gap-2">
+                            <Sun className="h-4 w-4" />
+                            <span>Light</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="dark">
+                          <div className="flex items-center gap-2">
+                            <Moon className="h-4 w-4" />
+                            <span>Dark</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="system">
+                          <div className="flex items-center gap-2">
+                            <Monitor className="h-4 w-4" />
+                            <span>System Default</span>
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

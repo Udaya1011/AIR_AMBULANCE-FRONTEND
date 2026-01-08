@@ -87,12 +87,12 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
   const avatarImage = getAvatarImage();
 
   return (
-    <div className="h-screen flex bg-slate-50 font-sans overflow-hidden">
+    <div className="h-screen flex bg-background font-sans overflow-hidden">
 
       {/* 🔵 SIDEBAR */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200
+          fixed inset-y-0 left-0 z-50 bg-card border-r border-border
           transition-all duration-300 ease-in-out flex flex-col
           lg:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           ${isMinimized ? 'lg:w-14' : 'lg:w-48'} w-56
@@ -176,7 +176,7 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
         </nav>
 
         {/* User Profile Footer */}
-        <div className={`p-3 border-t border-slate-100 bg-white transition-all ${isMinimized ? 'lg:px-1' : ''}`}>
+        <div className={`p-3 border-t border-border bg-card transition-all ${isMinimized ? 'lg:px-1' : ''}`}>
           <div className={`flex items-center justify-between px-1 py-3 ${isMinimized ? 'lg:flex-col lg:gap-4 lg:px-0' : ''}`}>
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-blue-200 shrink-0 bg-white">
@@ -215,7 +215,7 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
         `}
       >
         {/* Top Bar - Page Title & Notifications */}
-        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-sm border-b border-slate-100 px-4 lg:px-8 py-1.5 flex items-center justify-between">
+        <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border px-4 lg:px-8 py-1.5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Mobile Menu Toggle */}
             <button
@@ -268,7 +268,7 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
         </div>
 
         {/* CONTENT AREA */}
-        <main className={`flex-1 w-full ${isFullHeight ? 'overflow-hidden pt-0 px-2 pb-2 lg:px-4 lg:pb-4' : 'overflow-y-auto p-4 lg:p-8'} overflow-x-hidden custom-scrollbar bg-slate-50/50`}>
+        <main className={`flex-1 w-full ${isFullHeight ? 'overflow-hidden pt-2 px-2 pb-4 lg:pt-4 lg:px-4 lg:pb-6' : 'overflow-y-auto p-4 lg:p-8'} overflow-x-hidden custom-scrollbar bg-background`}>
           <div className={`max-w-[1600px] mx-auto ${isFullHeight ? 'h-full flex flex-col' : 'min-h-full flex flex-col'}`}>
             <div className={`flex-1 ${isFullHeight ? 'min-h-0 flex flex-col' : ''}`}>
               {children}

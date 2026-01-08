@@ -474,7 +474,8 @@ const Aircraft: React.FC = () => {
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogTrigger asChild>
           <Button
-            className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-wider rounded-xl shadow-lg shadow-blue-100 flex items-center gap-2 transition-all active:scale-95 group border-b-4 border-blue-800"
+            variant="outline"
+            className="h-10 px-6 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-bold rounded-xl shadow-sm flex items-center gap-2 transition-all active:scale-95 group"
             onClick={() => {
               setEditItem(null);
               setForm({
@@ -490,13 +491,18 @@ const Aircraft: React.FC = () => {
             }}
           >
             <Plus className="h-4 w-4 stroke-[3px] group-hover:rotate-90 transition-transform" />
-            Add Aircraft
+            <span className="uppercase tracking-wider">Add Aircraft</span>
           </Button>
         </DialogTrigger>
         <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-          <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
-            <DialogTitle className="text-white text-lg font-black tracking-tight">{editItem ? '🏗️ Refine Asset Configuration' : '🏛️ Register Global Asset'}</DialogTitle>
-            <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Strategic Aviation Management</DialogDescription>
+          <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
+            <Plus className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
+            <div className="relative z-10">
+              <DialogTitle className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                <Plus className="h-6 w-6" /> {editItem ? 'Refine Asset Configuration' : 'Register Global Asset'}
+              </DialogTitle>
+              <p className="text-blue-100 text-[10px] uppercase font-bold tracking-widest mt-1">Strategic Aviation Management</p>
+            </div>
           </DialogHeader>
 
           <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 text-black bg-white">
@@ -676,9 +682,9 @@ const Aircraft: React.FC = () => {
   );
 
   return (
-    <Layout subTitle="Fleet Tracking & Dispatch" headerActions={headerActions}>
+    <Layout subTitle="Fleet Tracking & Dispatch" headerActions={headerActions} isFullHeight={true}>
       <TooltipProvider>
-        <div className="space-y-4 h-full flex flex-col">
+        <div className="p-4 lg:p-6 space-y-4 h-full flex flex-col">
           {loading ? (
             <LoadingSpinner />
           ) : (
@@ -707,10 +713,10 @@ const Aircraft: React.FC = () => {
               </div>
 
               {view === "list" ? (
-                <div className="space-y-6">
+                <div className="flex-1 flex flex-col min-h-0 space-y-4">
                   {/* TABLE */}
-                  <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl overflow-hidden">
-                    <div className="max-h-[380px] overflow-y-auto custom-scrollbar">
+                  <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl overflow-hidden flex-1 flex flex-col min-h-0">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar">
                       <table className="w-full border-collapse text-sm">
                         <thead className="sticky top-0 z-20">
                           <tr className="bg-[#f8fafc] border-b border-slate-200">
@@ -802,7 +808,7 @@ const Aircraft: React.FC = () => {
                             onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
                             className="h-9 w-20 bg-white border-slate-200 rounded-xl text-xs font-black text-slate-700 shadow-sm focus:ring-2 focus:ring-blue-100 outline-none px-2"
                           >
-                            {[5, 10, 25, 50].map(val => (
+                            {[10, 25, 50, 100].map(val => (
                               <option key={val} value={val}>{val}</option>
                             ))}
                           </select>
@@ -878,12 +884,15 @@ const Aircraft: React.FC = () => {
           {/* Aircraft Detail View Dialog */}
           <Dialog open={!!selectedAircraft} onOpenChange={(open) => !open && setSelectedAircraft(null)}>
             <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
-              <DialogHeader className="bg-blue-600 text-white px-5 py-3 shrink-0">
-                <DialogTitle className="text-white text-lg font-black tracking-tight flex items-center gap-2">
-                  <Plane className="h-5 w-5 text-blue-200" />
-                  Aircraft Intelligence — {selectedAircraft?.registration}
-                </DialogTitle>
-                <DialogDescription className="text-blue-50 text-[10px] uppercase font-bold tracking-widest mt-0.5">Global Asset Tracking Metrics</DialogDescription>
+              <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
+                <Plane className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
+                <div className="relative z-10">
+                  <DialogTitle className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                    <Plane className="h-6 w-6 text-blue-200" />
+                    Aircraft Intelligence — {selectedAircraft?.registration}
+                  </DialogTitle>
+                  <p className="text-blue-100 text-[10px] uppercase font-bold tracking-widest mt-1">Global Asset Tracking Metrics</p>
+                </div>
               </DialogHeader>
               <div className="p-5 space-y-5 overflow-y-auto custom-scrollbar flex-1 text-black bg-slate-50/10">
                 {selectedAircraft && (
