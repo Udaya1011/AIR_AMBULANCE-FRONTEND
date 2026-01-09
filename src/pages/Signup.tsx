@@ -88,19 +88,25 @@ export default function Signup() {
 
       {/* Primary Branding Only */}
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.2 }}
+        initial={{ opacity: 0, x: -50 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
         className="innovative-floating-info"
       >
-        <h2>AIR <br />AMBULANCE <br />SERVICE</h2>
+        <div className="brand-badge">ELEVATING MEDICAL RESPONSE</div>
+        <h2>AIR <br />AMBULANCE <br /><span className="text-glow">SERVICE</span></h2>
+        <div className="brand-divider"></div>
+        <p className="brand-tagline">
+          Join the elite network of aerial medical <br />
+          professionals and logistics experts.
+        </p>
       </motion.div>
 
       {/* Immersive Right Panel */}
       <motion.div
         initial={{ x: 500, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        transition={{ type: "spring", damping: 30, stiffness: 100, delay: 0.3 }}
+        transition={{ type: "tween", duration: 0.4 }}
         className="innovative-right-panel"
       >
         <div className="scroll-content">
@@ -113,14 +119,14 @@ export default function Signup() {
             <motion.h1
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.1 }}
             >
               Create Account
             </motion.h1>
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
+              transition={{ delay: 0.2 }}
             >
               Fill in your administrative credentials <br />
               to request access to the coordination hub.

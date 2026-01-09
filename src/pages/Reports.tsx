@@ -113,6 +113,7 @@ import { HospitalService } from "@/services/hospital.service";
 import { PatientsService } from "@/services/patients.service";
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { calculateDistance, calculateRevenue } from "@/utils/revenueUtils";
+import { calculateAge } from "@/utils/dateUtils";
 
 // --- CHATBOT CONSTANTS ---
 const initialMessages: any[] = [];

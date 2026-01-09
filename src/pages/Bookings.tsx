@@ -36,6 +36,7 @@ import { HospitalService } from '@/services/hospital.service';
 import { toast } from '@/components/ui/use-toast';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { calculateDistance, calculateRevenue } from '@/utils/revenueUtils';
+import { calculateAge } from '@/utils/dateUtils';
 
 const Bookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -69,17 +70,8 @@ const Bookings = () => {
   const getPatientAge = (patientId: string) => {
     if (!patientId) return '-';
     const patient = getPatientById(patientId);
-    if (!patient || !patient.dob) return '-';
-    const dob = new Date(patient.dob);
-    if (isNaN(dob.getTime())) return '-';
-
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const m = today.getMonth() - dob.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-      age--;
-    }
-    return age;
+    if (!patient) return '-';
+    return calculateAge(patient.date_of_birth || patient.dob);
   };
 
   const getPatientInitials = (patientId: string) => {
@@ -1292,7 +1284,7 @@ const Bookings = () => {
                   <div className="flex items-center gap-2">
                     <button
                       title="Settings"
-                      onClick={() => alert('Persona & tone can be changed below.')}
+                      onClick={() => { }}
                       className="p-1 rounded hover:bg-slate-100"
                     >
                       <Settings className="h-4 w-4 text-slate-600" />

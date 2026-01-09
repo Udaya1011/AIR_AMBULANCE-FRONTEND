@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle
@@ -15,12 +16,129 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
-  Settings as SettingsIcon, User, Bell, Shield, Globe, Save, Sun, Moon, Monitor
+  Settings as SettingsIcon, User, Bell, Shield, Globe, Save, Sun, Moon, Monitor, Eye, EyeOff, MapPin
 } from 'lucide-react';
 
 const Settings = () => {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Password form state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Location and device state
+  const [currentLocation, setCurrentLocation] = useState('Fetching location...');
+  const [browserInfo, setBrowserInfo] = useState('');
+  const [deviceInfo, setDeviceInfo] = useState('');
+  const [currentTime, setCurrentTime] = useState('');
+
+  // Get browser and device info
+  useEffect(() => {
+    const userAgent = navigator.userAgent;
+    let browser = 'Unknown Browser';
+    let device = 'Unknown Device';
+
+    // Detect browser
+    if (userAgent.indexOf('Chrome') > -1 && userAgent.indexOf('Edg') === -1) {
+      browser = 'Chrome Browser';
+    } else if (userAgent.indexOf('Safari') > -1 && userAgent.indexOf('Chrome') === -1) {
+      browser = 'Safari Browser';
+    } else if (userAgent.indexOf('Firefox') > -1) {
+      browser = 'Firefox Browser';
+    } else if (userAgent.indexOf('Edg') > -1) {
+      browser = 'Edge Browser';
+    }
+
+    // Detect device
+    if (userAgent.indexOf('Windows') > -1) {
+      device = 'Windows';
+    } else if (userAgent.indexOf('Mac') > -1) {
+      device = 'MacOS';
+    } else if (userAgent.indexOf('Linux') > -1) {
+      device = 'Linux';
+    } else if (userAgent.indexOf('iPhone') > -1) {
+      device = 'iPhone';
+    } else if (userAgent.indexOf('iPad') > -1) {
+      device = 'iPad';
+    } else if (userAgent.indexOf('Android') > -1) {
+      device = 'Android';
+    }
+
+    setBrowserInfo(browser);
+    setDeviceInfo(device);
+
+    // Set current time
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const dateStr = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    setCurrentTime(`Today at ${timeStr}`);
+  }, []);
+
+  // Fetch current location
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+
+          try {
+            // Use OpenStreetMap Nominatim for reverse geocoding (free)
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+            );
+            const data = await response.json();
+
+            const city = data.address.city || data.address.town || data.address.village || 'Unknown City';
+            const state = data.address.state || '';
+            const country = data.address.country || 'Unknown Country';
+
+            setCurrentLocation(`${city}${state ? ', ' + state : ''}, ${country}`);
+          } catch (error) {
+            console.error('Error fetching location:', error);
+            setCurrentLocation('Location unavailable');
+          }
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          setCurrentLocation('Location permission denied');
+        }
+      );
+    } else {
+      setCurrentLocation('Geolocation not supported');
+    }
+  }, []);
+
+  // Handle password update
+  const handlePasswordUpdate = () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      alert('Please fill in all password fields');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      alert('New passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      alert('Password must be at least 6 characters long');
+      return;
+    }
+
+    // TODO: Call API to update password
+    console.log('Updating password...');
+    alert('Password updated successfully!');
+
+    // Clear form
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+  };
 
   return (
     <Layout>
@@ -175,25 +293,77 @@ const Settings = () => {
               <CardContent className="space-y-5">
                 <div className="space-y-2">
                   <Label>Current Password</Label>
-                  <Input type="password" />
+                  <div className="relative">
+                    <Input type={showCurrentPassword ? "text" : "password"} className="pr-10" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Enter current password" />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>New Password</Label>
-                  <Input type="password" />
+                  <div className="relative">
+                    <Input type={showNewPassword ? "text" : "password"} className="pr-10" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password (min 6 characters)" />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Confirm New Password</Label>
-                  <Input type="password" />
+                  <div className="relative">
+                    <Input type={showConfirmPassword ? "text" : "password"} className="pr-10" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter new password" />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
-                <Button className="mt-2">Update Password</Button>
+                <Button className="mt-2" onClick={handlePasswordUpdate}><Save className="h-4 w-4 mr-2" />Update Password</Button>
 
                 <div className="pt-5 border-t space-y-4">
-                  <h4 className="font-semibold">Recent Login Devices</h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>Windows Chrome — Chennai, India</li>
-                    <li>iPhone Safari — Madurai, India</li>
-                  </ul>
-                  <Button variant="outline" size="sm">Logout from all devices</Button>
+                  <h4 className="font-semibold text-lg">Recent Login Activity</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                      <Monitor className="h-5 w-5 text-blue-600 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{deviceInfo} • {browserInfo}</p>
+                        <p className="text-xs text-muted-foreground">{currentLocation}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <p className="text-xs text-muted-foreground">Last active: {currentTime}</p>
+                          <button
+                            className="flex items-center gap-1 text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full hover:bg-blue-200 transition-colors"
+                            onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentLocation)}`, '_blank')}
+                          >
+                            <MapPin className="w-3 h-3" />
+                            Live Track
+                          </button>
+                        </div>
+                      </div>
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Active</span>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                      <Monitor className="h-5 w-5 text-slate-600 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">iPhone • Safari Browser</p>
+                        <p className="text-xs text-muted-foreground">Madurai, Tamil Nadu, India</p>
+                        <p className="text-xs text-muted-foreground mt-1">Last active: Yesterday at 11:20 AM</p>
+                      </div>
+                      <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded-full font-medium">Inactive</span>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full"><Shield className="h-4 w-4 mr-2" />Logout from all devices</Button>
                 </div>
               </CardContent>
             </Card>

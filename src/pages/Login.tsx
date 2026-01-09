@@ -41,6 +41,8 @@ export default function Login() {
     generateCaptcha();
   }, []);
 
+
+
   useEffect(() => {
     document.documentElement.style.setProperty("--bg-image", `url(${innovativeBg})`);
   }, []);
@@ -82,21 +84,26 @@ export default function Login() {
         <div className="ai-video-canvas static-view"></div>
       </div>
 
-      {/* Primary Branding Only */}
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.2 }}
+        initial={{ opacity: 0, x: -50 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
         className="innovative-floating-info"
       >
-        <h2>AIR <br />AMBULANCE <br />SERVICE</h2>
+        <div className="brand-badge">24/7 GLOBAL EMERGENCY NETWORK</div>
+        <h2>AIR <br />AMBULANCE <br /><span className="text-glow">SERVICE</span></h2>
+        <div className="brand-divider"></div>
+        <p className="brand-tagline">
+          The next generation of medical emergency <br />
+          coordination and synchronized dispatch.
+        </p>
       </motion.div>
 
       {/* Immersive Right Panel */}
       <motion.div
         initial={{ x: 500, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        transition={{ type: "spring", damping: 30, stiffness: 100, delay: 0.3 }}
+        transition={{ type: "tween", duration: 0.4 }}
         className="innovative-right-panel"
       >
         <div className="panel-top-branding">
@@ -108,14 +115,14 @@ export default function Login() {
           <motion.h1
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
+            transition={{ delay: 0.1 }}
           >
             Sign in
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
+            transition={{ delay: 0.2 }}
           >
             Access the Air Ambulance Smart Site. <br />
             Secure authentication required to proceed.
@@ -181,13 +188,8 @@ export default function Login() {
             </div>
           </div>
 
-          <div className="form-action-row">
-            <label className="innovative-checkbox-container">
-              <Checkbox id="remember" className="border-slate-700 data-[state=checked]:bg-blue-600" />
-              <span>Remember me for 30 days</span>
-            </label>
-            <Link to="/forgot-password" core-link="true" className="innovative-link text-xs">Forgot Password?</Link>
-          </div>
+
+
 
           <button
             type="submit"

@@ -34,6 +34,7 @@ import { toast } from '@/components/ui/use-toast';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { HospitalService } from '@/services/hospital.service';
 import chatBotImage from '../emoji.jpeg';
+import { calculateAge } from '@/utils/dateUtils';
 const Patients = () => {
   const { patients, isLoading: patientsLoading, addPatient, removePatient, updatePatient } = usePatients();
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
@@ -1057,7 +1058,10 @@ const Patients = () => {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Date of Birth</p>
-                      <p className="text-lg font-medium">{selectedPatient.dob ? format(new Date(selectedPatient.dob), 'MMM dd, yyyy') : 'N/A'}</p>
+                      <p className="text-lg font-medium">
+                        {selectedPatient.dob || selectedPatient.date_of_birth ? format(new Date(selectedPatient.dob || selectedPatient.date_of_birth), 'MMM dd, yyyy') : 'N/A'}
+                        <span className="ml-2 text-sm text-slate-400">({calculateAge(selectedPatient.dob || selectedPatient.date_of_birth)} yrs)</span>
+                      </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4 mt-4">
@@ -1102,7 +1106,7 @@ const Patients = () => {
                   </tr>
                 ) : (
                   currentItems.map((patient) => {
-                    const age = new Date().getFullYear() - new Date(patient.date_of_birth || patient.dob || Date.now()).getFullYear();
+                    const age = calculateAge(patient.date_of_birth || patient.dob);
                     const isExpanded = expandedRowId === patient.id;
 
                     return (

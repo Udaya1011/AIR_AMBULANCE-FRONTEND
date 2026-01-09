@@ -64,6 +64,7 @@ import { BookingService } from "@/services/booking.service";
 import { HospitalService } from "@/services/hospital.service";
 import { usePatients } from "@/contexts/PatientsContext";
 import { calculateDistance, calculateRevenue } from "@/utils/revenueUtils";
+import { calculateAge } from "@/utils/dateUtils";
 import { toast } from "sonner";
 
 const KpiCard = ({
@@ -131,6 +132,16 @@ const Chatbot: React.FC<ChatbotProps> = ({ stats, bookings, totalRevenue }) => {
     }
   }, [messages, isOpen]);
 
+  // Welcome message when chatbot opens
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      setMessages([{
+        sender: "bot",
+        text: "👋 Hello! I'm your Dashboard Assistant.\n\nI can provide real-time information about:\n\n📊 Active transfers and bookings\n💰 Revenue and financial data\n🚨 Critical patients and urgency levels\n✈️ Available aircraft\n🏥 Hospital network\n\nType 'help' to see all available commands, or ask me anything!"
+      }]);
+    }
+  }, [isOpen]);
+
   // Inactivity timer effect for auto-close
   useEffect(() => {
     if (!isOpen) return;
@@ -188,31 +199,92 @@ const Chatbot: React.FC<ChatbotProps> = ({ stats, bookings, totalRevenue }) => {
 
     const lower = text.toLowerCase();
 
+    // Help command
     if (/\bhelp\b/.test(lower)) {
-      return reply("Try:\n• Active transfers?\n• Available aircraft\n• Critical patients?\n• Pending approvals");
+      return reply("I can help you with:\n\n📊 Statistics:\n• Active transfers\n• Pending approvals\n• Available aircraft\n• Critical patients\n\n💰 Financial:\n• Total revenue\n• Revenue breakdown\n\n📋 Bookings:\n• Total bookings\n• Bookings by status\n• Bookings by urgency\n\n🏥 Hospitals & Patients:\n• Hospital count\n• Patient details\n\nJust ask me anything!");
     }
 
-    if (/\b(active transfers|active)\b/.test(lower)) {
-      return reply(`Active transfers: ${counts.active_transfers}`);
+    // Active transfers
+    if (/\b(active transfers|active|in transit)\b/.test(lower)) {
+      const activeCount = bookings.filter(b => b.status === 'in_transit').length;
+      return reply(`📊 Active Transfers: ${activeCount}\n\nTotal bookings in system: ${bookings.length}\nCurrently in transit: ${activeCount}`);
     }
 
-    if (/\b(pending approvals|pending)\b/.test(lower)) {
-      return reply(`Pending approvals: ${counts.pending_approvals}`);
+    // Pending approvals
+    if (/\b(pending approvals?|pending|requests?)\b/.test(lower)) {
+      const pendingCount = bookings.filter(b => b.status === 'requested').length;
+      return reply(`⏳ Pending Approvals: ${pendingCount}\n\nThese bookings are awaiting approval before dispatch.`);
     }
 
-    if (/\b(available aircraft|aircraft)\b/.test(lower)) {
-      return reply(`Available aircraft: ${counts.available_aircraft}`);
+    // Available aircraft
+    if (/\b(available aircraft|aircraft|planes?)\b/.test(lower)) {
+      return reply(`✈️ Available Aircraft: ${counts.available_aircraft}\n\nReady for immediate deployment.`);
     }
 
-    if (/\b(critical patients|critical)\b/.test(lower)) {
-      return reply(`Critical patients: ${counts.critical_patients}`);
+    // Critical patients
+    if (/\b(critical patients?|critical|urgent patients?)\b/.test(lower)) {
+      const criticalCount = bookings.filter(b => b.urgency === 'emergency').length;
+      const urgentCount = bookings.filter(b => b.urgency === 'urgent').length;
+      return reply(`🚨 Critical Cases:\n\nEmergency: ${criticalCount}\nUrgent: ${urgentCount}\nTotal high-priority: ${criticalCount + urgentCount}`);
     }
 
-    if (/\b(revenue|total revenue|earnings)\b/.test(lower)) {
-      return reply(`Total revenue is ₹${totalRevenue.toLocaleString()}`);
+    // Revenue queries
+    if (/\b(revenue|total revenue|earnings?|income)\b/.test(lower)) {
+      const completedBookings = bookings.filter(b => b.status === 'completed');
+      const avgRevenue = completedBookings.length > 0 ? Math.round(totalRevenue / completedBookings.length) : 0;
+      return reply(`💰 Revenue Overview:\n\nTotal Revenue: ₹${totalRevenue.toLocaleString()}\nCompleted Bookings: ${completedBookings.length}\nAverage per booking: ₹${avgRevenue.toLocaleString()}`);
     }
 
-    return reply("Sorry, I didn't understand. Try 'help'.");
+    // Total bookings
+    if (/\b(total bookings?|how many bookings?|booking count)\b/.test(lower)) {
+      const byStatus = {
+        requested: bookings.filter(b => b.status === 'requested').length,
+        in_transit: bookings.filter(b => b.status === 'in_transit').length,
+        completed: bookings.filter(b => b.status === 'completed').length,
+        cancelled: bookings.filter(b => b.status === 'cancelled').length,
+      };
+      return reply(`📋 Total Bookings: ${bookings.length}\n\nBreakdown:\n• Requested: ${byStatus.requested}\n• In Transit: ${byStatus.in_transit}\n• Completed: ${byStatus.completed}\n• Cancelled: ${byStatus.cancelled}`);
+    }
+
+    // Bookings by status
+    if (/\b(completed|finished|done)\b/.test(lower)) {
+      const completed = bookings.filter(b => b.status === 'completed').length;
+      return reply(`✅ Completed Bookings: ${completed}\n\nSuccessfully delivered transfers.`);
+    }
+
+    if (/\b(cancelled|canceled)\b/.test(lower)) {
+      const cancelled = bookings.filter(b => b.status === 'cancelled').length;
+      return reply(`❌ Cancelled Bookings: ${cancelled}`);
+    }
+
+    // Bookings by urgency
+    if (/\b(emergency|emergencies)\b/.test(lower)) {
+      const emergency = bookings.filter(b => b.urgency === 'emergency').length;
+      return reply(`🚨 Emergency Bookings: ${emergency}\n\nHighest priority transfers requiring immediate attention.`);
+    }
+
+    if (/\b(urgent)\b/.test(lower)) {
+      const urgent = bookings.filter(b => b.urgency === 'urgent').length;
+      return reply(`⚠️ Urgent Bookings: ${urgent}\n\nHigh-priority transfers.`);
+    }
+
+    if (/\b(routine)\b/.test(lower)) {
+      const routine = bookings.filter(b => b.urgency === 'routine').length;
+      return reply(`📅 Routine Bookings: ${routine}\n\nStandard priority transfers.`);
+    }
+
+    // Hospital queries
+    if (/\b(hospitals?|facilities)\b/.test(lower)) {
+      return reply(`🏥 Hospital Network:\n\nTotal hospitals: ${stats?.available_aircraft || 0}\nActive facilities in the system.`);
+    }
+
+    // Summary/Overview
+    if (/\b(summary|overview|status|dashboard)\b/.test(lower)) {
+      return reply(`📊 Dashboard Summary:\n\n🚁 Active Transfers: ${counts.active_transfers}\n⏳ Pending Approvals: ${counts.pending_approvals}\n✈️ Available Aircraft: ${counts.available_aircraft}\n🚨 Critical Patients: ${counts.critical_patients}\n💰 Total Revenue: ₹${totalRevenue.toLocaleString()}\n📋 Total Bookings: ${bookings.length}`);
+    }
+
+    // Default response
+    return reply("I'm not sure about that. Try asking:\n• 'summary' for overview\n• 'help' for all commands\n• 'total bookings'\n• 'revenue'\n• 'critical patients'");
   };
 
   const handleSend = () => {
@@ -477,14 +549,7 @@ export default function Dashboard() {
         patientGender = (patient.gender || "male").toLowerCase();
 
         // Age calculation
-        if (patient.date_of_birth || (patient as any).dob) {
-          const dob = new Date(patient.date_of_birth || (patient as any).dob);
-          const ageDifMs = Date.now() - dob.getTime();
-          const ageDate = new Date(ageDifMs);
-          patientAge = Math.abs(ageDate.getUTCFullYear() - 1970);
-        } else if ((patient as any).age) {
-          patientAge = (patient as any).age;
-        }
+        patientAge = calculateAge(patient.date_of_birth || (patient as any).dob || (patient as any).age?.toString());
 
         patientCondition = patient.diagnosis || (patient as any).medical_condition || patient.acuity_level || "Not specified";
         patientDiagnosis = patient.diagnosis || "N/A";
@@ -499,13 +564,8 @@ export default function Dashboard() {
       patientName = booking.patient.full_name || booking.patient.name || "Restricted Info";
       patientGender = (booking.patient.gender || "N/A").toLowerCase();
 
-      if (booking.patient.date_of_birth || booking.patient.dob) {
-        const dob = new Date(booking.patient.date_of_birth || booking.patient.dob);
-        const ageDifMs = Date.now() - dob.getTime();
-        const ageDate = new Date(ageDifMs);
-        patientAge = Math.abs(ageDate.getUTCFullYear() - 1970);
-      } else if (booking.patient.age) {
-        patientAge = booking.patient.age;
+      if (booking.patient.date_of_birth || booking.patient.dob || booking.patient.age) {
+        patientAge = calculateAge(booking.patient.date_of_birth || booking.patient.dob || booking.patient.age?.toString());
       }
 
       patientCondition = booking.patient.diagnosis || booking.medical_condition || booking.condition || "Not specified";
