@@ -1071,12 +1071,16 @@ const Hospitals = () => {
             {isMapVisible && (
               <div className="h-64 rounded-xl overflow-hidden border-2 border-slate-200 shadow-inner relative group">
                 <MapContainer
-                  center={[formData.coordinates?.lat || 37.7749, formData.coordinates?.lng || -122.4194] as LatLngExpression}
-                  zoom={13}
-                  className="h-full w-full"
+                  {...({
+                    center: [formData.coordinates?.lat || 37.7749, formData.coordinates?.lng || -122.4194] as LatLngExpression,
+                    zoom: 13,
+                    className: "h-full w-full"
+                  } as any)}
                 >
                   <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    {...({
+                      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    } as any)}
                   />
                   <MapClickHandler onLocationSelect={handleMapLocationSelect} />
                   {formData.coordinates && <Marker position={[formData.coordinates.lat, formData.coordinates.lng] as LatLngExpression} />}
@@ -1281,7 +1285,7 @@ const Hospitals = () => {
                     return (
                       <React.Fragment key={hospital.id}>
                         <tr className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors duration-200 group ${isExpanded ? 'bg-blue-50/30' : ''}`}>
-                          <td className="px-6 py-2.5">
+                          <td className="px-8 py-4">
                             <div className="flex items-center gap-3">
                               <div className="h-10 w-10 border-2 border-blue-100 bg-gradient-to-tr from-blue-200 via-blue-100 to-blue-50 shadow-sm shrink-0 rounded-xl flex items-center justify-center">
                                 <Building2 className="h-5 w-5 text-blue-600" />
@@ -1297,12 +1301,12 @@ const Hospitals = () => {
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-2.5">
+                          <td className="px-8 py-4">
                             <Badge variant="outline" className="bg-white text-slate-700 border-slate-200 font-black text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-lg">
                               {hospital.levelOfCare} Care
                             </Badge>
                           </td>
-                          <td className="px-6 py-2.5">
+                          <td className="px-8 py-4">
                             <div className="flex items-center gap-2">
                               <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0">
                                 <User className="h-3 w-3 text-slate-500" />
@@ -1310,8 +1314,8 @@ const Hospitals = () => {
                               <span className="text-xs font-bold text-slate-700">{hospital.contactPerson || '—'}</span>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">{hospital.phone || '—'}</td>
-                          <td className="px-6 py-2.5">
+                          <td className="px-8 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">{hospital.phone || '—'}</td>
+                          <td className="px-8 py-4">
                             <div className="flex items-center gap-2">
                               <div className="h-7 w-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
                                 <Bed className="h-4 w-4 text-blue-600" />
@@ -1319,12 +1323,12 @@ const Hospitals = () => {
                               <span className="text-sm font-black text-slate-800">{hospital.icuCapacity}</span>
                             </div>
                           </td>
-                          <td className="px-6 py-2.5">
+                          <td className="px-8 py-4">
                             <Badge className={`px-2 py-0.5 rounded-lg text-[9px] font-black border tracking-tighter ${status.color}`}>
                               {hospital.occupiedBeds || 0} / {hospital.icuCapacity} {status.label}
                             </Badge>
                           </td>
-                          <td className="px-6 py-2.5">
+                          <td className="px-8 py-4">
                             <div className="flex gap-2">
                               <Button
                                 variant="outline"

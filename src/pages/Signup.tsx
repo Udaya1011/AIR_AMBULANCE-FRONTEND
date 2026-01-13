@@ -21,6 +21,7 @@ interface SignupFormData {
   email: string;
   phone: string;
   role: string;
+  gender: string;
   password: string;
   confirmPassword: string;
 }
@@ -33,6 +34,7 @@ export default function Signup() {
     email: "",
     phone: "",
     role: "superadmin",
+    gender: "male",
     password: "",
     confirmPassword: "",
   });
@@ -62,6 +64,7 @@ export default function Signup() {
         email: formData.email,
         phone: formData.phone,
         role: formData.role,
+        gender: formData.gender,
         password: formData.password,
       });
 
@@ -179,22 +182,40 @@ export default function Signup() {
               </div>
             </div>
 
-            <div className="innovative-form-group">
-              <label className="innovative-label">Assigned Role</label>
-              <div className="innovative-input-wrapper">
-                <select
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  className="innovative-input innovative-select"
-                  required
-                >
-                  <option value="superadmin">Super Admin</option>
-                  <option value="dispatcher">Dispatcher</option>
-                  <option value="hospital_staff">Hospital Staff</option>
-                  <option value="medical_team">Medical Team</option>
-                  <option value="airline_coordinator">Airline Coordinator</option>
-                </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="innovative-form-group">
+                <label className="innovative-label">Assigned Role</label>
+                <div className="innovative-input-wrapper">
+                  <select
+                    name="role"
+                    value={formData.role}
+                    onChange={handleChange}
+                    className="innovative-input innovative-select"
+                    required
+                  >
+                    <option value="superadmin">Super Admin</option>
+                    <option value="dispatcher">Dispatcher</option>
+                    <option value="hospital_staff">Hospital Staff</option>
+                    <option value="medical_team">Medical Team</option>
+                    <option value="airline_coordinator">Airline Coordinator</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="innovative-form-group">
+                <label className="innovative-label">Identity / Gender</label>
+                <div className="innovative-input-wrapper">
+                  <select
+                    name="gender"
+                    value={formData.gender}
+                    onChange={handleChange}
+                    className="innovative-input innovative-select"
+                    required
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
               </div>
             </div>
 

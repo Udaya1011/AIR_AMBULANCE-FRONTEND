@@ -121,6 +121,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  userGender: string;
+  toggleGender: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -128,7 +130,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userGender, setUserGender] = useState<string>(() => localStorage.getItem('user_gender') || 'male');
   const navigate = useNavigate();
+
+  const toggleGender = () => {
+    const newGender = userGender === 'male' ? 'female' : 'male';
+    setUserGender(newGender);
+    localStorage.setItem('user_gender', newGender);
+  };
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -181,7 +190,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, userGender, toggleGender }}>
       {loading ? (
         <div className="min-h-screen flex items-center justify-center bg-white">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

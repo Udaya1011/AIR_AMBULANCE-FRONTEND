@@ -102,7 +102,8 @@ export interface Booking {
     estimatedCost?: number;
     actualCost?: number;
 
-    // Optional expanded fields for UI convenience
+    patientName?: string;
+    notes?: string;
     patient?: { name: string };
     originHospital?: { name: string };
     destinationHospital?: { name: string };

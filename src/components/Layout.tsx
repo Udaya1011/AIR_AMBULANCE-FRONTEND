@@ -13,7 +13,8 @@ import {
   X,
   Bell,
   Search,
-  UserCircle
+  UserCircle,
+  Radio
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import "../components/Header.css";
@@ -66,6 +67,7 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
 
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/live-monitoring', icon: Radio, label: 'Live Intel' },
     { path: '/bookings', icon: Calendar, label: 'Bookings' },
     { path: '/patients', icon: Users, label: 'Patients' },
     { path: '/hospitals', icon: Building2, label: 'Hospitals' },
@@ -95,11 +97,11 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
           fixed inset-y-0 left-0 z-50 bg-card border-r border-border
           transition-all duration-300 ease-in-out flex flex-col
           lg:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          ${isMinimized ? 'lg:w-14' : 'lg:w-48'} w-56
+          ${isMinimized ? 'lg:w-14' : 'lg:w-64'} w-72
         `}
       >
         {/* Sidebar Header / Logo */}
-        <div className={`h-20 flex items-center gap-3 border-b border-slate-100 shrink-0 px-3 transition-all duration-300 ${isMinimized ? 'justify-center' : 'justify-start'}`}>
+        <div className={`h-20 flex items-center gap-3 border-b border-slate-100 shrink-0 px-4 transition-all duration-300 ${isMinimized ? 'justify-center' : 'justify-start'}`}>
           {/* Toggle Button for Desktop (Toggle Icon) */}
           <button
             onClick={() => setIsMinimized(!isMinimized)}
@@ -138,7 +140,7 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-2 py-6 space-y-1.5 scrollbar-none">
+        <nav className="flex-1 overflow-y-auto px-3 py-6 space-y-2 scrollbar-none">
           {navItems.map((item) => (
             <Link
               key={item.path}
@@ -176,7 +178,7 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
         </nav>
 
         {/* User Profile Footer */}
-        <div className={`p-3 border-t border-border bg-card transition-all ${isMinimized ? 'lg:px-1' : ''}`}>
+        <div className={`p-4 border-t border-border bg-card transition-all ${isMinimized ? 'lg:px-1' : ''}`}>
           <div className={`flex items-center justify-between px-1 py-3 ${isMinimized ? 'lg:flex-col lg:gap-4 lg:px-0' : ''}`}>
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-blue-200 shrink-0 bg-white">
@@ -211,11 +213,11 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
         className={`
           flex-1 flex flex-col h-screen overflow-hidden
           transition-all duration-300 ease-in-out
-          ${isMinimized ? 'lg:ml-14' : 'lg:ml-48'}
+          ${isMinimized ? 'lg:ml-14' : 'lg:ml-64'}
         `}
       >
         {/* Top Bar - Page Title & Notifications */}
-        <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border px-4 lg:px-8 py-1.5 flex items-center justify-between">
+        <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border px-4 lg:px-8 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Mobile Menu Toggle */}
             <button
@@ -231,7 +233,7 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
                 {location.pathname === '/' ? 'Dashboard' : location.pathname.split('/')[1].replace('-', ' ')}
               </h1>
               {subTitle && (
-                <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-widest leading-none">
+                <p className="text-[11px] text-slate-500 font-bold mt-1.5 uppercase tracking-widest leading-none">
                   {subTitle}
                 </p>
               )}
@@ -268,7 +270,7 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
         </div>
 
         {/* CONTENT AREA */}
-        <main className={`flex-1 w-full ${isFullHeight ? 'overflow-hidden pt-2 px-2 pb-4 lg:pt-4 lg:px-4 lg:pb-6' : 'overflow-y-auto p-4 lg:p-8'} overflow-x-hidden custom-scrollbar bg-background`}>
+        <main className={`flex-1 w-full ${isFullHeight ? 'overflow-hidden pt-3 px-3 pb-5 lg:pt-5 lg:px-5 lg:pb-7' : 'overflow-y-auto p-5 lg:p-8'} overflow-x-hidden custom-scrollbar bg-background`}>
           <div className={`max-w-[1600px] mx-auto ${isFullHeight ? 'h-full flex flex-col' : 'min-h-full flex flex-col'}`}>
             <div className={`flex-1 ${isFullHeight ? 'min-h-0 flex flex-col' : ''}`}>
               {children}
