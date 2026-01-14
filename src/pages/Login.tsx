@@ -65,12 +65,29 @@ export default function Login() {
     document.documentElement.style.setProperty("--bg-image", `url(${innovativeBg})`);
   }, []);
 
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    const checkStandalone = () => {
+      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone === true;
+      setIsStandalone(isStandaloneMode);
+    };
+    checkStandalone();
+  }, []);
+
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    } else {
+      toast.info("Install Application", {
+        description: "To install, tap your browser's Menu/Share button and select 'Add to Home Screen' or 'Install App'.",
+        duration: 5000,
+      });
     }
   };
 
@@ -139,8 +156,8 @@ export default function Login() {
             <span>AIR AMBULANCE</span>
           </div>
 
-          {/* Install App Button */}
-          {deferredPrompt && (
+          {/* Install App Button - Always visible unless standalone */}
+          {!isStandalone && (
             <button
               onClick={handleInstallClick}
               className="flex items-center gap-2 px-3 py-1.5 bg-blue-100/50 text-blue-700 hover:bg-blue-200/50 rounded-lg transition-all text-xs font-bold uppercase tracking-wider"
