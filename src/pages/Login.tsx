@@ -156,16 +156,14 @@ export default function Login() {
             <span>AIR AMBULANCE</span>
           </div>
 
-          {/* Install App Button - Always visible unless standalone */}
-          {!isStandalone && (
-            <button
-              onClick={handleInstallClick}
-              className="flex items-center gap-2 px-3 py-1.5 bg-blue-100/50 text-blue-700 hover:bg-blue-200/50 rounded-lg transition-all text-xs font-bold uppercase tracking-wider"
-            >
-              <Download size={14} />
-              <span>Install App</span>
-            </button>
-          )}
+          {/* Install App Button - FORCE VISIBLE FOR DEMO */}
+          <button
+            onClick={handleInstallClick}
+            className="flex items-center gap-2 px-3 py-1.5 bg-blue-100/50 text-blue-700 hover:bg-blue-200/50 rounded-lg transition-all text-xs font-bold uppercase tracking-wider"
+          >
+            <Download size={14} />
+            <span>Install App</span>
+          </button>
         </div>
 
         <div className="brand-header">
@@ -266,7 +264,7 @@ export default function Login() {
               <span>Enterprise-grade Security</span>
             </div>
             <p className="version-info">
-              v1.0.0 • © 2026 Air Ambulance Service
+              v1.1.0 (Live Ready) • © 2026 Air Ambulance Service
             </p>
           </footer>
         </form>
