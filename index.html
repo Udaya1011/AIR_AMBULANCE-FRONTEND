@@ -24,6 +24,29 @@
 
 <body>
   <div id="root"></div>
+
+  <!-- EMERGENCY RAW BUTTON -->
+  <button id="pwa-install-btn"
+    style="position: fixed; bottom: 20px; right: 20px; z-index: 999999; padding: 12px 24px; background: #2563eb; color: white; display: flex; align-items: center; gap: 8px; border: none; border-radius: 50px; font-family: system-ui, sans-serif; font-weight: bold; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4); cursor: pointer;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="7 10 12 15 17 10"></polyline>
+      <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+    INSTALL APP
+  </button>
+
+  <script>
+    const btn = document.getElementById('pwa-install-btn');
+    btn.addEventListener('click', () => {
+      if (window.deferredPrompt) {
+        window.deferredPrompt.prompt();
+      } else {
+        alert("To install: Click browser menu (⋮) -> 'Install App' or 'Add to Home Screen'");
+      }
+    });
+  </script>
+
   <script type="module" src="/src/main.tsx"></script>
 </body>
 
