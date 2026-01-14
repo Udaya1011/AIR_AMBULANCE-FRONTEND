@@ -42,9 +42,16 @@ export default function Login() {
   useEffect(() => {
     generateCaptcha();
 
+    // Check if the event was already captured globally
+    if ((window as any).deferredPrompt) {
+      setDeferredPrompt((window as any).deferredPrompt);
+    }
+
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      // Update global variable just in case
+      (window as any).deferredPrompt = e;
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
