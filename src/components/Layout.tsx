@@ -14,7 +14,8 @@ import {
   Bell,
   Search,
   UserCircle,
-  Radio
+  Radio,
+  Download
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import "../components/Header.css";
@@ -33,6 +34,29 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   // Persist sidebar state across navigations
   const [isMinimized, setIsMinimized] = useState(() => {
@@ -254,6 +278,17 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
                   <span className="text-xs">⌘</span>K
                 </kbd>
               </div>
+            )}
+
+            {/* Install App Button */}
+            {deferredPrompt && (
+              <button
+                onClick={handleInstallClick}
+                className="hidden sm:flex items-center gap-2 px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all active:scale-95 font-semibold text-xs shadow-md shadow-blue-200"
+              >
+                <Download size={16} />
+                <span>Install App</span>
+              </button>
             )}
 
             {/* Notification Bell */}
