@@ -156,14 +156,6 @@ export default function Login() {
             <span>AIR AMBULANCE</span>
           </div>
 
-          {/* Install App Button - FORCE VISIBLE FOR DEMO */}
-          <button
-            onClick={handleInstallClick}
-            className="flex items-center gap-2 px-3 py-1.5 bg-blue-100/50 text-blue-700 hover:bg-blue-200/50 rounded-lg transition-all text-xs font-bold uppercase tracking-wider"
-          >
-            <Download size={14} />
-            <span>Install App</span>
-          </button>
         </div>
 
         <div className="brand-header">
@@ -183,6 +175,16 @@ export default function Login() {
             Secure authentication required to proceed.
           </motion.p>
         </div>
+
+        {/* Install App Button - FIXED POSITION OVERLAY */}
+        <button
+          onClick={handleInstallClick}
+          className="fixed bottom-4 right-4 z-[9999] flex items-center gap-2 px-4 py-3 bg-blue-600 text-white hover:bg-blue-700 rounded-full shadow-lg shadow-blue-900/40 transition-all font-bold uppercase tracking-wider animate-bounce"
+          style={{ animationDuration: '2s' }}
+        >
+          <Download size={18} />
+          <span>Install App</span>
+        </button>
 
         <form onSubmit={handleSubmit}>
           <div className="innovative-form-group">
