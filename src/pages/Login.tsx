@@ -10,7 +10,8 @@ import {
   Shield,
   RefreshCw,
   Lock,
-  Mail
+  Mail,
+  Download
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -24,6 +25,7 @@ export default function Login() {
   const [userInputCaptcha, setUserInputCaptcha] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -39,13 +41,31 @@ export default function Login() {
 
   useEffect(() => {
     generateCaptcha();
+
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
-
-
 
   useEffect(() => {
     document.documentElement.style.setProperty("--bg-image", `url(${innovativeBg})`);
   }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,9 +126,22 @@ export default function Login() {
         transition={{ type: "tween", duration: 0.4 }}
         className="innovative-right-panel"
       >
-        <div className="panel-top-branding">
-          <Plane className="w-5 h-5" />
-          <span>AIR AMBULANCE</span>
+        <div className="flex justify-between items-center w-full mb-8">
+          <div className="panel-top-branding">
+            <Plane className="w-5 h-5" />
+            <span>AIR AMBULANCE</span>
+          </div>
+
+          {/* Install App Button */}
+          {deferredPrompt && (
+            <button
+              onClick={handleInstallClick}
+              className="flex items-center gap-2 px-3 py-1.5 bg-blue-100/50 text-blue-700 hover:bg-blue-200/50 rounded-lg transition-all text-xs font-bold uppercase tracking-wider"
+            >
+              <Download size={14} />
+              <span>Install App</span>
+            </button>
+          )}
         </div>
 
         <div className="brand-header">
@@ -187,9 +220,6 @@ export default function Login() {
               </div>
             </div>
           </div>
-
-
-
 
           <button
             type="submit"

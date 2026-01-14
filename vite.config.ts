@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
         name: 'Airswift',
         short_name: 'Airswift',
@@ -77,7 +77,7 @@ export default defineConfig(({ mode }) => ({
         enabled: true
       }
     })
-  ].filter(Boolean),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
