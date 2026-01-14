@@ -233,16 +233,12 @@ export default function Reports() {
           HospitalService.getHospitals(),
         ]);
 
-        // Filter out null or incomplete data - only show records with valid links
+        // Filter out completely invalid records, but allow records with missing relations to show (for debugging/completeness)
         const validBookings = (bookingsData || []).filter((b: any) => {
-          if (!b || !(b.id || b._id)) return false;
-          // Must have valid patient and hospitals to be a real report
-          const hasPatient = patientsData.some((p: any) => p.id === b.patientId || p.patient_id === b.patientId);
-          const hasOrigin = hospitalsData.some((h: any) => h.id === b.originHospitalId);
-          const hasDest = hospitalsData.some((h: any) => h.id === b.destinationHospitalId);
-          return hasPatient && hasOrigin && hasDest;
+          return b && (b.id || b._id);
         });
 
+        // Map _id to id if necessary
         setBookings(validBookings.map((b: any) => ({ ...b, id: b._id || b.id })));
 
         setAircraft((aircraftData || []).filter((a: any) => a && (a.id || a._id)));
