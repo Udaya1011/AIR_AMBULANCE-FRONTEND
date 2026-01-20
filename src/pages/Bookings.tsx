@@ -48,16 +48,16 @@ const Bookings = () => {
 
   const getStatusColor = (status: BookingStatus) => {
     const colors: Record<BookingStatus, string> = {
-      requested: 'bg-blue-100 text-blue-800',
-      clinical_review: 'bg-yellow-100 text-yellow-800',
-      dispatch_review: 'bg-purple-100 text-purple-800',
-      airline_confirmed: 'bg-indigo-100 text-indigo-800',
-      crew_assigned: 'bg-pink-100 text-pink-800',
-      in_transit: 'bg-orange-100 text-orange-800',
-      completed: 'bg-green-100 text-green-800',
-      cancelled: 'bg-red-100 text-red-800',
+      requested: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border border-blue-200 dark:border-blue-800',
+      clinical_review: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-800',
+      dispatch_review: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200 border border-purple-200 dark:border-purple-800',
+      airline_confirmed: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-800',
+      crew_assigned: 'bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-200 border border-pink-200 dark:border-pink-800',
+      in_transit: 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200 border border-orange-200 dark:border-orange-800',
+      completed: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200 border border-green-200 dark:border-green-800',
+      cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200 border border-red-200 dark:border-red-800',
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[status] || 'bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-slate-200 border border-gray-200 dark:border-slate-700';
   };
 
   const getPatientName = (patientId: string) => {
@@ -138,7 +138,7 @@ const Bookings = () => {
   // Filter logic
   const filteredBookings = (bookings || []).filter(booking => {
     // Robust check for empty/invalid records
-    if (!booking || !(booking.id || booking._id)) return false;
+    if (!booking || !booking.id) return false;
 
     const patient = getPatientById(booking.patientId);
     // Use fallback names if lookup fails
@@ -381,60 +381,60 @@ const Bookings = () => {
       {/* Analytics Popover */}
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group" title="View Booking Analytics">
+          <Button variant="outline" className="h-10 w-10 p-0 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95 group" title="View Booking Analytics">
             <BarChart3 className="h-4 w-4 transition-transform group-hover:scale-110 text-slate-500 group-hover:text-blue-600" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[320px] p-5 rounded-3xl shadow-2xl border-slate-200 animate-in fade-in zoom-in-95 duration-300" align="end" sideOffset={10}>
-          <div className="flex items-center gap-3 mb-5 pb-3 border-b border-slate-100">
+        <PopoverContent className="w-[320px] p-5 rounded-3xl shadow-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 animate-in fade-in zoom-in-95 duration-300" align="end" sideOffset={10}>
+          <div className="flex items-center gap-3 mb-5 pb-3 border-b border-slate-100 dark:border-slate-800">
             <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100">
               <Activity className="h-4 w-4 text-white" />
             </div>
             <div className="flex flex-col">
-              <span className="text-xs font-black text-slate-800 uppercase tracking-tight">Booking Analytics</span>
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">Global Statistics</span>
+              <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">Booking Analytics</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest leading-none">Global Statistics</span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl transition-all hover:border-blue-100 group/metric">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-xl transition-all hover:border-blue-100 dark:hover:border-blue-900 group/metric">
               <div className="flex items-center gap-2 mb-1.5">
-                <Users className="h-3 w-3 text-blue-500" />
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
+                <Users className="h-3 w-3 text-blue-500 dark:text-blue-400" />
+                <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Total</span>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-slate-800 tracking-tighter">{summaryStats.total}</span>
-                <span className="text-[8px] text-slate-400 font-bold uppercase">Requests</span>
+                <span className="text-xl font-black text-slate-800 dark:text-slate-200 tracking-tighter">{summaryStats.total}</span>
+                <span className="text-[8px] text-slate-400 dark:text-slate-500 font-bold uppercase">Requests</span>
               </div>
             </div>
-            <div className="p-3 bg-rose-50/50 border border-rose-100 rounded-xl transition-all hover:border-rose-200 group/metric">
+            <div className="p-3 bg-rose-50/50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/30 rounded-xl transition-all hover:border-rose-200 dark:hover:border-rose-800 group/metric">
               <div className="flex items-center gap-2 mb-1.5">
-                <AlertCircle className="h-3 w-3 text-rose-500" />
-                <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">Emergency</span>
+                <AlertCircle className="h-3 w-3 text-rose-500 dark:text-rose-400" />
+                <span className="text-[9px] font-black text-rose-400 dark:text-rose-500 uppercase tracking-widest">Emergency</span>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-rose-600 tracking-tighter">{summaryStats.emergency}</span>
-                <span className="text-[8px] text-rose-400 font-bold uppercase font-black italic">Crit</span>
+                <span className="text-xl font-black text-rose-600 dark:text-rose-400 tracking-tighter">{summaryStats.emergency}</span>
+                <span className="text-[8px] text-rose-400 dark:text-rose-500 font-bold uppercase font-black italic">Crit</span>
               </div>
             </div>
-            <div className="p-3 bg-amber-50/50 border border-amber-100 rounded-xl transition-all hover:border-amber-200 group/metric">
+            <div className="p-3 bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-xl transition-all hover:border-amber-200 dark:hover:border-amber-800 group/metric">
               <div className="flex items-center gap-2 mb-1.5">
-                <Heart className="h-3 w-3 text-amber-500" />
-                <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Urgent</span>
+                <Heart className="h-3 w-3 text-amber-500 dark:text-amber-400" />
+                <span className="text-[9px] font-black text-amber-400 dark:text-amber-500 uppercase tracking-widest">Urgent</span>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-amber-600 tracking-tighter">{summaryStats.urgent}</span>
-                <span className="text-[8px] text-amber-400 font-bold uppercase font-black italic">Urg</span>
+                <span className="text-xl font-black text-amber-600 dark:text-amber-400 tracking-tighter">{summaryStats.urgent}</span>
+                <span className="text-[8px] text-amber-400 dark:text-amber-500 font-bold uppercase font-black italic">Urg</span>
               </div>
             </div>
-            <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl transition-all hover:border-emerald-200 group/metric">
+            <div className="p-3 bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 rounded-xl transition-all hover:border-emerald-200 dark:hover:border-emerald-800 group/metric">
               <div className="flex items-center gap-2 mb-1.5">
-                <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Done</span>
+                <CheckCircle2 className="h-3 w-3 text-emerald-500 dark:text-emerald-400" />
+                <span className="text-[9px] font-black text-emerald-400 dark:text-emerald-500 uppercase tracking-widest">Done</span>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-emerald-600 tracking-tighter">{summaryStats.completed}</span>
-                <span className="text-[8px] text-emerald-400 font-bold uppercase font-black italic">Comp</span>
+                <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">{summaryStats.completed}</span>
+                <span className="text-[8px] text-emerald-400 dark:text-emerald-500 font-bold uppercase font-black italic">Comp</span>
               </div>
             </div>
           </div>
@@ -444,7 +444,7 @@ const Bookings = () => {
       {/* Approvals Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-emerald-600 transition-all active:scale-95 group relative" title="Pending Approvals">
+          <Button variant="outline" className="h-10 w-10 p-0 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all active:scale-95 group relative" title="Pending Approvals">
             <Zap className={`h-4 w-4 transition-transform group-hover:scale-110 ${bookings.filter(b => b.status === 'requested').length > 0 ? 'text-emerald-600 animate-pulse' : 'text-slate-500'}`} />
             {bookings.filter(b => b.status === 'requested').length > 0 && (
               <span className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center rounded-full bg-emerald-600 text-white text-[8px] font-black border-2 border-white shadow-sm animate-bounce">
@@ -453,12 +453,12 @@ const Bookings = () => {
             )}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-80 p-2 rounded-2xl shadow-2xl border-slate-200 animate-in fade-in zoom-in-95 duration-200" align="end">
+        <DropdownMenuContent className="w-80 p-2 rounded-2xl shadow-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 animate-in fade-in zoom-in-95 duration-200" align="end">
           <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2 py-1.5 flex justify-between items-center">
             <span>Operational Approvals</span>
             <Badge variant="outline" className="text-[9px] border-emerald-200 text-emerald-600 bg-emerald-50 font-black">ACTION REQ</Badge>
           </DropdownMenuLabel>
-          <DropdownMenuSeparator className="my-1 bg-slate-100" />
+          <DropdownMenuSeparator className="my-1 bg-slate-100 dark:bg-slate-800" />
           <div className="max-h-[400px] overflow-y-auto custom-scrollbar p-1">
             {bookings.filter(b => b.status === 'requested').length === 0 ? (
               <div className="py-8 px-4 text-center space-y-2">
@@ -467,22 +467,22 @@ const Bookings = () => {
               </div>
             ) : (
               bookings.filter(b => b.status === 'requested').map(b => (
-                <div key={b.id} className="p-3 mb-2 bg-white hover:bg-slate-50/80 rounded-xl border border-slate-100 hover:border-emerald-100 transition-all group/item shadow-sm">
+                <div key={b.id} className="p-3 mb-2 bg-white dark:bg-slate-800/50 hover:bg-slate-50/80 dark:hover:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-emerald-100 dark:hover:border-emerald-900/50 transition-all group/item shadow-sm">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex flex-col">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-black text-slate-900 leading-none tracking-tight">#{(b.booking_id || b.id).slice(0, 8).toUpperCase()}</span>
+                        <span className="text-xs font-black text-slate-900 dark:text-slate-200 leading-none tracking-tight">#{(b.booking_id || b.id).slice(0, 8).toUpperCase()}</span>
                         {b.urgency === 'emergency' && <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping" />}
                       </div>
                       <span className="text-[11px] font-bold text-slate-500 mt-1.5 uppercase tracking-wide">{getPatientName(b.patientId)}</span>
                     </div>
-                    <Badge className={`text-[9px] font-black uppercase tracking-tighter ${b.urgency === 'emergency' ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-blue-50 text-blue-700 border-blue-100'} border`}>
+                    <Badge className={`text-[9px] font-black uppercase tracking-tighter ${b.urgency === 'emergency' ? 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-900/50' : 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/50'} border`}>
                       {b.urgency}
                     </Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <Button size="sm" className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-emerald-100 transition-all active:scale-95" onClick={() => handleApprove(b.id)}>Approve</Button>
-                    <Button size="sm" variant="outline" className="h-8 border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all active:scale-95" onClick={() => handleReject(b.id)}>Reject</Button>
+                    <Button size="sm" variant="outline" className="h-8 border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:hover:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all active:scale-95" onClick={() => handleReject(b.id)}>Reject</Button>
                   </div>
                 </div>
               ))
@@ -494,7 +494,7 @@ const Bookings = () => {
       {/* Unified Filter Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="flex items-center justify-center h-10 w-10 p-0 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95 group relative" title="Filters">
+          <Button variant="outline" className="flex items-center justify-center h-10 w-10 p-0 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95 group relative" title="Filters">
             <Filter className={`h-4 w-4 transition-transform group-hover:rotate-12 ${(statusFilter !== 'all' || urgencyFilter !== 'all') ? 'text-blue-600' : 'text-slate-500'}`} />
             {(statusFilter !== 'all' || urgencyFilter !== 'all') && (
               <span className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center rounded-full bg-blue-600 text-white text-[8px] font-black border-2 border-white shadow-sm animate-in zoom-in duration-300">
@@ -503,16 +503,16 @@ const Bookings = () => {
             )}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56 p-2 rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200" align="end">
+        <DropdownMenuContent className="w-56 p-2 rounded-xl shadow-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 animate-in fade-in zoom-in-95 duration-200" align="end">
           <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2 py-1.5">
             Booking Filters
           </DropdownMenuLabel>
 
-          <DropdownMenuSeparator className="my-1 bg-slate-100" />
+          <DropdownMenuSeparator className="my-1 bg-slate-100 dark:bg-slate-800" />
 
           <DropdownMenuItem
             onClick={() => { setStatusFilter('all'); setUrgencyFilter('all'); }}
-            className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${statusFilter === 'all' && urgencyFilter === 'all' ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}
+            className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${statusFilter === 'all' && urgencyFilter === 'all' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-slate-300'}`}
           >
             <div className="flex items-center gap-2">
               <Activity className="h-4 w-4" />
@@ -530,10 +530,10 @@ const Bookings = () => {
             <DropdownMenuItem
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${statusFilter === status ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}
+              className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${statusFilter === status ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-slate-300'}`}
             >
               <span className="text-xs font-bold uppercase tracking-wide capitalize">{status.replace('_', ' ')}</span>
-              <span className="text-[10px] font-black bg-slate-100 px-1.5 py-0.5 rounded-md text-slate-500">
+              <span className="text-[10px] font-black bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md text-slate-500 dark:text-slate-400">
                 {bookings.filter(b => b.status === status).length}
               </span>
             </DropdownMenuItem>
@@ -549,10 +549,10 @@ const Bookings = () => {
             <DropdownMenuItem
               key={urg}
               onClick={() => setUrgencyFilter(urg)}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${urgencyFilter === urg ? 'bg-amber-50 text-amber-700' : 'hover:bg-slate-50'}`}
+              className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${urgencyFilter === urg ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300' : 'hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-slate-300'}`}
             >
               <span className="text-xs font-bold uppercase tracking-wide capitalize">{urg}</span>
-              <span className="text-[10px] font-black bg-amber-100/50 px-1.5 py-0.5 rounded-md text-amber-600">
+              <span className="text-[10px] font-black bg-amber-100/50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-md text-amber-600 dark:text-amber-400">
                 {bookings.filter(b => b.urgency === urg).length}
               </span>
             </DropdownMenuItem>
@@ -560,28 +560,31 @@ const Bookings = () => {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <div className="relative w-72">
+      <div className="relative w-full sm:w-72 hidden sm:block">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input
-          placeholder="Search Bookings by ID or Patient..."
-          className="pl-10 h-10 bg-slate-50/50 border-slate-200 focus:bg-white transition-all rounded-xl text-xs font-medium"
+          placeholder="Search..."
+          className="pl-10 h-10 bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900 transition-all rounded-xl text-xs font-medium dark:text-slate-200"
           value={searchTerm}
           onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
         />
       </div>
+      <Button variant="ghost" size="icon" className="sm:hidden h-10 w-10 text-slate-500" onClick={() => { }}>
+        <Search className="h-4 w-4" />
+      </Button>
 
       <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) closeDialog(); else setIsDialogOpen(open); }}>
         <DialogTrigger asChild>
           <Button
             variant="outline"
-            className="h-10 px-6 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-bold rounded-xl shadow-sm flex items-center gap-2 transition-all active:scale-95 group"
+            className="h-10 w-10 sm:w-auto px-0 sm:px-6 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-bold rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all active:scale-95 group"
             onClick={openNewBooking}
           >
             <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
-            <span className="uppercase tracking-wider">New Booking</span>
+            <span className="hidden sm:inline uppercase tracking-wider">New Booking</span>
           </Button>
         </DialogTrigger>
-        <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+        <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white dark:bg-slate-900 p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl">
           <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
             <FileText className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
             <div className="relative z-10">
@@ -592,7 +595,7 @@ const Bookings = () => {
             </div>
           </DialogHeader>
 
-          <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/10">
+          <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/10 dark:bg-slate-900/50 text-black dark:text-slate-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="space-y-1.5">
                 <Label>Selection Method</Label>
@@ -600,10 +603,10 @@ const Bookings = () => {
                   value={patientSelectionMode}
                   onValueChange={(v: any) => setPatientSelectionMode(v)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
                     <SelectValue placeholder="Method" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
                     <SelectItem value="list">📝 Select from List</SelectItem>
                     <SelectItem value="id">🔍 Search by ID</SelectItem>
                   </SelectContent>
@@ -621,15 +624,15 @@ const Bookings = () => {
                       if (p) handleFormChange('patientName', p.name);
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
                       <SelectValue placeholder="Search patients..." />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
                       {patients.map(p => (
-                        <SelectItem key={p.id} value={p.id}>
+                        <SelectItem key={p.id} value={p.id} className="dark:text-slate-200 focus:dark:bg-slate-700">
                           <div className="flex items-center justify-between w-[250px] gap-2">
                             <span className="truncate font-medium">{p.name}</span>
-                            <span className="text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 text-slate-600 shrink-0">
+                            <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 shrink-0">
                               {p.patient_id || p.id.slice(0, 8)}
                             </span>
                           </div>
@@ -646,7 +649,7 @@ const Bookings = () => {
                       placeholder="Patient ID..."
                       value={patientIdLookup}
                       onChange={(e) => setPatientIdLookup(e.target.value)}
-                      className="flex-1"
+                      className="flex-1 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
                     />
                     <Button
                       type="button"
@@ -684,31 +687,31 @@ const Bookings = () => {
               <div className="space-y-1.5">
                 <Label>Urgency</Label>
                 <Select value={form.urgency as string | undefined} onValueChange={(v) => handleFormChange('urgency', v as any)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="routine">Routine</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                    <SelectItem value="emergency">Emergency</SelectItem>
+                  <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
+                    <SelectItem value="routine" className="dark:text-slate-200 focus:dark:bg-slate-700">Routine</SelectItem>
+                    <SelectItem value="urgent" className="dark:text-slate-200 focus:dark:bg-slate-700">Urgent</SelectItem>
+                    <SelectItem value="emergency" className="dark:text-slate-200 focus:dark:bg-slate-700">Emergency</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <Label>Status</Label>
                 <Select value={form.status as string | undefined} onValueChange={(v) => handleFormChange('status', v as any)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="requested">Requested</SelectItem>
-                    <SelectItem value="clinical_review">Clinical Review</SelectItem>
-                    <SelectItem value="dispatch_review">Dispatch Review</SelectItem>
-                    <SelectItem value="airline_confirmed">Airline Confirmed</SelectItem>
-                    <SelectItem value="crew_assigned">Crew Assigned</SelectItem>
-                    <SelectItem value="in_transit">In Transit</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
+                    <SelectItem value="requested" className="dark:text-slate-200 focus:dark:bg-slate-700">Requested</SelectItem>
+                    <SelectItem value="clinical_review" className="dark:text-slate-200 focus:dark:bg-slate-700">Clinical Review</SelectItem>
+                    <SelectItem value="dispatch_review" className="dark:text-slate-200 focus:dark:bg-slate-700">Dispatch Review</SelectItem>
+                    <SelectItem value="airline_confirmed" className="dark:text-slate-200 focus:dark:bg-slate-700">Airline Confirmed</SelectItem>
+                    <SelectItem value="crew_assigned" className="dark:text-slate-200 focus:dark:bg-slate-700">Crew Assigned</SelectItem>
+                    <SelectItem value="in_transit" className="dark:text-slate-200 focus:dark:bg-slate-700">In Transit</SelectItem>
+                    <SelectItem value="completed" className="dark:text-slate-200 focus:dark:bg-slate-700">Completed</SelectItem>
+                    <SelectItem value="cancelled" className="dark:text-slate-200 focus:dark:bg-slate-700">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -718,15 +721,15 @@ const Bookings = () => {
               <div className="space-y-1.5">
                 <Label>Origin Hospital</Label>
                 <Select value={form.originHospitalId as string | undefined} onValueChange={(v) => handleFormChange('originHospitalId', v)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
                     <SelectValue placeholder="Select origin" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
                     {hospitals.map(h => (
-                      <SelectItem key={h.id} value={h.id}>
+                      <SelectItem key={h.id} value={h.id} className="dark:text-slate-200 focus:dark:bg-slate-700">
                         <div className="flex flex-col">
                           <span>{h.name}</span>
-                          <span className="text-[10px] text-muted-foreground">Available: {h.icuCapacity - (h.occupiedBeds || 0)} Seats</span>
+                          <span className="text-[10px] text-muted-foreground dark:text-slate-400">Available: {h.icuCapacity - (h.occupiedBeds || 0)} Seats</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -736,15 +739,15 @@ const Bookings = () => {
               <div className="space-y-1.5">
                 <Label>Destination Hospital</Label>
                 <Select value={form.destinationHospitalId as string | undefined} onValueChange={(v) => handleFormChange('destinationHospitalId', v)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
                     <SelectValue placeholder="Select destination" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
                     {hospitals.map(h => (
-                      <SelectItem key={h.id} value={h.id} disabled={(h.icuCapacity - (h.occupiedBeds || 0)) <= 0}>
+                      <SelectItem key={h.id} value={h.id} disabled={(h.icuCapacity - (h.occupiedBeds || 0)) <= 0} className="dark:text-slate-200 focus:dark:bg-slate-700">
                         <div className="flex flex-col">
                           <span>{h.name}</span>
-                          <span className={`text-[10px] ${(h.icuCapacity - (h.occupiedBeds || 0)) <= 2 ? 'text-red-500' : 'text-green-600'}`}>
+                          <span className={`text-[10px] ${(h.icuCapacity - (h.occupiedBeds || 0)) <= 2 ? 'text-red-500' : 'text-green-600 dark:text-green-400'}`}>
                             Available: {h.icuCapacity - (h.occupiedBeds || 0)} Seats
                           </span>
                         </div>
@@ -792,7 +795,7 @@ const Bookings = () => {
 
             <div className="space-y-1.5">
               <Label>Required Equipment</Label>
-              <div className="flex flex-wrap gap-4 border p-3 rounded-md bg-slate-50">
+              <div className="flex flex-wrap gap-4 border p-3 rounded-md bg-slate-50 dark:bg-slate-900/50 dark:border-slate-700">
                 {[
                   { id: 'ventilator', label: 'Ventilator' },
                   { id: 'ecg_monitor', label: 'ECG Monitor' },
@@ -831,9 +834,9 @@ const Bookings = () => {
           </div>
         </DialogContent>
       </Dialog>
-      <Button variant="secondary" className="h-10 px-6 border-2 border-slate-200 text-slate-600 hover:bg-slate-50 font-bold rounded-xl shadow-sm transition-all active:scale-95" onClick={handleExport}>
-        <FileText size={16} className="mr-2" />
-        EXPORT
+      <Button variant="secondary" className="h-10 w-10 sm:w-auto px-0 sm:px-6 border-2 border-slate-200 text-slate-600 hover:bg-slate-50 font-bold rounded-xl shadow-sm transition-all active:scale-95 flex items-center justify-center" onClick={handleExport}>
+        <FileText size={16} className="sm:mr-2" />
+        <span className="hidden sm:inline">EXPORT</span>
       </Button>
     </div>
   );
@@ -911,18 +914,19 @@ const Bookings = () => {
     <Layout subTitle="Medical Transport Requests" headerActions={headerActions} isFullHeight={true}>
       <div className="p-4 lg:p-6 space-y-4 h-full flex flex-col">
         {/* Table */}
-        <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl overflow-hidden flex-1 flex flex-col min-h-0">
+        {/* Table */}
+        <div className="rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-xl overflow-hidden flex-1 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto custom-scrollbar">
             <table className="w-full">
               <thead className="sticky top-0 z-20">
-                <tr className="bg-[#f8fafc] border-b border-slate-200">
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Patient Name</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Age</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Date</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Time</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Urgency</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Status</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
+                <tr className="bg-[#f8fafc] dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Patient Name</th>
+                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Age</th>
+                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Date</th>
+                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Time</th>
+                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Urgency</th>
+                  <th className="hidden md:table-cell px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Status</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -935,7 +939,7 @@ const Bookings = () => {
                 ) : (
                   currentItems.map((booking, idx) => (
                     <React.Fragment key={booking.id}>
-                      <tr className={`border-b hover:bg-gray-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} ${expandedRowId === booking.id ? 'bg-blue-50/30' : ''}`}>
+                      <tr className={`border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors ${idx % 2 === 0 ? 'bg-white dark:bg-slate-950' : 'bg-slate-50/50 dark:bg-slate-900/30'} ${expandedRowId === booking.id ? 'bg-blue-50/30 dark:bg-blue-900/20' : ''}`}>
 
                         <td className="px-6 py-2.5">
                           <div className="flex items-center gap-3">
@@ -950,7 +954,7 @@ const Bookings = () => {
                             </Avatar>
                             <div className="flex flex-col">
                               <p
-                                className="font-bold text-slate-900 cursor-pointer hover:text-blue-600 transition-all leading-tight text-base"
+                                className="font-bold text-slate-900 dark:text-slate-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-all leading-tight text-base"
                                 onClick={() => setExpandedRowId(expandedRowId === booking.id ? null : booking.id)}
                               >
                                 {getPatientName(booking.patientId)}
@@ -959,19 +963,19 @@ const Bookings = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-2.5">
-                          <p className="text-sm text-gray-900">{getPatientAge(booking.patientId)}</p>
+                        <td className="hidden md:table-cell px-6 py-2.5">
+                          <p className="text-sm text-gray-900 dark:text-slate-200">{getPatientAge(booking.patientId)}</p>
                         </td>
-                        <td className="px-6 py-2.5">
-                          <p className="text-sm text-gray-900">{format(new Date(booking.preferredPickupWindow), 'yyyy-MM-dd')}</p>
+                        <td className="hidden md:table-cell px-6 py-2.5">
+                          <p className="text-sm text-gray-900 dark:text-slate-200">{format(new Date(booking.preferredPickupWindow), 'yyyy-MM-dd')}</p>
                         </td>
-                        <td className="px-6 py-2.5">
-                          <p className="text-sm text-gray-900">{format(new Date(booking.preferredPickupWindow), 'HH:mm')}</p>
+                        <td className="hidden md:table-cell px-6 py-2.5">
+                          <p className="text-sm text-gray-900 dark:text-slate-200">{format(new Date(booking.preferredPickupWindow), 'HH:mm')}</p>
                         </td>
-                        <td className="px-6 py-2.5">
-                          <p className="text-sm text-gray-900 capitalize">{booking.urgency}</p>
+                        <td className="hidden md:table-cell px-6 py-2.5">
+                          <p className="text-sm text-gray-900 dark:text-slate-200 capitalize">{booking.urgency}</p>
                         </td>
-                        <td className="px-6 py-2.5">
+                        <td className="hidden md:table-cell px-6 py-2.5">
                           <Badge className={getStatusColor(booking.status)}>
                             {booking.status.replace(/_/g, ' ')}
                           </Badge>
@@ -980,12 +984,12 @@ const Bookings = () => {
                           <div className="flex justify-center gap-2">
                             <Dialog>
                               <DialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900">
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
                                   <Eye className="h-4 w-4" />
                                 </Button>
                               </DialogTrigger>
                               <DialogContent
-                                className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl"
+                                className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white dark:bg-slate-900 p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl"
                               >
                                 <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
                                   <Activity className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
@@ -996,7 +1000,7 @@ const Bookings = () => {
                                     <p className="text-blue-100 text-[10px] uppercase font-bold tracking-widest mt-1">Comprehensive audit trail and status</p>
                                   </div>
                                 </DialogHeader>
-                                <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/10">
+                                <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/10 dark:bg-slate-900/50 text-black dark:text-slate-200">
 
                                   <div className="space-y-6 px-6 py-4">
                                     <div className="grid grid-cols-2 gap-6">
@@ -1015,18 +1019,18 @@ const Bookings = () => {
                                     <div>
                                       <h4 className="font-semibold mb-2">Timeline</h4>
                                       <div className="overflow-x-auto max-h-[60vh] px-2">
-                                        <table className="w-full text-left border border-gray-300">
-                                          <thead className="bg-gray-100 sticky top-0">
+                                        <table className="w-full text-left border border-gray-300 dark:border-slate-700">
+                                          <thead className="bg-gray-100 dark:bg-slate-800 sticky top-0">
                                             <tr>
-                                              <th className="px-4 py-2 text-sm font-medium border-b">Event</th>
-                                              <th className="px-4 py-2 text-sm font-medium border-b">User</th>
-                                              <th className="px-4 py-2 text-sm font-medium border-b">Timestamp</th>
-                                              <th className="px-4 py-2 text-sm font-medium border-b">Details</th>
+                                              <th className="px-4 py-2 text-sm font-medium border-b dark:border-slate-700">Event</th>
+                                              <th className="px-4 py-2 text-sm font-medium border-b dark:border-slate-700">User</th>
+                                              <th className="px-4 py-2 text-sm font-medium border-b dark:border-slate-700">Timestamp</th>
+                                              <th className="px-4 py-2 text-sm font-medium border-b dark:border-slate-700">Details</th>
                                             </tr>
                                           </thead>
                                           <tbody>
                                             {booking.timeline.map((event) => (
-                                              <tr key={event.id} className="border-b hover:bg-gray-50">
+                                              <tr key={event.id} className="border-b dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800">
                                                 <td className="px-4 py-2 text-sm">{event.event}</td>
                                                 <td className="px-4 py-2 text-sm">{event.user}</td>
                                                 <td className="px-4 py-2 text-sm">
@@ -1049,7 +1053,7 @@ const Bookings = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50"
+                              className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30"
                               onClick={() => openEditBooking(booking)}
                             >
                               <Edit2 className="h-4 w-4" />
@@ -1058,7 +1062,7 @@ const Bookings = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+                              className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
                               onClick={() => deleteBooking(booking.id)}
                             >
                               <Trash className="h-4 w-4" />
@@ -1068,14 +1072,22 @@ const Bookings = () => {
                       </tr>
 
                       {expandedRowId === booking.id && (
-                        <tr className="bg-blue-50/20 border-b">
+                        <tr className="bg-blue-50/20 dark:bg-blue-900/10 border-b border-slate-200 dark:border-slate-800">
                           <td colSpan={7} className="px-10 py-6">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                               {/* Column 1: Transfer Info */}
                               <div className="space-y-4">
-                                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-2">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-2">
                                   <MapPin className="h-3 w-3" /> Transport Path
                                 </h4>
+                                <div className="mb-4 flex items-center gap-4 md:hidden">
+                                  <Badge className={getStatusColor(booking.status)}>
+                                    {booking.status.replace(/_/g, ' ')}
+                                  </Badge>
+                                  <span className={`text-xs font-bold uppercase ${booking.urgency === 'emergency' ? 'text-red-600' : 'text-slate-500'}`}>
+                                    {booking.urgency}
+                                  </span>
+                                </div>
                                 <div className="flex items-center gap-3">
                                   <div className="w-1 h-12 bg-blue-200 rounded-full relative">
                                     <div className="absolute top-0 -left-1 w-3 h-3 rounded-full bg-blue-600 border-2 border-white shadow-sm" />
@@ -1084,11 +1096,11 @@ const Bookings = () => {
                                   <div className="space-y-3">
                                     <div>
                                       <p className="text-[10px] text-gray-500 uppercase">From</p>
-                                      <p className="text-sm font-semibold">{hospitals.find(h => h.id === booking.originHospitalId)?.name || 'Unknown Hospital'}</p>
+                                      <p className="text-sm font-semibold dark:text-slate-200">{hospitals.find(h => h.id === booking.originHospitalId)?.name || 'Unknown Hospital'}</p>
                                     </div>
                                     <div>
                                       <p className="text-[10px] text-gray-500 uppercase">To</p>
-                                      <p className="text-sm font-semibold">{hospitals.find(h => h.id === booking.destinationHospitalId)?.name || 'Unknown Hospital'}</p>
+                                      <p className="text-sm font-semibold dark:text-slate-200">{hospitals.find(h => h.id === booking.destinationHospitalId)?.name || 'Unknown Hospital'}</p>
                                     </div>
                                   </div>
                                 </div>
@@ -1096,7 +1108,7 @@ const Bookings = () => {
 
                               {/* Column 2: Equipment & Cost */}
                               <div className="space-y-4">
-                                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-2">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-2">
                                   <Activity className="h-3 w-3" /> Clinical & Billing
                                 </h4>
                                 <div className="space-y-3">
@@ -1105,7 +1117,7 @@ const Bookings = () => {
                                     <div className="flex flex-wrap gap-1">
                                       {booking.requiredEquipment && booking.requiredEquipment.length > 0 ? (
                                         booking.requiredEquipment.map(eq => (
-                                          <Badge key={eq} variant="outline" className="text-[10px] py-0 h-5 bg-white border-blue-100 text-blue-700 capitalize">
+                                          <Badge key={eq} variant="outline" className="text-[10px] py-0 h-5 bg-white dark:bg-slate-800 border-blue-100 dark:border-blue-800 text-blue-700 dark:text-blue-300 capitalize">
                                             {eq.replace(/_/g, ' ')}
                                           </Badge>
                                         ))
@@ -1114,7 +1126,7 @@ const Bookings = () => {
                                       )}
                                     </div>
                                   </div>
-                                  <div className="flex flex-col gap-3 pt-2 border-t border-blue-100/50">
+                                  <div className="flex flex-col gap-3 pt-2 border-t border-blue-100/50 dark:border-blue-900/30">
                                     {(() => {
                                       const origin = hospitals.find(h => h.id === booking.originHospitalId);
                                       const dest = hospitals.find(h => h.id === booking.destinationHospitalId);
@@ -1131,21 +1143,21 @@ const Bookings = () => {
                                             <MapPin className="h-4 w-4 text-blue-600" />
                                             <div>
                                               <p className="text-[10px] text-gray-500 uppercase">Est. Distance</p>
-                                              <p className="text-sm font-bold text-blue-700">{Math.round(dist * 100) / 100} km</p>
+                                              <p className="text-sm font-bold text-blue-700 dark:text-blue-400">{Math.round(dist * 100) / 100} km</p>
                                             </div>
                                           </div>
-                                          <div className="flex items-center gap-1.5 px-4 border-l border-r border-blue-100/30">
+                                          <div className="flex items-center gap-1.5 px-4 border-l border-r border-blue-100/30 dark:border-blue-800/20">
                                             <IndianRupee className="h-4 w-4 text-green-600" />
                                             <div>
                                               <p className="text-[10px] text-gray-500 uppercase">Est. Cost</p>
-                                              <p className="text-sm font-bold text-green-700">₹{displayCost.toLocaleString()}</p>
+                                              <p className="text-sm font-bold text-green-700 dark:text-green-400">₹{displayCost.toLocaleString()}</p>
                                             </div>
                                           </div>
                                           <div className="flex items-center gap-1.5">
                                             <Clock className="h-4 w-4 text-orange-600" />
                                             <div>
                                               <p className="text-[10px] text-gray-500 uppercase">Est. Time</p>
-                                              <p className="text-sm font-bold text-orange-700">{displayTime} mins</p>
+                                              <p className="text-sm font-bold text-orange-700 dark:text-orange-400">{displayTime} mins</p>
                                             </div>
                                           </div>
                                         </div>
@@ -1157,17 +1169,17 @@ const Bookings = () => {
 
                               {/* Column 3: Recent Activity */}
                               <div className="space-y-4">
-                                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-2">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-2">
                                   <Clock className="h-3 w-3" /> Recent Activity
                                 </h4>
                                 <div className="space-y-2">
                                   {booking.timeline.slice(-2).reverse().map((log, i) => (
-                                    <div key={log.id} className={`p-2 rounded-md ${i === 0 ? 'bg-white shadow-sm border border-blue-100' : 'bg-transparent text-gray-500 opacity-70'}`}>
+                                    <div key={log.id} className={`p-2 rounded-md ${i === 0 ? 'bg-white dark:bg-slate-800 shadow-sm border border-blue-100 dark:border-blue-900/40' : 'bg-transparent text-gray-500 dark:text-gray-400 opacity-70'}`}>
                                       <div className="flex justify-between items-start">
-                                        <p className="text-[11px] font-bold text-blue-900">{log.event}</p>
+                                        <p className="text-[11px] font-bold text-blue-900 dark:text-blue-300">{log.event}</p>
                                         <p className="text-[10px] opacity-60">{format(new Date(log.timestamp), 'HH:mm')}</p>
                                       </div>
-                                      <p className="text-[10px] leading-tight mt-0.5 italic">"{log.details}"</p>
+                                      <p className="text-[10px] leading-tight mt-0.5 italic text-gray-700 dark:text-gray-300">"{log.details}"</p>
                                       <p className="text-[9px] mt-1 text-gray-400">— {log.user}</p>
                                     </div>
                                   ))}
@@ -1185,17 +1197,17 @@ const Bookings = () => {
           </div>
 
           {/* 📊 PREMIUM PAGINATION FOOTER */}
-          <div className="bg-[#f8fafc] border-t border-slate-200 px-6 py-3 flex items-center justify-between">
+          <div className="bg-[#f8fafc] dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Show:</span>
                 <Select value={itemsPerPage.toString()} onValueChange={(v) => setItemsPerPage(parseInt(v))}>
-                  <SelectTrigger className="h-9 w-20 bg-white border-slate-200 rounded-xl text-xs font-black text-slate-700 shadow-sm focus:ring-2 focus:ring-blue-100">
+                  <SelectTrigger className="h-9 w-20 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-700 dark:text-slate-200 shadow-sm focus:ring-2 focus:ring-blue-100">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                  <SelectContent className="rounded-xl border-slate-200 dark:border-slate-700 shadow-xl dark:bg-slate-800">
                     {[10, 25, 50, 100].map(val => (
-                      <SelectItem key={val} value={val.toString()} className="text-xs font-black text-slate-600">{val}</SelectItem>
+                      <SelectItem key={val} value={val.toString()} className="text-xs font-black text-slate-600 dark:text-slate-300 focus:dark:bg-slate-700">{val}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1209,7 +1221,7 @@ const Bookings = () => {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                className="h-9 w-9 bg-white dark:bg-slate-800 rounded-xl border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
                 onClick={() => handlePageChange(1)}
                 disabled={currentPage === 1}
                 title="First Page"
@@ -1219,7 +1231,7 @@ const Bookings = () => {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                className="h-9 w-9 bg-white dark:bg-slate-800 rounded-xl border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
                 title="Previous Page"
@@ -1227,16 +1239,16 @@ const Bookings = () => {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
 
-              <div className="bg-white border-2 border-blue-100 px-4 py-1.5 rounded-xl shadow-inner mx-1">
-                <span className="text-xs font-black text-blue-600 uppercase tracking-tight">
-                  Page {currentPage} <span className="text-blue-200 mx-1.5">OF</span> {totalPages || 1}
+              <div className="bg-white dark:bg-slate-800 border-2 border-blue-100 dark:border-blue-900 px-4 py-1.5 rounded-xl shadow-inner mx-1">
+                <span className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-tight">
+                  Page {currentPage} <span className="text-blue-200 dark:text-blue-700 mx-1.5">OF</span> {totalPages || 1}
                 </span>
               </div>
 
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                className="h-9 w-9 bg-white dark:bg-slate-800 rounded-xl border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages || totalPages === 0}
                 title="Next Page"
@@ -1246,7 +1258,7 @@ const Bookings = () => {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                className="h-9 w-9 bg-white dark:bg-slate-800 rounded-xl border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
                 onClick={() => handlePageChange(totalPages)}
                 disabled={currentPage === totalPages || totalPages === 0}
                 title="Last Page"
@@ -1269,15 +1281,15 @@ const Bookings = () => {
           {/* Chat panel */}
           {
             chatOpen && (
-              <div className="fixed right-6 bottom-20 z-50 w-[380px] max-h-[75vh] bg-white rounded-lg shadow-2xl ring-1 ring-slate-200 overflow-hidden flex flex-col">
+              <div className="fixed right-6 bottom-20 z-50 w-[380px] max-h-[75vh] bg-white dark:bg-slate-900 rounded-lg shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 overflow-hidden flex flex-col">
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b">
+                <div className="flex items-center justify-between px-4 py-3 border-b dark:border-slate-800">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full border-2 border-slate-200 overflow-hidden shadow-sm flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full border-2 border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex-shrink-0">
                       <img src={chatBotImage} alt="AI Assistant" className="w-full h-full object-cover" />
                     </div>
                     <div>
-                      <div className="text-sm font-semibold">Smart Assistant</div>
+                      <div className="text-sm font-semibold dark:text-slate-200">Smart Assistant</div>
                       <div className="text-xs text-muted-foreground">AI help for bookings</div>
                     </div>
                   </div>
@@ -1285,12 +1297,12 @@ const Bookings = () => {
                     <button
                       title="Settings"
                       onClick={() => { }}
-                      className="p-1 rounded hover:bg-slate-100"
+                      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
-                      <Settings className="h-4 w-4 text-slate-600" />
+                      <Settings className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                     </button>
-                    <button title="Close" onClick={() => setChatOpen(false)} className="p-1 rounded hover:bg-slate-100">
-                      <X className="h-4 w-4 text-slate-600" />
+                    <button title="Close" onClick={() => setChatOpen(false)} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+                      <X className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                     </button>
                   </div>
                 </div>
@@ -1300,7 +1312,7 @@ const Bookings = () => {
                   {chatMessages.map(msg => (
                     <div key={msg.id} className={`flex ${msg.sender === 'assistant' ? 'justify-start' : msg.sender === 'user' ? 'justify-end' : 'justify-center'}`}>
                       {msg.sender === 'assistant' && (
-                        <div className="max-w-[80%] bg-slate-50 rounded-lg p-3 text-sm text-slate-900 shadow-sm">
+                        <div className="max-w-[80%] bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-sm text-slate-900 dark:text-slate-100 shadow-sm">
                           <div className="font-medium text-xs text-muted-foreground mb-1">Assistant</div>
                           <div>{msg.text}</div>
                           <div className="text-xs text-muted-foreground text-right mt-1">{format(new Date(msg.timestamp), 'HH:mm')}</div>
@@ -1313,7 +1325,7 @@ const Bookings = () => {
                         </div>
                       )}
                       {msg.sender === 'system' && (
-                        <div className="text-xs text-muted-foreground italic bg-transparent px-2">{msg.text}</div>
+                        <div className="text-xs text-muted-foreground dark:text-slate-500 italic bg-transparent px-2">{msg.text}</div>
                       )}
                     </div>
                   ))}
@@ -1321,20 +1333,20 @@ const Bookings = () => {
                 </div>
 
                 {/* Footer controls */}
-                <div className="px-3 py-2 border-t bg-slate-50">
+                <div className="px-3 py-2 border-t dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
                   <div className="flex items-center gap-2 mb-2">
-                    <select value={persona} onChange={(e) => setPersona(e.target.value as any)} className="text-xs p-1 rounded border bg-white" title="AI Persona">
+                    <select value={persona} onChange={(e) => setPersona(e.target.value as any)} className="text-xs p-1 rounded border bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200" title="AI Persona">
                       <option value="assistant">Balanced</option>
                       <option value="concise">Concise</option>
                       <option value="friendly">Friendly</option>
                     </select>
-                    <select value={tone} onChange={(e) => setTone(e.target.value as any)} className="text-xs p-1 rounded border bg-white" title="Tone">
+                    <select value={tone} onChange={(e) => setTone(e.target.value as any)} className="text-xs p-1 rounded border bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200" title="Tone">
                       <option value="informal">Informal</option>
                       <option value="formal">Formal</option>
                       <option value="technical">Technical</option>
                     </select>
                     <button
-                      className={`ml-auto text-xs px-2 py-1 rounded ${suggestionsEnabled ? 'bg-indigo-600 text-white' : 'bg-white border'}`}
+                      className={`ml-auto text-xs px-2 py-1 rounded ${suggestionsEnabled ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 border dark:border-slate-700 dark:text-slate-200'}`}
                       onClick={() => setSuggestionsEnabled(s => !s)}
                       title="Toggle suggestions"
                     >
@@ -1348,7 +1360,7 @@ const Bookings = () => {
                       onChange={(e) => setChatInput(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') sendChat(); }}
                       placeholder="Ask me about bookings..."
-                      className="flex-1 text-sm p-2 rounded border"
+                      className="flex-1 text-sm p-2 rounded border bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 placeholder:text-slate-400"
                     />
                     <button onClick={sendChat} className="px-3 py-2 rounded bg-indigo-600 text-white flex items-center gap-2">
                       <Send className="h-4 w-4" />

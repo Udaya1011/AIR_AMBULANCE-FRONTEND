@@ -39,6 +39,7 @@ interface Props {
     startName?: string;
     endName?: string;
   } | null;
+  hospitals?: any[];
 }
 
 const MapResizer = () => {
@@ -186,7 +187,8 @@ const LiveMapComponent: React.FC<Props> = ({
   center = [20.5937, 78.9629],
   zoom = 5,
   initialTrackedId = null,
-  customRoute = null
+  customRoute = null,
+  hospitals = []
 }) => {
   const [trackedId, setTrackedId] = useState<string | null>(initialTrackedId);
 
@@ -342,6 +344,55 @@ const LiveMapComponent: React.FC<Props> = ({
         {!customRoute && active.map((a) => (
           <AircraftMarker key={a.id} a={a} isTracked={a.id === trackedId} />
         ))}
+
+        {/* Render Hospitals */}
+        {hospitals && hospitals.map((h) => {
+          // Ensure valid coordinates
+          const lat = typeof h.latitude === 'string' ? parseFloat(h.latitude) : h.latitude;
+          const lng = typeof h.longitude === 'string' ? parseFloat(h.longitude) : h.longitude;
+
+          if (isNaN(lat) || isNaN(lng)) return null;
+
+          return (
+            <Marker
+              key={h.id || h._id}
+              position={[lat, lng] as any}
+              icon={L.divIcon({
+                html: `
+                  <div class="relative flex items-center justify-center group">
+                    <div class="p-1.5 bg-white rounded-lg shadow-md border border-rose-100 group-hover:border-rose-500 transition-colors">
+                      <svg class="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                    <div class="absolute -bottom-1 w-1 h-1 bg-rose-500/50 rounded-full blur-[1px]"></div>
+                  </div>
+                `,
+                className: 'bg-transparent',
+                iconSize: [24, 24],
+                iconAnchor: [12, 24]
+              })}
+            >
+              <Popup>
+                <div className="p-2 min-w-[200px]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1 bg-rose-50 rounded">
+                      <svg className="w-3 h-3 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                    </div>
+                    <div>
+                      <strong className="text-xs font-black text-slate-800 uppercase tracking-wide block">{h.name}</strong>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{h.levelOfCare || 'General'}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-[9px] font-bold border-t border-slate-50 pt-2 mt-1">
+                    <span className="text-slate-400 uppercase">ICU Capacity</span>
+                    <span className="text-rose-600">{h.icuCapacity || 'N/A'} Beds</span>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
     </div>
   );

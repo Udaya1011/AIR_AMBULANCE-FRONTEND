@@ -87,14 +87,14 @@ const KpiCard = ({
   };
 
   return (
-    <Card className="group relative overflow-hidden border-none bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 rounded-2xl">
+    <Card className="group relative overflow-hidden border-none bg-white dark:bg-slate-900 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 rounded-2xl">
       <CardContent className="p-6">
         <div className="flex justify-between items-start">
           <div className="space-y-2">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
               {title}
             </p>
-            <h3 className="text-2xl font-black text-slate-900 tracking-tighter">
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">
               {value}
             </h3>
             <div className="flex items-center gap-1.5 pt-1">
@@ -159,6 +159,8 @@ const Hospitals = () => {
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
   const [isSearchingMap, setIsSearchingMap] = useState(false);
   const [levelFilter, setLevelFilter] = useState<'all' | LevelOfCare>('all');
+  const [isTrackOpen, setIsTrackOpen] = useState(false);
+  const [trackHospital, setTrackHospital] = useState<Hospital | null>(null);
 
 
   // Chatbot state
@@ -1257,18 +1259,18 @@ const Hospitals = () => {
         )}
 
         {/* Table Content */}
-        <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl overflow-hidden flex-1 flex flex-col min-h-0">
+        <div className="rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-xl overflow-hidden flex-1 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto h-full overflow-x-auto custom-scrollbar">
-            <table className="w-full border-collapse border-slate-200 min-w-[1000px]">
+            <table className="w-full border-collapse border-slate-200 dark:border-slate-800 min-w-[1000px]">
               <thead className="sticky top-0 z-20">
-                <tr className="bg-[#f8fafc] border-b border-slate-200">
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Hospital Name</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Level of Care</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Contact</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Phone</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Total Seats</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Occupied Seats</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
+                <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-slate-900/50">Hospital Name</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-slate-900/50">Level of Care</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-slate-900/50">Contact</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-slate-900/50">Phone</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-slate-900/50">Total Seats</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-slate-900/50">Occupied Seats</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-slate-900/50">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1284,15 +1286,15 @@ const Hospitals = () => {
                     const isExpanded = expandedRowId === hospital.id;
                     return (
                       <React.Fragment key={hospital.id}>
-                        <tr className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors duration-200 group ${isExpanded ? 'bg-blue-50/30' : ''}`}>
+                        <tr className={`border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors duration-200 group ${isExpanded ? 'bg-blue-50/30 dark:bg-blue-900/20' : ''}`}>
                           <td className="px-8 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 border-2 border-blue-100 bg-gradient-to-tr from-blue-200 via-blue-100 to-blue-50 shadow-sm shrink-0 rounded-xl flex items-center justify-center">
-                                <Building2 className="h-5 w-5 text-blue-600" />
+                              <div className="h-10 w-10 border-2 border-blue-100 dark:border-blue-900 bg-gradient-to-tr from-blue-200 via-blue-100 to-blue-50 dark:from-blue-900 dark:via-blue-800 dark:to-blue-950 shadow-sm shrink-0 rounded-xl flex items-center justify-center">
+                                <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                               </div>
                               <div className="flex flex-col">
                                 <p
-                                  className="font-bold text-slate-900 cursor-pointer hover:text-blue-600 transition-all leading-tight text-sm"
+                                  className="font-bold text-slate-900 dark:text-slate-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-all leading-tight text-sm"
                                   onClick={() => setExpandedRowId(isExpanded ? null : hospital.id)}
                                 >
                                   {hospital.name}
@@ -1302,25 +1304,25 @@ const Hospitals = () => {
                             </div>
                           </td>
                           <td className="px-8 py-4">
-                            <Badge variant="outline" className="bg-white text-slate-700 border-slate-200 font-black text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-lg">
+                            <Badge variant="outline" className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 font-black text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-lg">
                               {hospital.levelOfCare} Care
                             </Badge>
                           </td>
                           <td className="px-8 py-4">
                             <div className="flex items-center gap-2">
-                              <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0">
-                                <User className="h-3 w-3 text-slate-500" />
+                              <div className="h-6 w-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700 shrink-0">
+                                <User className="h-3 w-3 text-slate-500 dark:text-slate-400" />
                               </div>
-                              <span className="text-xs font-bold text-slate-700">{hospital.contactPerson || '—'}</span>
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{hospital.contactPerson || '—'}</span>
                             </div>
                           </td>
-                          <td className="px-8 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">{hospital.phone || '—'}</td>
+                          <td className="px-8 py-4 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{hospital.phone || '—'}</td>
                           <td className="px-8 py-4">
                             <div className="flex items-center gap-2">
-                              <div className="h-7 w-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
-                                <Bed className="h-4 w-4 text-blue-600" />
+                              <div className="h-7 w-7 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-800">
+                                <Bed className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                               </div>
-                              <span className="text-sm font-black text-slate-800">{hospital.icuCapacity}</span>
+                              <span className="text-sm font-black text-slate-800 dark:text-slate-200">{hospital.icuCapacity}</span>
                             </div>
                           </td>
                           <td className="px-8 py-4">
@@ -1338,6 +1340,22 @@ const Hospitals = () => {
                                 title="View Details"
                               >
                                 <Eye className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9 bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all rounded-xl shadow-sm active:scale-95 group"
+                                onClick={() => {
+                                  if (hospital.latitude && hospital.longitude) {
+                                    setTrackHospital(hospital);
+                                    setIsTrackOpen(true);
+                                  } else {
+                                    toast({ title: 'No Location', description: 'This hospital does not have coordinates set.', variant: 'destructive' });
+                                  }
+                                }}
+                                title="Live Map Location"
+                              >
+                                <MapPin className="h-4 w-4 group-hover:scale-110 transition-transform" />
                               </Button>
                               <Button
                                 variant="outline"
@@ -1487,12 +1505,12 @@ const Hospitals = () => {
           </div>
 
           {/* 📊 PREMIUM PAGINATION FOOTER */}
-          <div className="bg-[#f8fafc] border-t border-slate-200 px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-4 z-10">
+          <div className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-4 z-10">
             <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 w-full sm:w-auto">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Show:</span>
                 <Select value={itemsPerPage.toString()} onValueChange={(v) => { setItemsPerPage(parseInt(v)); setCurrentPage(1); }}>
-                  <SelectTrigger className="h-8 md:h-9 w-16 md:w-20 bg-white border-slate-200 rounded-xl text-xs font-black text-slate-700 shadow-sm focus:ring-2 focus:ring-blue-100">
+                  <SelectTrigger className="h-8 md:h-9 w-16 md:w-20 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-700 dark:text-slate-300 shadow-sm focus:ring-2 focus:ring-blue-100">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200 shadow-xl">
@@ -1511,7 +1529,7 @@ const Hospitals = () => {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                className="h-9 w-9 bg-white dark:bg-slate-800 rounded-xl border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
                 onClick={() => handlePageChange(1)}
                 disabled={currentPage === 1}
                 title="First Page"
@@ -1521,7 +1539,7 @@ const Hospitals = () => {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                className="h-9 w-9 bg-white dark:bg-slate-800 rounded-xl border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
                 title="Previous Page"
@@ -1529,16 +1547,16 @@ const Hospitals = () => {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
 
-              <div className="bg-white border-2 border-blue-100 px-4 py-1.5 rounded-xl shadow-inner mx-1">
-                <span className="text-xs font-black text-blue-600 uppercase tracking-tight">
-                  Page {currentPage} <span className="text-blue-200 mx-1.5">OF</span> {totalPages || 1}
+              <div className="bg-white dark:bg-slate-800 border-2 border-blue-100 dark:border-blue-900 px-4 py-1.5 rounded-xl shadow-inner mx-1">
+                <span className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-tight">
+                  Page {currentPage} <span className="text-blue-200 dark:text-blue-700 mx-1.5">OF</span> {totalPages || 1}
                 </span>
               </div>
 
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                className="h-9 w-9 bg-white dark:bg-slate-800 rounded-xl border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages || totalPages === 0}
                 title="Next Page"
@@ -1548,7 +1566,7 @@ const Hospitals = () => {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                className="h-9 w-9 bg-white dark:bg-slate-800 rounded-xl border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
                 onClick={() => handlePageChange(totalPages)}
                 disabled={currentPage === totalPages || totalPages === 0}
                 title="Last Page"
@@ -1652,6 +1670,54 @@ const Hospitals = () => {
           )}
         </div>
       </div>
+      {/* Track Hospital Dialog */}
+      <Dialog open={isTrackOpen} onOpenChange={setIsTrackOpen}>
+        <DialogContent className="w-full max-w-4xl h-[80vh] flex flex-col p-0 overflow-hidden bg-white max-w-[800px]">
+          <DialogHeader className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+            <DialogTitle className="flex items-center gap-2 text-lg font-black text-slate-800">
+              <MapPin className="w-5 h-5 text-rose-500" />
+              {trackHospital?.name} <span className="text-slate-400 font-medium text-sm ml-auto">Live Location</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 relative w-full h-full bg-slate-100">
+            {trackHospital && trackHospital.latitude && trackHospital.longitude ? (
+              <MapContainer
+                center={[parseFloat(trackHospital.latitude), parseFloat(trackHospital.longitude)] as LatLngExpression}
+                zoom={15}
+                scrollWheelZoom={true}
+                style={{ height: "100%", width: "100%" }}
+              >
+                <TileLayer
+                  url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                />
+                <Marker
+                  position={[parseFloat(trackHospital.latitude), parseFloat(trackHospital.longitude)] as LatLngExpression}
+                  icon={L.divIcon({
+                    html: `
+                                  <div class="relative flex items-center justify-center">
+                                    <div class="w-12 h-12 bg-rose-500/20 rounded-full animate-ping absolute"></div>
+                                    <div class="relative z-10 p-2 bg-white rounded-full shadow-xl border-2 border-rose-500">
+                                      <svg class="w-6 h-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                      </svg>
+                                    </div>
+                                  </div>
+                                `,
+                    className: 'bg-transparent',
+                    iconSize: [48, 48],
+                    iconAnchor: [24, 24]
+                  })}
+                />
+              </MapContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-slate-400 font-bold">
+                Location data unavailable
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

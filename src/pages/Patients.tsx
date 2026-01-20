@@ -227,9 +227,9 @@ const Patients = () => {
 
   const getAcuityColor = (acuity: AcuityLevel) => {
     const colors: Record<AcuityLevel, string> = {
-      critical: 'bg-red-100 text-red-800 border-red-200',
-      urgent: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      stable: 'bg-green-100 text-green-800 border-green-200',
+      critical: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-200 dark:border-red-800',
+      urgent: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-200 dark:border-yellow-800',
+      stable: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-800',
     };
     return colors[acuity] || colors.stable;
   };
@@ -526,7 +526,7 @@ const Patients = () => {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input
           placeholder="Search Patients by Name or ID..."
-          className="pl-10 h-10 bg-slate-50/50 border-slate-200 focus:bg-white transition-all rounded-xl text-xs font-medium"
+          className="pl-10 h-10 bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-900 transition-all rounded-xl text-xs font-medium dark:text-slate-100"
           value={searchTerm}
           onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
         />
@@ -564,7 +564,7 @@ const Patients = () => {
             Add Patient
           </Button>
         </DialogTrigger>
-        <DialogContent className="w-full max-w-[900px] h-[85vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-2xl border-none shadow-2xl">
+        <DialogContent className="w-full max-w-[900px] h-[85vh] flex flex-col bg-white dark:bg-slate-900 p-0 gap-0 overflow-hidden rounded-2xl border-none shadow-2xl">
           {/* Header with Progress */}
           <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-4 shrink-0 relative overflow-hidden">
 
@@ -595,7 +595,7 @@ const Patients = () => {
           </DialogHeader>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 p-6">
+          <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-slate-950/50 p-6">
 
             {/* STEP 1: PATIENT DETAILS */}
             {step === 1 && (
@@ -606,19 +606,19 @@ const Patients = () => {
                   <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <User className="h-4 w-4" /> Identity & Demographics
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
                     {/* Photo Upload */}
                     <div className="md:col-span-4 flex flex-col items-center justify-center mb-4">
                       <div className="relative group transition-transform hover:scale-105 active:scale-95">
                         <div
-                          className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-slate-50 flex items-center justify-center cursor-pointer"
+                          className="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-slate-800 shadow-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center cursor-pointer"
                           onClick={() => fileInputRef.current?.click()}
                           title="Upload from Device"
                         >
                           {form.photo_url ? (
                             <img src={form.photo_url} alt="Profile" className="w-full h-full object-cover" />
                           ) : (
-                            <User className="h-10 w-10 text-slate-300" />
+                            <User className="h-10 w-10 text-slate-300 dark:text-slate-600" />
                           )}
                         </div>
                         <div
@@ -650,33 +650,33 @@ const Patients = () => {
                       />
                     </div>
                     <div className="md:col-span-2 space-y-1.5">
-                      <Label className="text-xs font-bold text-slate-700">Full Name <span className="text-red-500">*</span></Label>
+                      <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Full Name <span className="text-red-500">*</span></Label>
                       <Input
                         placeholder="e.g. John Doe"
                         value={form.name || ''}
                         onChange={(e) => setForm({ ...form, name: e.target.value })}
-                        className="h-10 bg-slate-50 focus:bg-white transition-colors"
+                        className="h-10 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-900 transition-colors dark:text-slate-100"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-slate-700">Date of Birth <span className="text-red-500">*</span></Label>
+                      <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Date of Birth <span className="text-red-500">*</span></Label>
                       <Input
                         type="date"
                         value={form.dob || ''}
                         onChange={(e) => setForm({ ...form, dob: e.target.value })}
-                        className="h-10 bg-slate-50 focus:bg-white transition-colors"
+                        className="h-10 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-900 transition-colors dark:text-slate-100"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-slate-700">Gender</Label>
+                      <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Gender</Label>
                       <Select value={form.gender || 'other'} onValueChange={(v) => setForm({ ...form, gender: v as any })}>
-                        <SelectTrigger className="h-10 bg-slate-50">
+                        <SelectTrigger className="h-10 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
                           <SelectValue placeholder="Gender" />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="male">🧑 Male</SelectItem>
-                          <SelectItem value="female">👩 Female</SelectItem>
-                          <SelectItem value="other">⚧ Other</SelectItem>
+                        <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
+                          <SelectItem value="male" className="dark:text-slate-200">🧑 Male</SelectItem>
+                          <SelectItem value="female" className="dark:text-slate-200">👩 Female</SelectItem>
+                          <SelectItem value="other" className="dark:text-slate-200">⚧ Other</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -798,11 +798,11 @@ const Patients = () => {
             {step === 2 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                 <div className="flex flex-col items-center justify-center py-6 text-center space-y-2">
-                  <div className="bg-blue-50 p-4 rounded-full mb-2">
-                    <FileText className="h-8 w-8 text-blue-600" />
+                  <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-full mb-2">
+                    <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <h3 className="text-lg font-black text-slate-800">Insurance Information</h3>
-                  <p className="text-sm text-slate-500 max-w-sm">
+                  <h3 className="text-lg font-black text-slate-800 dark:text-slate-100">Insurance Information</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm">
                     Please provide valid insurance details for billing and claims processing.
                   </p>
                 </div>
@@ -1033,7 +1033,7 @@ const Patients = () => {
         {/* Patients Table Content */}
         {/* Selected patient detail dialog (opens when navigating to /patients/:id) */}
         <Dialog open={Boolean(selectedPatient)} onOpenChange={(open) => { if (!open) { setSelectedPatient(null); navigate('/patients'); } }}>
-          <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+          <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white dark:bg-slate-900 p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl">
             <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
               <User className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
               <div className="relative z-10">
@@ -1048,7 +1048,7 @@ const Patients = () => {
                 <DialogDescription className="text-blue-100 text-xs font-bold uppercase tracking-widest mt-1">Advanced Clinical Analytics</DialogDescription>
               </div>
             </DialogHeader>
-            <div className="p-4 space-y-5 overflow-y-auto custom-scrollbar flex-1 text-black bg-slate-50/10">
+            <div className="p-4 space-y-5 overflow-y-auto custom-scrollbar flex-1 text-black dark:text-slate-200 bg-slate-50/10 dark:bg-slate-900/50">
               {selectedPatient && (
                 <div>
                   <div className="grid grid-cols-2 gap-4">
@@ -1084,17 +1084,17 @@ const Patients = () => {
           </DialogContent>
         </Dialog>
 
-        <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl overflow-hidden flex-1 flex flex-col min-h-0">
+        <div className="rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-xl overflow-hidden flex-1 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto custom-scrollbar">
             <table className="w-full border-collapse">
               <thead className="sticky top-0 z-20">
-                <tr className="bg-[#f8fafc] border-b border-slate-200">
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Patient Name</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Age</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Diagnosis</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Acuity</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Hospital</th>
-                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
+                <tr className="bg-[#f8fafc] dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Patient Name</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Age</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Diagnosis</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Acuity</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Hospital</th>
+                  <th className="px-6 py-2.5 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1112,7 +1112,7 @@ const Patients = () => {
                     return (
                       <React.Fragment key={patient.id}>
                         <tr
-                          className={`border-b hover:bg-gray-50 transition-colors ${isExpanded ? 'bg-blue-50/30' : ''}`}
+                          className={`border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors ${isExpanded ? 'bg-blue-50/30 dark:bg-blue-900/20' : ''}`}
                         >
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
@@ -1128,7 +1128,7 @@ const Patients = () => {
                               </Avatar>
                               <div className="flex flex-col">
                                 <p
-                                  className="font-bold text-slate-900 cursor-pointer hover:text-blue-600 transition-all leading-tight text-base"
+                                  className="font-bold text-slate-900 dark:text-slate-200 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-all leading-tight text-base"
                                   onClick={() => setExpandedRowId(isExpanded ? null : patient.id)}
                                 >
                                   {patient.name}
@@ -1138,8 +1138,8 @@ const Patients = () => {
                             </div>
                           </td>
 
-                          <td className="px-6 py-4 text-sm">{age}</td>
-                          <td className="px-6 py-4 text-sm">{patient.diagnosis}</td>
+                          <td className="px-6 py-4 text-sm text-slate-900 dark:text-slate-300">{age}</td>
+                          <td className="px-6 py-4 text-sm text-slate-900 dark:text-slate-300">{patient.diagnosis}</td>
 
                           <td className="px-6 py-2.5">
                             <Badge className={getAcuityColor(patient.acuity_level)}>
@@ -1150,7 +1150,7 @@ const Patients = () => {
                           <td className="px-6 py-4 text-sm font-medium">
                             {patient.assigned_hospital_id ? (
                               <div className="flex flex-col gap-0.5">
-                                <div className="flex items-center gap-1.5 text-blue-700">
+                                <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400">
                                   <Building2 className="h-3.5 w-3.5" />
                                   <span className="truncate max-w-[180px]">
                                     {hospitals.find(h => h.id === patient.assigned_hospital_id)?.name || 'Assigned'}
@@ -1359,17 +1359,17 @@ const Patients = () => {
           </div>
 
           {/* 📊 PREMIUM PAGINATION FOOTER */}
-          <div className="bg-[#f8fafc] border-t border-slate-200 px-6 py-3 flex items-center justify-between">
+          <div className="bg-[#f8fafc] dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Show:</span>
                 <Select value={itemsPerPage.toString()} onValueChange={(v) => setItemsPerPage(parseInt(v))}>
-                  <SelectTrigger className="h-9 w-20 bg-white border-slate-200 rounded-xl text-xs font-black text-slate-700 shadow-sm focus:ring-2 focus:ring-blue-100">
+                  <SelectTrigger className="h-9 w-20 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-700 dark:text-slate-200 shadow-sm focus:ring-2 focus:ring-blue-100">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                  <SelectContent className="rounded-xl border-slate-200 dark:border-slate-800 shadow-xl dark:bg-slate-800 dark:text-slate-200">
                     {[10, 25, 50, 100].map(val => (
-                      <SelectItem key={val} value={val.toString()} className="text-xs font-black text-slate-600">{val}</SelectItem>
+                      <SelectItem key={val} value={val.toString()} className="text-xs font-black text-slate-600 dark:text-slate-300">{val}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1433,7 +1433,7 @@ const Patients = () => {
 
         {/* EDIT DIALOG MOVED OUTSIDE LOOP */}
         <Dialog open={isEditOpen} onOpenChange={(open) => { setIsEditOpen(open); if (!open) setEditingPatientId(null); }}>
-          <DialogContent className="w-full max-w-[900px] h-[85vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-2xl border-none shadow-2xl">
+          <DialogContent className="w-full max-w-[900px] h-[85vh] flex flex-col bg-white dark:bg-slate-900 p-0 gap-0 overflow-hidden rounded-2xl border-none shadow-2xl">
             {/* Header with Progress */}
             <DialogHeader className="bg-gradient-to-r from-indigo-600 to-purple-700 text-white px-6 py-4 shrink-0 relative overflow-hidden">
 
@@ -1464,7 +1464,7 @@ const Patients = () => {
             </DialogHeader>
 
             {/* Scrollable Content Area */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 p-6">
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50 p-6">
 
               {/* STEP 1: PATIENT DETAILS */}
               {step === 1 && (

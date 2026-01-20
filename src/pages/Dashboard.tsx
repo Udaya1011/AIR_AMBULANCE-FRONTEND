@@ -56,14 +56,14 @@ import { toast } from "sonner";
 // --- SUB-COMPONENTS ---
 
 const KpiCardNew = ({ title, value, subValue, icon: Icon, trend, trendValue, colorClass, bgColorClass }: any) => (
-  <Card className="border-0 shadow-sm rounded-[16px] bg-white overflow-hidden relative group hover:shadow-md transition-all duration-300">
+  <Card className="border-0 shadow-sm rounded-[16px] bg-white dark:bg-slate-900 overflow-hidden relative group hover:shadow-md transition-all duration-300">
     <CardContent className="p-3.5 md:p-4">
       <div className="flex justify-between items-start mb-3">
         <div className={`p-2 rounded-lg ${colorClass} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
           <Icon className="h-4 w-4 text-white" />
         </div>
         {trend && (
-          <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black tracking-tight ${trend === 'up' ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'}`}>
+          <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black tracking-tight ${trend === 'up' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20'}`}>
             {trend === 'up' ? <TrendingUp className="h-2.5 w-2.5" /> : <Shield className="h-2.5 w-2.5" />}
             {trendValue}
           </div>
@@ -75,7 +75,7 @@ const KpiCardNew = ({ title, value, subValue, icon: Icon, trend, trendValue, col
           {title}
         </p>
         <div className="flex items-baseline gap-1">
-          <h3 className="text-xl font-black text-slate-900 tracking-tighter">{value}</h3>
+          <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter">{value}</h3>
           {subValue && <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{subValue}</span>}
         </div>
       </div>
@@ -84,33 +84,33 @@ const KpiCardNew = ({ title, value, subValue, icon: Icon, trend, trendValue, col
 );
 
 const ResourceMatrixItem = ({ icon: Icon, value, label, colorClass }: any) => (
-  <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-slate-50 transition-colors group">
-    <div className={`p-2 rounded-lg bg-white shadow-sm border border-slate-100 group-hover:border-blue-200 transition-colors`}>
+  <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group">
+    <div className={`p-2 rounded-lg bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 group-hover:border-blue-200 transition-colors`}>
       <Icon className={`h-3.5 w-3.5 ${colorClass}`} />
     </div>
     <div className="text-center">
-      <p className="text-sm font-black text-slate-900 leading-none">{value}</p>
+      <p className="text-sm font-black text-slate-900 dark:text-slate-200 leading-none">{value}</p>
       <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{label}</p>
     </div>
   </div>
 );
 
 const MissionTelemetryCard = ({ id, status, onClickRoute }: any) => (
-  <Card className="min-w-[180px] border border-slate-100 shadow-sm rounded-[12px] bg-white p-3 hover:border-blue-200 hover:shadow-md transition-all group shrink-0">
+  <Card className="min-w-[180px] border border-slate-100 dark:border-slate-800 shadow-sm rounded-[12px] bg-white dark:bg-slate-900 p-3 hover:border-blue-200 hover:shadow-md transition-all group shrink-0">
     <div className="flex items-center justify-between mb-2">
-      <div className="p-1 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
+      <div className="p-1 rounded-lg bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
         <Plane className="h-3 w-3" />
       </div>
-      <Badge className="bg-slate-100 text-slate-500 text-[7px] font-black uppercase tracking-widest border-none px-1.5 py-0.5">
+      <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[7px] font-black uppercase tracking-widest border-none px-1.5 py-0.5">
         {status.replace('_', ' ')}
       </Badge>
     </div>
     <div className="space-y-0 text-left">
       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Tracking</p>
-      <h4 className="text-[11px] font-black text-slate-800 tracking-tight">{id}</h4>
+      <h4 className="text-[11px] font-black text-slate-800 dark:text-slate-200 tracking-tight">{id}</h4>
     </div>
     <div
-      className="mt-2 pt-2 border-t border-slate-50 flex items-center justify-between group/link cursor-pointer"
+      className="mt-2 pt-2 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between group/link cursor-pointer"
       onClick={onClickRoute}
     >
       <div className="flex items-center gap-1">
@@ -149,24 +149,24 @@ const Chatbot = () => {
         <MessageCircle size={18} />
       </button>
       {isOpen && (
-        <div className="fixed bottom-16 right-4 w-64 bg-white shadow-2xl rounded-lg border border-slate-200 z-50 flex flex-col max-h-[350px] overflow-hidden">
+        <div className="fixed bottom-16 right-4 w-64 bg-white dark:bg-slate-900 shadow-2xl rounded-lg border border-slate-200 dark:border-slate-800 z-50 flex flex-col max-h-[350px] overflow-hidden">
           <div className="bg-slate-900 p-2 text-white flex justify-between items-center">
             <span className="text-[9px] font-black uppercase tracking-widest">Assist</span>
             <X className="h-3 w-3 cursor-pointer" onClick={() => setIsOpen(false)} />
           </div>
-          <div ref={scrollRef} className="flex-1 p-2 overflow-y-auto space-y-2 bg-slate-50/50">
+          <div ref={scrollRef} className="flex-1 p-2 overflow-y-auto space-y-2 bg-slate-50/50 dark:bg-slate-950/50">
             {messages.length === 0 && <p className="text-[10px] text-slate-400 italic">Ready for commands...</p>}
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`p-2 rounded text-[10px] font-bold max-w-[90%] ${m.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}>
+                <div className={`p-2 rounded text-[10px] font-bold max-w-[90%] ${m.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'}`}>
                   {m.text}
                 </div>
               </div>
             ))}
           </div>
-          <div className="p-2 border-t bg-white flex gap-2">
+          <div className="p-2 border-t bg-white dark:bg-slate-900 dark:border-slate-800 flex gap-2">
             <input
-              className="flex-1 text-[10px] border border-slate-200 p-1 rounded outline-none focus:border-blue-500"
+              className="flex-1 text-[10px] border border-slate-200 dark:border-slate-700 p-1 rounded outline-none focus:border-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
               placeholder="Type..."
               value={input}
               onChange={e => setInput(e.target.value)}
@@ -287,7 +287,7 @@ export default function Dashboard() {
 
   return (
     <Layout subTitle="Global Command Center" isFullHeight={true}>
-      <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#f8fafc] px-4 py-3 space-y-3">
+      <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#f8fafc] dark:bg-slate-950 px-4 py-3 space-y-3">
 
         {/* --- SECTION 1: MISSION INTELLIGENCE BANNER --- */}
         <Card className="border-0 shadow-lg rounded-[20px] bg-[#0f172a] text-white relative overflow-hidden h-[120px] flex items-center px-8 group shrink-0">
@@ -331,13 +331,13 @@ export default function Dashboard() {
         {/* --- SECTION 3: RESOURCE MATRIX & BIO RECORDS --- */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
           {/* Resource Matrix Card */}
-          <Card className="lg:col-span-8 border-0 shadow-sm rounded-[20px] bg-white p-4 flex flex-col justify-between">
+          <Card className="lg:col-span-8 border-0 shadow-sm rounded-[20px] bg-white dark:bg-slate-900 p-4 flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-0.5 h-4 bg-blue-600 rounded-full"></div>
-                <h2 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Resources</h2>
+                <h2 className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">Resources</h2>
               </div>
-              <div className="grid grid-cols-5 gap-1.5 border-b border-slate-50 pb-4">
+              <div className="grid grid-cols-5 gap-1.5 border-b border-slate-50 dark:border-slate-800 pb-4">
                 <ResourceMatrixItem icon={Building2} value={10} label="Hosp" colorClass="text-blue-500" />
                 <ResourceMatrixItem icon={Heart} value={234} label="ICU" colorClass="text-emerald-500" />
                 <ResourceMatrixItem icon={Stethoscope} value={42} label="Medics" colorClass="text-purple-500" />
@@ -363,8 +363,8 @@ export default function Dashboard() {
           </Card>
 
           {/* Bio Records Card */}
-          <Card className="lg:col-span-4 border-0 shadow-sm rounded-[20px] bg-white p-4">
-            <h2 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-3">Bio Analysis</h2>
+          <Card className="lg:col-span-4 border-0 shadow-sm rounded-[20px] bg-white dark:bg-slate-900 p-4">
+            <h2 className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest mb-3">Bio Analysis</h2>
             <div className="h-[100px] relative mb-4">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -375,17 +375,17 @@ export default function Dashboard() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <h3 className="text-lg font-black text-slate-800 leading-none">{bookings.length}</h3>
+                <h3 className="text-lg font-black text-slate-800 dark:text-slate-200 leading-none">{bookings.length}</h3>
               </div>
             </div>
             <div className="space-y-1.5">
               {bioRecordsData.map(item => (
-                <div key={item.name} className="flex items-center justify-between px-2 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
+                <div key={item.name} className="flex items-center justify-between px-2 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
                   <div className="flex items-center gap-1.5">
                     <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: item.color }}></div>
                     <span className="text-[8px] font-black text-slate-500 tracking-widest">{item.name}</span>
                   </div>
-                  <span className="text-[10px] font-black text-slate-900">{item.value}</span>
+                  <span className="text-[10px] font-black text-slate-900 dark:text-slate-200">{item.value}</span>
                 </div>
               ))}
             </div>
@@ -395,12 +395,12 @@ export default function Dashboard() {
         {/* --- SECTION 4: ANALYTICS CHARTS ROW --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Revenue Analytics */}
-          <Card className="border-0 shadow-sm rounded-[20px] bg-white p-4">
+          <Card className="border-0 shadow-sm rounded-[20px] bg-white dark:bg-slate-900 p-4">
             <div className="flex items-center gap-2 mb-4">
-              <div className="p-1.5 bg-indigo-50 rounded-lg">
-                <IndianRupee className="h-3 w-3 text-indigo-600" />
+              <div className="p-1.5 bg-indigo-50 dark:bg-slate-800 rounded-lg">
+                <IndianRupee className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
               </div>
-              <h2 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Revenue Analytics</h2>
+              <h2 className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">Revenue Analytics</h2>
             </div>
             <div className="h-[140px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -421,12 +421,12 @@ export default function Dashboard() {
           </Card>
 
           {/* Status Volume */}
-          <Card className="border-0 shadow-sm rounded-[20px] bg-white p-4">
+          <Card className="border-0 shadow-sm rounded-[20px] bg-white dark:bg-slate-900 p-4">
             <div className="flex items-center gap-2 mb-4">
-              <div className="p-1.5 bg-rose-50 rounded-lg">
-                <Activity className="h-3 w-3 text-rose-600" />
+              <div className="p-1.5 bg-rose-50 dark:bg-slate-800 rounded-lg">
+                <Activity className="h-3 w-3 text-rose-600 dark:text-rose-400" />
               </div>
-              <h2 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Status Volume</h2>
+              <h2 className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">Status Volume</h2>
             </div>
             <div className="h-[140px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -444,13 +444,13 @@ export default function Dashboard() {
         </div>
 
         {/* --- SECTION 5: MISSION TELEMETRY SLIDER --- */}
-        <Card className="border-0 shadow-sm rounded-[20px] bg-white p-4 overflow-hidden shrink-0">
+        <Card className="border-0 shadow-sm rounded-[20px] bg-white dark:bg-slate-900 p-4 overflow-hidden shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-slate-800 rounded-lg shadow-lg">
                 <Navigation className="h-3 w-3 text-white" />
               </div>
-              <h2 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Telemetry Tracker</h2>
+              <h2 className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">Telemetry Tracker</h2>
             </div>
             <div className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 rounded-full">
               <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse"></div>

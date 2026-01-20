@@ -10,8 +10,7 @@ import {
   Shield,
   RefreshCw,
   Lock,
-  Mail,
-  Download
+  Mail
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -25,7 +24,6 @@ export default function Login() {
   const [userInputCaptcha, setUserInputCaptcha] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -41,55 +39,13 @@ export default function Login() {
 
   useEffect(() => {
     generateCaptcha();
-
-    // Check if the event was already captured globally
-    if ((window as any).deferredPrompt) {
-      setDeferredPrompt((window as any).deferredPrompt);
-    }
-
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      // Update global variable just in case
-      (window as any).deferredPrompt = e;
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
   }, []);
 
   useEffect(() => {
     document.documentElement.style.setProperty("--bg-image", `url(${innovativeBg})`);
   }, []);
 
-  const [isStandalone, setIsStandalone] = useState(false);
 
-  useEffect(() => {
-    const checkStandalone = () => {
-      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as any).standalone === true;
-      setIsStandalone(isStandaloneMode);
-    };
-    checkStandalone();
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setDeferredPrompt(null);
-      }
-    } else {
-      toast.info("Install Application", {
-        description: "To install, tap your browser's Menu/Share button and select 'Add to Home Screen' or 'Install App'.",
-        duration: 5000,
-      });
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,15 +132,7 @@ export default function Login() {
           </motion.p>
         </div>
 
-        {/* Install App Button - FIXED POSITION OVERLAY */}
-        <button
-          onClick={handleInstallClick}
-          className="fixed bottom-4 right-4 z-[9999] flex items-center gap-2 px-4 py-3 bg-blue-600 text-white hover:bg-blue-700 rounded-full shadow-lg shadow-blue-900/40 transition-all font-bold uppercase tracking-wider animate-bounce"
-          style={{ animationDuration: '2s' }}
-        >
-          <Download size={18} />
-          <span>Install App</span>
-        </button>
+
 
         <form onSubmit={handleSubmit}>
           <div className="innovative-form-group">

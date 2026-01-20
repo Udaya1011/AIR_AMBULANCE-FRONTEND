@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Layout } from "@/components/Layout";
 import chatBotImage from '../emoji.jpeg';
 import {
@@ -129,20 +130,20 @@ const getStatusBadge = (status: string, type: "status" | "urgency") => {
   if (type === "status") {
     switch (s) {
       case "in_transit":
-        className += " bg-blue-100 text-blue-700 border-blue-300/50";
+        className += " bg-blue-100 text-blue-700 border-blue-300/50 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800";
         break;
       case "airline_confirmed":
-        className += " bg-indigo-100 text-indigo-700 border-indigo-300/50";
+        className += " bg-indigo-100 text-indigo-700 border-indigo-300/50 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800";
         break;
       case "clinical_review":
-        className += " bg-yellow-100 text-yellow-700 border-yellow-300/50";
+        className += " bg-yellow-100 text-yellow-700 border-yellow-300/50 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800";
         break;
       case "requested":
-        className += " bg-gray-100 text-gray-700 border-gray-300/50";
+        className += " bg-gray-100 text-gray-700 border-gray-300/50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
         break;
       // allowed to remain colored as urgency examples (but for status keep neutral if not in list)
       default:
-        className += " bg-transparent text-gray-700 border-gray-200";
+        className += " bg-transparent text-gray-700 border-gray-200 dark:text-slate-400 dark:border-slate-700";
     }
   }
 
@@ -150,16 +151,16 @@ const getStatusBadge = (status: string, type: "status" | "urgency") => {
   if (type === "urgency") {
     switch (s) {
       case "emergency":
-        className += " bg-red-100 text-red-700 border-red-300/50 font-bold";
+        className += " bg-red-100 text-red-700 border-red-300/50 font-bold dark:bg-red-900/30 dark:text-red-400 dark:border-red-800";
         break;
       case "urgent":
-        className += " bg-orange-100 text-orange-700 border-orange-300/50 font-semibold";
+        className += " bg-orange-100 text-orange-700 border-orange-300/50 font-semibold dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800";
         break;
       case "routine":
-        className += " bg-green-100 text-green-700 border-green-300/50";
+        className += " bg-green-100 text-green-700 border-green-300/50 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800";
         break;
       default:
-        className += " bg-transparent text-gray-700 border-gray-200";
+        className += " bg-transparent text-gray-700 border-gray-200 dark:text-slate-400 dark:border-slate-700";
     }
   }
 
@@ -167,6 +168,9 @@ const getStatusBadge = (status: string, type: "status" | "urgency") => {
 };
 
 export default function Reports() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
   // data state
   const [bookings, setBookings] = useState<any[]>([]);
   const [aircraft, setAircraft] = useState<any[]>([]);
@@ -390,19 +394,19 @@ export default function Reports() {
       {/* Click to View Filter Type - Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="h-9 md:h-10 px-3 md:px-4 border-2 border-slate-200 bg-white text-slate-600 font-bold rounded-xl hover:bg-slate-50 flex items-center gap-2 group shadow-sm transition-all active:scale-95 text-[11px] md:text-xs">
+          <Button variant="outline" className="h-9 md:h-10 px-3 md:px-4 border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 group shadow-sm transition-all active:scale-95 text-[11px] md:text-xs">
             <Filter size={16} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
             <span>FILTER TYPE</span>
             <ChevronDown size={14} className="text-slate-300 shrink-0" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-2 border-slate-100 shadow-2xl bg-white/95 backdrop-blur-xl z-[100]">
+        <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-2 border-slate-100 dark:border-slate-800 shadow-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl z-[100]">
           <div className="px-2 py-2">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Urgency Level</p>
             <div className="flex flex-col gap-1">
               {['all', 'routine', 'urgent', 'emergency'].map(u => (
-                <DropdownMenuItem key={u} onClick={() => setUrgencyFilter(u)} className={`rounded-lg px-2 py-1.5 cursor-pointer text-xs font-bold transition-colors ${urgencyFilter === u ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}`}>
-                  <span className="capitalize">{u === 'all' ? 'All Urgency' : u}</span>
+                <DropdownMenuItem key={u} onClick={() => setUrgencyFilter(u)} className={`rounded-lg px-2 py-1.5 cursor-pointer text-xs font-bold transition-colors ${urgencyFilter === u ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+                  <span className="capitalize dark:text-slate-200">{u === 'all' ? 'All Urgency' : u}</span>
                 </DropdownMenuItem>
               ))}
             </div>
@@ -430,13 +434,13 @@ export default function Reports() {
           placeholder="Search by ID..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="h-9 md:h-10 pl-9 pr-3 bg-slate-50 border-slate-200 rounded-xl text-[11px] md:text-xs font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all w-full shadow-sm"
+          className="h-9 md:h-10 pl-9 pr-3 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl text-[11px] md:text-xs font-bold text-slate-700 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all w-full shadow-sm"
         />
       </div>
 
       <Button
         variant="outline"
-        className="h-9 md:h-10 px-3 md:px-6 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-bold rounded-xl shadow-sm flex items-center gap-2 transition-all active:scale-95 group shrink-0"
+        className="h-9 md:h-10 px-3 md:px-6 border-2 border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 dark:hover:text-blue-300 font-bold rounded-xl shadow-sm flex items-center gap-2 transition-all active:scale-95 group shrink-0"
         onClick={openAdd}
       >
         <Plus className="h-4 w-4 stroke-[3px] group-hover:rotate-90 transition-transform" />
@@ -635,28 +639,28 @@ export default function Reports() {
           <div className="p-4 lg:p-6 flex-1 flex flex-col min-h-0">
             <Tabs defaultValue="bookings" className="flex-1 flex flex-col min-h-0" onValueChange={(v) => setActiveTab(v)}>
               <div className="mb-4 overflow-x-auto custom-scrollbar pb-1">
-                <TabsList className="bg-white/50 backdrop-blur-md border border-slate-200 p-1 rounded-2xl shadow-sm inline-flex min-w-max">
+                <TabsList className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md border border-slate-200 dark:border-slate-700 p-1 rounded-2xl shadow-sm inline-flex min-w-max">
                   <TabsTrigger
                     value="bookings"
-                    className="rounded-xl px-4 md:px-6 py-2 md:py-2.5 text-[10px] md:text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-lg active:scale-95 transition-all"
+                    className="rounded-xl px-4 md:px-6 py-2 md:py-2.5 text-[10px] md:text-xs font-black uppercase tracking-widest data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 dark:text-slate-400 data-[state=active]:shadow-lg active:scale-95 transition-all"
                   >
                     Booking Reports
                   </TabsTrigger>
                   <TabsTrigger
                     value="aircraft"
-                    className="rounded-xl px-4 md:px-6 py-2 md:py-2.5 text-[10px] md:text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-lg active:scale-95 transition-all"
+                    className="rounded-xl px-4 md:px-6 py-2 md:py-2.5 text-[10px] md:text-xs font-black uppercase tracking-widest data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 dark:text-slate-400 data-[state=active]:shadow-lg active:scale-95 transition-all"
                   >
                     Aircraft Utilization
                   </TabsTrigger>
                   <TabsTrigger
                     value="revenue"
-                    className="rounded-xl px-4 md:px-6 py-2 md:py-2.5 text-[10px] md:text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-lg active:scale-95 transition-all"
+                    className="rounded-xl px-4 md:px-6 py-2 md:py-2.5 text-[10px] md:text-xs font-black uppercase tracking-widest data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 dark:text-slate-400 data-[state=active]:shadow-lg active:scale-95 transition-all"
                   >
                     Revenue & Invoices
                   </TabsTrigger>
                   <TabsTrigger
                     value="analytics"
-                    className="rounded-xl px-4 md:px-6 py-2 md:py-2.5 text-[10px] md:text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-lg active:scale-95 transition-all"
+                    className="rounded-xl px-4 md:px-6 py-2 md:py-2.5 text-[10px] md:text-xs font-black uppercase tracking-widest data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 dark:text-slate-400 data-[state=active]:shadow-lg active:scale-95 transition-all"
                   >
                     Analytics
                   </TabsTrigger>
@@ -665,22 +669,22 @@ export default function Reports() {
 
               {/* 📋 BOOKING REPORTS TAB */}
               <TabsContent value="bookings" className="m-0 animate-in fade-in slide-in-from-bottom-2 duration-300 flex-1 flex flex-col min-h-0">
-                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-xl overflow-hidden flex-1 flex flex-col min-h-0">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden flex-1 flex flex-col min-h-0">
                   <div className="flex-1 overflow-auto custom-scrollbar">
                     <div className="min-w-[800px] md:min-w-0">
                       <table className="w-full border-collapse">
                         <thead className="sticky top-0 z-20 shadow-sm">
-                          <tr className="bg-[#f8fafc] border-b-2 border-slate-300">
-                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc] sticky top-0">Booking ID</th>
-                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc] sticky top-0">Patient</th>
-                            <th className="hidden lg:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc] sticky top-0">Path</th>
-                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc] sticky top-0">Status</th>
-                            <th className="hidden md:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc] sticky top-0">Urgency</th>
-                            <th className="hidden sm:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc] sticky top-0">Revenue</th>
-                            <th className="px-6 py-4 text-center text-[11px] font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc] sticky top-0">Actions</th>
+                          <tr className="bg-[#f8fafc] dark:bg-slate-900 border-b-2 border-slate-300 dark:border-slate-800">
+                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900 sticky top-0">Booking ID</th>
+                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900 sticky top-0">Patient</th>
+                            <th className="hidden lg:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900 sticky top-0">Path</th>
+                            <th className="px-6 py-4 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900 sticky top-0">Status</th>
+                            <th className="hidden md:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900 sticky top-0">Urgency</th>
+                            <th className="hidden sm:table-cell px-6 py-4 text-left text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900 sticky top-0">Revenue</th>
+                            <th className="px-6 py-4 text-center text-[11px] font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900 sticky top-0">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                           {paginatedBookings.length === 0 ? (
                             <tr>
                               <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-bold text-xs uppercase tracking-widest">
@@ -693,13 +697,18 @@ export default function Reports() {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-900">{b.booking_id || (b.id && b.id.toString().slice(-8).toUpperCase()) || "N/A"}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <div className="flex flex-col">
-                                    <span className="text-sm font-bold text-slate-900">{getPatientName(b.patientId)}</span>
-                                    <span className="text-[10px] text-slate-400 font-bold uppercase">{b.patientId?.slice(0, 8)}</span>
+                                    <span className="text-sm font-bold text-slate-900 dark:text-slate-200">{getPatientName(b.patientId)}</span>
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase">
+                                      {(() => {
+                                        const p = patients.find(x => x.id === b.patientId || x.patient_id === b.patientId);
+                                        return p?.patient_id || b.patientId || 'UNKNOWN';
+                                      })()}
+                                    </span>
                                   </div>
                                 </td>
                                 <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
                                   <div className="flex flex-col">
-                                    <span className="text-xs font-bold text-slate-700">{getHospitalName(b.originHospitalId)}</span>
+                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{getHospitalName(b.originHospitalId)}</span>
                                     <span className="text-[10px] text-slate-400 font-bold uppercase">→ {getHospitalName(b.destinationHospitalId)}</span>
                                   </div>
                                 </td>
@@ -709,7 +718,7 @@ export default function Reports() {
                                 <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
                                   {getStatusBadge(b.urgency, "urgency")}
                                 </td>
-                                <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-bold">
+                                <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-200 font-bold">
                                   {(() => {
                                     let calculated = 0;
                                     if (b.originHospitalId && b.destinationHospitalId) {
@@ -794,12 +803,12 @@ export default function Reports() {
                         <div className="flex items-center gap-3">
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Show:</span>
                           <Select value={itemsPerPage.toString()} onValueChange={(v) => { setItemsPerPage(parseInt(v)); setCurrentPageBookings(1); }}>
-                            <SelectTrigger className="h-9 w-20 bg-white border-2 border-slate-200 rounded-xl text-xs font-black text-slate-700 shadow-sm transition-all hover:border-blue-200 focus:ring-4 focus:ring-blue-500/10">
+                            <SelectTrigger className="h-9 w-20 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-700 dark:text-slate-200 shadow-sm transition-all hover:border-blue-200 focus:ring-4 focus:ring-blue-500/10">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="rounded-xl border-slate-200 shadow-2xl">
+                            <SelectContent className="rounded-xl border-slate-200 dark:border-slate-700 shadow-2xl dark:bg-slate-800">
                               {[10, 25, 50, 100].map(val => (
-                                <SelectItem key={val} value={val.toString()} className="text-xs font-bold text-slate-600 rounded-lg focus:bg-blue-50 focus:text-blue-700">
+                                <SelectItem key={val} value={val.toString()} className="text-xs font-bold text-slate-600 dark:text-slate-300 rounded-lg focus:bg-blue-50 dark:focus:bg-blue-900/30 focus:text-blue-700 dark:focus:text-blue-200">
                                   {val}
                                 </SelectItem>
                               ))}
@@ -816,7 +825,7 @@ export default function Reports() {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-9 w-9 rounded-xl border-2 border-slate-200 bg-white hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-all disabled:opacity-20 shadow-sm active:scale-90"
+                          className="h-9 w-9 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:text-blue-600 dark:hover:text-blue-400 transition-all disabled:opacity-20 shadow-sm active:scale-90"
                           onClick={() => handlePageChangeBookings(1)}
                           disabled={currentPageBookings === 1}
                         >
@@ -825,23 +834,23 @@ export default function Reports() {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-9 w-9 rounded-xl border-2 border-slate-200 bg-white hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-all disabled:opacity-20 shadow-sm active:scale-90"
+                          className="h-9 w-9 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:text-blue-600 dark:hover:text-blue-400 transition-all disabled:opacity-20 shadow-sm active:scale-90"
                           onClick={() => handlePageChangeBookings(currentPageBookings - 1)}
                           disabled={currentPageBookings === 1}
                         >
                           <ChevronLeft size={16} strokeWidth={2.5} className="text-slate-400" />
                         </Button>
 
-                        <div className="flex items-center justify-center px-4 h-9 min-w-[120px] rounded-xl bg-blue-50 border-2 border-blue-100 shadow-inner">
-                          <span className="text-blue-700 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                            PAGE <span className="text-sm">{currentPageBookings}</span> <span className="text-blue-300">OF</span> <span className="text-sm">{totalPagesBookings || 1}</span>
+                        <div className="flex items-center justify-center px-4 h-9 min-w-[120px] rounded-xl bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-100 dark:border-blue-800 shadow-inner">
+                          <span className="text-blue-700 dark:text-blue-300 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                            PAGE <span className="text-sm dark:text-blue-100">{currentPageBookings}</span> <span className="text-blue-300 dark:text-blue-600">OF</span> <span className="text-sm dark:text-blue-100">{totalPagesBookings || 1}</span>
                           </span>
                         </div>
 
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-9 w-9 rounded-xl border-2 border-slate-200 bg-white hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-all disabled:opacity-20 shadow-sm active:scale-90"
+                          className="h-9 w-9 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:text-blue-600 dark:hover:text-blue-400 transition-all disabled:opacity-20 shadow-sm active:scale-90"
                           onClick={() => handlePageChangeBookings(currentPageBookings + 1)}
                           disabled={currentPageBookings === totalPagesBookings || totalPagesBookings === 0}
                         >
@@ -850,7 +859,7 @@ export default function Reports() {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-9 w-9 rounded-xl border-2 border-slate-200 bg-white hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-all disabled:opacity-20 shadow-sm active:scale-90"
+                          className="h-9 w-9 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:text-blue-600 dark:hover:text-blue-400 transition-all disabled:opacity-20 shadow-sm active:scale-90"
                           onClick={() => handlePageChangeBookings(totalPagesBookings)}
                           disabled={currentPageBookings === totalPagesBookings || totalPagesBookings === 0}
                         >
@@ -865,28 +874,28 @@ export default function Reports() {
               {/* 🛩️ TAB 2: AIRCRAFT UTILIZATION */}
               <TabsContent value="aircraft" className="m-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">
-                  <Card className="rounded-2xl border-2 border-slate-100 shadow-lg overflow-hidden bg-white">
-                    <CardHeader className="border-b border-slate-50 bg-[#f8fafc]/50">
-                      <CardTitle className="text-xs font-black uppercase tracking-widest text-[#64748b]">Usage by Tail Number</CardTitle>
+                  <Card className="rounded-2xl border-2 border-slate-100 dark:border-slate-800 shadow-lg overflow-hidden bg-white dark:bg-slate-900">
+                    <CardHeader className="border-b border-slate-50 dark:border-slate-800 bg-[#f8fafc]/50 dark:bg-slate-900/50">
+                      <CardTitle className="text-xs font-black uppercase tracking-widest text-[#64748b] dark:text-slate-400">Usage by Tail Number</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-6 h-[400px]">
+                    <CardContent className="p-4 h-[250px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={utilizationChartData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: "#94a3b8" }} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: "#94a3b8" }} />
-                          <RechartsTooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }} />
+                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#1e293b" : "#f1f5f9"} vertical={false} />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: isDark ? "#94a3b8" : "#94a3b8" }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: isDark ? "#94a3b8" : "#94a3b8" }} />
+                          <RechartsTooltip cursor={{ fill: isDark ? '#1e293b' : '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', backgroundColor: isDark ? '#0f172a' : '#fff', color: isDark ? '#f1f5f9' : '#000' }} />
                           <Bar dataKey="usage" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={45} />
                         </BarChart>
                       </ResponsiveContainer>
                     </CardContent>
                   </Card>
 
-                  <Card className="rounded-2xl border-2 border-slate-100 shadow-lg overflow-hidden bg-white">
-                    <CardHeader className="border-b border-slate-50 bg-[#f8fafc]/50">
-                      <CardTitle className="text-xs font-black uppercase tracking-widest text-[#64748b]">Flight Hours (Last 7 Days)</CardTitle>
+                  <Card className="rounded-2xl border-2 border-slate-100 dark:border-slate-800 shadow-lg overflow-hidden bg-white dark:bg-slate-900">
+                    <CardHeader className="border-b border-slate-50 dark:border-slate-800 bg-[#f8fafc]/50 dark:bg-slate-900/50">
+                      <CardTitle className="text-xs font-black uppercase tracking-widest text-[#64748b] dark:text-slate-400">Flight Hours (Last 7 Days)</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 h-[320px]">
+                    <CardContent className="p-4 h-[250px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={flightTimeTrendData}>
                           <defs>
@@ -895,10 +904,10 @@ export default function Reports() {
                               <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                             </linearGradient>
                           </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: "#94a3b8" }} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: "#94a3b8" }} />
-                          <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }} />
+                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#1e293b" : "#f1f5f9"} vertical={false} />
+                          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: isDark ? "#94a3b8" : "#94a3b8" }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: isDark ? "#94a3b8" : "#94a3b8" }} />
+                          <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', backgroundColor: isDark ? '#0f172a' : '#fff', color: isDark ? '#f1f5f9' : '#000' }} />
                           <Area type="monotone" dataKey="hours" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorHours)" />
                         </AreaChart>
                       </ResponsiveContainer>
@@ -910,40 +919,40 @@ export default function Reports() {
               {/* 💰 TAB 3: REVENUE & INVOICES */}
               <TabsContent value="revenue" className="m-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                  <div className="bg-white p-5 rounded-3xl border-2 border-slate-100 shadow-md hover:shadow-xl transition-all border-l-8 border-l-blue-600 group">
-                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-3 opacity-60 group-hover:opacity-100 transition-opacity">Financial Intake</p>
+                  <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border-2 border-slate-100 dark:border-slate-800 shadow-md hover:shadow-xl transition-all border-l-8 border-l-blue-600 group">
+                    <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em] mb-2 opacity-60 group-hover:opacity-100 transition-opacity">Financial Intake</p>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black text-slate-900 tracking-tighter">₹{summaryStats.totalRevenue.toLocaleString()}</span>
-                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">INR</span>
+                      <span className="text-2xl md:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tighter">₹{summaryStats.totalRevenue.toLocaleString()}</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">INR</span>
                     </div>
                   </div>
-                  <div className="bg-white p-5 rounded-3xl border-2 border-slate-100 shadow-md hover:shadow-xl transition-all border-l-8 border-l-emerald-600 group">
-                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-3 opacity-60 group-hover:opacity-100 transition-opacity">Settled Exports</p>
+                  <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border-2 border-slate-100 dark:border-slate-800 shadow-md hover:shadow-xl transition-all border-l-8 border-l-emerald-600 group">
+                    <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em] mb-2 opacity-60 group-hover:opacity-100 transition-opacity">Settled Exports</p>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-black text-slate-900 tracking-tighter">{summaryStats.completedBookings}</span>
-                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">RECORDS</span>
+                      <span className="text-2xl md:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tighter">{summaryStats.completedBookings}</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">RECORDS</span>
                     </div>
                   </div>
-                  <div className="bg-white p-5 rounded-3xl border-2 border-slate-100 shadow-md hover:shadow-xl transition-all border-l-8 border-l-orange-500 group">
-                    <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em] mb-3 opacity-60 group-hover:opacity-100 transition-opacity">Active Queue</p>
+                  <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border-2 border-slate-100 dark:border-slate-800 shadow-md hover:shadow-xl transition-all border-l-8 border-l-orange-500 group">
+                    <p className="text-[10px] font-black text-orange-500 dark:text-orange-400 uppercase tracking-[0.2em] mb-2 opacity-60 group-hover:opacity-100 transition-opacity">Active Queue</p>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-black text-slate-900 tracking-tighter">{summaryStats.pendingBookings}</span>
-                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">PENDING</span>
+                      <span className="text-2xl md:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tighter">{summaryStats.pendingBookings}</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">PENDING</span>
                     </div>
                   </div>
                 </div>
 
-                <Card className="rounded-3xl border-2 border-slate-100 shadow-xl overflow-hidden bg-white mb-4">
-                  <CardHeader className="border-b border-slate-50 bg-[#f8fafc]/50 px-6 py-4">
-                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-[#64748b]">Revenue Growth Curve</CardTitle>
+                <Card className="rounded-3xl border-2 border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden bg-white dark:bg-slate-900 mb-4">
+                  <CardHeader className="border-b border-slate-50 dark:border-slate-800 bg-[#f8fafc]/50 dark:bg-slate-900/50 px-6 py-4">
+                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-[#64748b] dark:text-slate-400">Revenue Growth Curve</CardTitle>
                   </CardHeader>
-                  <CardContent className="p-6 h-[350px]">
+                  <CardContent className="p-4 h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={revenueByMonthData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: "#94a3b8" }} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: "#94a3b8" }} />
-                        <RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)' }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#1e293b" : "#f1f5f9"} vertical={false} />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: isDark ? "#94a3b8" : "#94a3b8" }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "bold", fill: isDark ? "#94a3b8" : "#94a3b8" }} />
+                        <RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)', backgroundColor: isDark ? '#0f172a' : '#fff', color: isDark ? '#f1f5f9' : '#000' }} />
                         <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={5} dot={{ r: 6, fill: "#10b981", strokeWidth: 3, stroke: "#fff" }} activeDot={{ r: 10, strokeWidth: 0 }} />
                       </LineChart>
                     </ResponsiveContainer>
@@ -955,7 +964,7 @@ export default function Reports() {
               <TabsContent value="analytics" className="m-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="space-y-4 pb-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-6 rounded-[32px] shadow-2xl shadow-blue-200 relative overflow-hidden group">
+                    <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-4 rounded-[32px] shadow-2xl shadow-blue-200 relative overflow-hidden group">
                       <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
                       <div className="flex items-center gap-6 relative z-10 text-white">
                         <div className="bg-white/20 p-5 rounded-2xl backdrop-blur-md">
@@ -967,7 +976,7 @@ export default function Reports() {
                         </div>
                       </div>
                     </div>
-                    <div className="bg-gradient-to-br from-slate-800 to-slate-950 p-6 rounded-[32px] shadow-2xl shadow-slate-200 relative overflow-hidden group">
+                    <div className="bg-gradient-to-br from-slate-800 to-slate-950 p-4 rounded-[32px] shadow-2xl shadow-slate-200 relative overflow-hidden group">
                       <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-blue-500/20 transition-all duration-500"></div>
                       <div className="flex items-center gap-6 relative z-10 text-white">
                         <div className="bg-white/5 p-5 rounded-2xl backdrop-blur-md">
@@ -981,17 +990,17 @@ export default function Reports() {
                     </div>
                   </div>
 
-                  <Card className="rounded-[32px] border-2 border-slate-100 shadow-xl overflow-hidden bg-white">
-                    <CardHeader className="border-b border-slate-50 bg-[#f8fafc]/50 px-6 py-4">
-                      <CardTitle className="text-xs font-black uppercase tracking-widest text-[#64748b]">Strategic Capacity Overview</CardTitle>
+                  <Card className="rounded-[32px] border-2 border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden bg-white dark:bg-slate-900">
+                    <CardHeader className="border-b border-slate-50 dark:border-slate-800 bg-[#f8fafc]/50 dark:bg-slate-900/50 px-6 py-4">
+                      <CardTitle className="text-xs font-black uppercase tracking-widest text-[#64748b] dark:text-slate-400">Strategic Capacity Overview</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-6 h-[320px]">
+                    <CardContent className="p-4 h-[250px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={revenueByHospital.slice(0, 6)}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "black", fill: "#64748b" }} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "black", fill: "#64748b" }} />
-                          <RechartsTooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)' }} />
+                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#1e293b" : "#f1f5f9"} vertical={false} />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "black", fill: isDark ? "#64748b" : "#64748b" }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: "black", fill: isDark ? "#64748b" : "#64748b" }} />
+                          <RechartsTooltip cursor={{ fill: isDark ? '#1e293b' : '#f1f5f9' }} contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)', backgroundColor: isDark ? '#0f172a' : '#fff', color: isDark ? '#f1f5f9' : '#000' }} />
                           <Bar dataKey="revenue" fill="url(#blueGradient)" radius={[10, 10, 0, 0]} barSize={60}>
                             <defs>
                               <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
@@ -1011,7 +1020,7 @@ export default function Reports() {
             {/* 🤖 CHATBOT WIDGET */}
             <div className="fixed bottom-6 right-6 z-50">
               {isChatOpen ? (
-                <Card className="w-[calc(100vw-3rem)] sm:w-96 shadow-2xl flex flex-col rounded-[32px] overflow-hidden border-2 border-blue-400 animate-in fade-in slide-in-from-bottom-4 duration-300 bg-white max-h-[70vh] sm:max-h-[85vh]">
+                <Card className="w-[calc(100vw-3rem)] sm:w-96 shadow-2xl flex flex-col rounded-[32px] overflow-hidden border-2 border-blue-400 animate-in fade-in slide-in-from-bottom-4 duration-300 bg-white dark:bg-slate-900 max-h-[70vh] sm:max-h-[85vh]">
                   <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white p-6 flex justify-between items-center border-b border-white/10 shadow-lg">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-full border-2 border-white/50 overflow-hidden shadow-2xl">
@@ -1030,15 +1039,15 @@ export default function Reports() {
                   <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 h-[350px] custom-scrollbar">
                     {messages.map((msg) => (
                       <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                        <div className={`max-w-[85%] px-5 py-3.5 rounded-3xl shadow-sm ${msg.sender === "user" ? "bg-blue-600 text-white rounded-tr-none shadow-blue-200 shadow-xl" : "bg-white text-slate-800 rounded-tl-none border border-slate-100"}`}>
+                        <div className={`max-w-[85%] px-5 py-3.5 rounded-3xl shadow-sm ${msg.sender === "user" ? "bg-blue-600 text-white rounded-tr-none shadow-blue-200 shadow-xl" : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none border border-slate-100 dark:border-slate-700"}`}>
                           <p className="text-xs sm:text-sm font-bold leading-relaxed">{msg.text}</p>
                           <span className={`text-[9px] mt-2 block font-black uppercase opacity-40 ${msg.sender === "user" ? "text-right" : ""}`}>{msg.time}</span>
                         </div>
                       </div>
                     ))}
                   </div>
-                  <div className="p-4 bg-white border-t border-slate-100 flex gap-2 items-center">
-                    <Input placeholder="Ask about system records..." value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSend(e)} className="flex-1 h-14 rounded-2xl border-slate-200 focus:border-blue-500 bg-slate-50 text-xs sm:text-sm font-bold shadow-inner" />
+                  <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex gap-2 items-center">
+                    <Input placeholder="Ask about system records..." value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSend(e)} className="flex-1 h-14 rounded-2xl border-slate-200 dark:border-slate-700 focus:border-blue-500 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm font-bold shadow-inner dark:text-slate-200" />
                     <Button size="icon" onClick={() => handleSend(null)} className="h-14 w-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-xl shadow-blue-500/20 active:scale-90 transition-transform"><Send size={20} /></Button>
                   </div>
                 </Card>
@@ -1052,7 +1061,7 @@ export default function Reports() {
 
             {/* 📁 OPERATIONAL DIALOGS */}
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
-              <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+              <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white dark:bg-slate-900 p-0 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl">
                 <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
                   <Edit className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
                   <div className="relative z-10">
@@ -1062,19 +1071,19 @@ export default function Reports() {
                     <p className="text-blue-100 text-xs font-bold uppercase tracking-widest mt-1">Modify Operational Parameters</p>
                   </div>
                 </DialogHeader>
-                <div className="p-4 space-y-4 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/20 text-black">
+                <div className="p-4 space-y-4 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/20 dark:bg-slate-900/50 text-black dark:text-slate-200">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Entry Identifier</label><Input value={form.id || ""} readOnly className="h-10 bg-slate-100/50 border-slate-200 font-black text-slate-600 rounded-lg text-sm" /></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Entry Identifier</label><Input value={form.id || ""} readOnly className="h-10 bg-slate-100/50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-black text-slate-600 dark:text-slate-300 rounded-lg text-sm" /></div>
                     <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Operational Status</label>
                       <Select value={form.status || ""} onValueChange={(v) => setForm({ ...form, status: v })}>
-                        <SelectTrigger className="h-10 rounded-lg border-slate-200 font-black text-sm"><SelectValue /></SelectTrigger>
-                        <SelectContent className="rounded-lg text-sm"><SelectItem value="requested">Requested</SelectItem><SelectItem value="clinical_review">Clinical Review</SelectItem><SelectItem value="in_transit">In Transit</SelectItem><SelectItem value="completed">Completed</SelectItem><SelectItem value="cancelled">Cancelled</SelectItem></SelectContent>
+                        <SelectTrigger className="h-10 rounded-lg border-slate-200 dark:border-slate-700 font-black text-sm dark:bg-slate-800 dark:text-slate-200"><SelectValue /></SelectTrigger>
+                        <SelectContent className="rounded-lg text-sm dark:bg-slate-800 dark:border-slate-700"><SelectItem value="requested" className="dark:text-slate-200">Requested</SelectItem><SelectItem value="clinical_review" className="dark:text-slate-200">Clinical Review</SelectItem><SelectItem value="in_transit" className="dark:text-slate-200">In Transit</SelectItem><SelectItem value="completed" className="dark:text-slate-200">Completed</SelectItem><SelectItem value="cancelled" className="dark:text-slate-200">Cancelled</SelectItem></SelectContent>
                       </Select>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Forecast Revenue (₹)</label><Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-10 rounded-lg border-slate-200 font-black text-sm" /></div>
-                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Flight Chronology (min)</label><Input type="number" value={form.estimatedFlightTime ?? 0} onChange={(e) => setForm({ ...form, estimatedFlightTime: Number(e.target.value) })} className="h-10 rounded-lg border-slate-200 font-black text-sm" /></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Forecast Revenue (₹)</label><Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-10 rounded-lg border-slate-200 dark:border-slate-700 font-black text-sm dark:bg-slate-800 dark:text-slate-200" /></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Flight Chronology (min)</label><Input type="number" value={form.estimatedFlightTime ?? 0} onChange={(e) => setForm({ ...form, estimatedFlightTime: Number(e.target.value) })} className="h-10 rounded-lg border-slate-200 dark:border-slate-700 font-black text-sm dark:bg-slate-800 dark:text-slate-200" /></div>
                   </div>
                   <div className="flex justify-end gap-3 pt-6 border-t border-slate-100"><Button variant="ghost" onClick={() => setEditOpen(false)} className="h-10 px-6 rounded-xl font-black text-slate-400 hover:bg-slate-100 uppercase tracking-widest text-[10px]">Discard</Button><Button onClick={submitEdit} className="h-10 px-8 rounded-xl font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-700 text-white shadow-lg active:scale-95 transition-all text-[10px]">Submit Changes</Button></div>
                 </div>
@@ -1082,7 +1091,7 @@ export default function Reports() {
             </Dialog>
 
             <Dialog open={!!viewBooking} onOpenChange={() => setViewBooking(null)}>
-              <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+              <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white dark:bg-slate-900 p-0 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl">
                 <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
                   <Plane className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
                   <div className="relative z-10">
@@ -1092,24 +1101,24 @@ export default function Reports() {
                     <p className="text-blue-100 text-xs font-bold uppercase tracking-widest mt-1">Comprehensive Flight Analysis</p>
                   </div>
                 </DialogHeader>
-                <div className="p-5 flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 text-black">
+                <div className="p-5 flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50 text-black dark:text-slate-200">
                   {viewBooking && (
                     <div className="max-w-4xl mx-auto space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center md:text-left">
-                        <div className="p-5 bg-white rounded-2xl shadow-md border border-slate-50"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Booking ID</p><p className="font-mono text-base font-black text-blue-600">{viewBooking.booking_id || viewBooking.id}</p></div>
-                        <div className="p-5 bg-white rounded-2xl shadow-md border border-slate-50"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status Badge</p>{getStatusBadge(viewBooking.status, "status")}</div>
-                        <div className="p-5 bg-white rounded-2xl shadow-md border border-slate-50"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Priority Level</p>{getStatusBadge(viewBooking.urgency, "urgency")}</div>
+                        <div className="p-5 bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-50 dark:border-slate-700"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Booking ID</p><p className="font-mono text-base font-black text-blue-600 dark:text-blue-400">{viewBooking.booking_id || viewBooking.id}</p></div>
+                        <div className="p-5 bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-50 dark:border-slate-700"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status Badge</p>{getStatusBadge(viewBooking.status, "status")}</div>
+                        <div className="p-5 bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-50 dark:border-slate-700"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Priority Level</p>{getStatusBadge(viewBooking.urgency, "urgency")}</div>
                       </div>
-                      <div className="bg-white rounded-3xl shadow-lg border-none overflow-hidden transition-all">
-                        <table className="w-full text-xs font-bold text-slate-700">
+                      <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg border-none overflow-hidden transition-all">
+                        <table className="w-full text-xs font-bold text-slate-700 dark:text-slate-200">
                           <tbody>
-                            <tr className="border-b border-slate-50/50"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Patient Identity</td><td className="px-6 py-4"><span className="text-sm font-black">{getPatientName(viewBooking.patientId)}</span></td></tr>
-                            <tr className="border-b border-slate-50/50"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Transfer Path</td><td className="px-6 py-4 flex items-center gap-4"><span className="font-black text-slate-900">{getHospitalName(viewBooking.originHospitalId)}</span><span className="text-blue-500">→</span><span className="font-black text-slate-900">{getHospitalName(viewBooking.destinationHospitalId)}</span></td></tr>
-                            <tr className="border-b border-slate-50/50"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Temporal Stamp</td><td className="px-6 py-4">{viewBooking.requestedAt ? format(new Date(viewBooking.requestedAt), "PPP p") : "DATA_RESTRICTED"}</td></tr>
-                            <tr className="border-b border-slate-50/50"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Financial Resolution</td><td className="px-6 py-4 text-emerald-600 text-xl font-black tracking-tighter">₹{(viewBooking.estimatedCost ?? 0).toLocaleString()} <span className="text-[9px] text-slate-300 font-black ml-1 mt-auto">INR</span></td></tr>
+                            <tr className="border-b border-slate-50/50 dark:border-slate-700"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30 dark:bg-slate-900/30">Patient Identity</td><td className="px-6 py-4"><span className="text-sm font-black">{getPatientName(viewBooking.patientId)}</span></td></tr>
+                            <tr className="border-b border-slate-50/50 dark:border-slate-700"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30 dark:bg-slate-900/30">Transfer Path</td><td className="px-6 py-4 flex items-center gap-4"><span className="font-black text-slate-900 dark:text-slate-100">{getHospitalName(viewBooking.originHospitalId)}</span><span className="text-blue-500">→</span><span className="font-black text-slate-900 dark:text-slate-100">{getHospitalName(viewBooking.destinationHospitalId)}</span></td></tr>
+                            <tr className="border-b border-slate-50/50 dark:border-slate-700"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30 dark:bg-slate-900/30">Temporal Stamp</td><td className="px-6 py-4">{viewBooking.requestedAt ? format(new Date(viewBooking.requestedAt), "PPP p") : "DATA_RESTRICTED"}</td></tr>
+                            <tr className="border-b border-slate-50/50 dark:border-slate-700"><td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30 dark:bg-slate-900/30">Financial Resolution</td><td className="px-6 py-4 text-emerald-600 dark:text-emerald-400 text-xl font-black tracking-tighter">₹{(viewBooking.estimatedCost ?? 0).toLocaleString()} <span className="text-[9px] text-slate-300 font-black ml-1 mt-auto">INR</span></td></tr>
                             <tr>
-                              <td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30">Flight Duration</td>
-                              <td className="px-6 py-4 font-black text-slate-900">
+                              <td className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest bg-slate-50/30 dark:bg-slate-900/30">Flight Duration</td>
+                              <td className="px-6 py-4 font-black text-slate-900 dark:text-slate-100">
                                 {(() => {
                                   if (viewBooking.estimatedFlightTime && viewBooking.estimatedFlightTime > 0) {
                                     return `${viewBooking.estimatedFlightTime} MIN`;
@@ -1136,7 +1145,7 @@ export default function Reports() {
             </Dialog>
 
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
-              <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+              <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white dark:bg-slate-900 p-0 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl">
                 <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
                   <Plus className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
                   <div className="relative z-10">
@@ -1146,15 +1155,15 @@ export default function Reports() {
                     <p className="text-blue-100 text-xs font-bold uppercase tracking-widest mt-1">Create New Analytics Record</p>
                   </div>
                 </DialogHeader>
-                <div className="p-5 space-y-5 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/20 text-black">
-                  <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Record Identifier (Primary Key)</label><Input value={form.id || ""} onChange={(e) => setForm({ ...form, id: e.target.value })} placeholder="Reference..." className="h-10 rounded-xl border-slate-200 font-black shadow-inner text-sm" /></div>
+                <div className="p-5 space-y-5 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/20 dark:bg-slate-900/50 text-black dark:text-slate-200">
+                  <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Record Identifier (Primary Key)</label><Input value={form.id || ""} onChange={(e) => setForm({ ...form, id: e.target.value })} placeholder="Reference..." className="h-10 rounded-xl border-slate-200 dark:border-slate-700 font-black shadow-inner text-sm dark:bg-slate-800 dark:text-slate-200" /></div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status Vector</label><Select value={form.status || ""} onValueChange={(v) => setForm({ ...form, status: v })}><SelectTrigger className="h-10 rounded-xl text-sm"><SelectValue /></SelectTrigger><SelectContent className="rounded-xl"><SelectItem value="requested">Requested</SelectItem><SelectItem value="completed">Completed</SelectItem></SelectContent></Select></div>
-                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Priority Flag</label><Select value={form.urgency || ""} onValueChange={(v) => setForm({ ...form, urgency: v })}><SelectTrigger className="h-10 rounded-xl text-sm"><SelectValue /></SelectTrigger><SelectContent className="rounded-xl"><SelectItem value="routine">Routine</SelectItem><SelectItem value="urgent">Urgent</SelectItem><SelectItem value="emergency">Emergency</SelectItem></SelectContent></Select></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status Vector</label><Select value={form.status || ""} onValueChange={(v) => setForm({ ...form, status: v })}><SelectTrigger className="h-10 rounded-xl text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"><SelectValue /></SelectTrigger><SelectContent className="rounded-xl dark:bg-slate-800 dark:border-slate-700"><SelectItem value="requested" className="dark:text-slate-200">Requested</SelectItem><SelectItem value="completed" className="dark:text-slate-200">Completed</SelectItem></SelectContent></Select></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Priority Flag</label><Select value={form.urgency || ""} onValueChange={(v) => setForm({ ...form, urgency: v })}><SelectTrigger className="h-10 rounded-xl text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"><SelectValue /></SelectTrigger><SelectContent className="rounded-xl dark:bg-slate-800 dark:border-slate-700"><SelectItem value="routine" className="dark:text-slate-200">Routine</SelectItem><SelectItem value="urgent" className="dark:text-slate-200">Urgent</SelectItem><SelectItem value="emergency" className="dark:text-slate-200">Emergency</SelectItem></SelectContent></Select></div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estimated Value (₹)</label><Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-10 rounded-xl border-slate-200 font-black text-sm" /></div>
-                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Projected Time (min)</label><Input type="number" value={form.estimatedFlightTime ?? 0} onChange={(e) => setForm({ ...form, estimatedFlightTime: Number(e.target.value) })} className="h-10 rounded-xl border-slate-200 font-black text-sm" /></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estimated Value (₹)</label><Input type="number" value={form.estimatedCost ?? 0} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })} className="h-10 rounded-xl border-slate-200 dark:border-slate-700 font-black text-sm dark:bg-slate-800 dark:text-slate-200" /></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Projected Time (min)</label><Input type="number" value={form.estimatedFlightTime ?? 0} onChange={(e) => setForm({ ...form, estimatedFlightTime: Number(e.target.value) })} className="h-10 rounded-xl border-slate-200 dark:border-slate-700 font-black text-sm dark:bg-slate-800 dark:text-slate-200" /></div>
                   </div>
                   <div className="flex justify-end gap-3 pt-6 border-t border-slate-100"><Button variant="ghost" onClick={() => setAddOpen(false)} className="h-10 px-8 rounded-xl font-black text-slate-400 uppercase tracking-widest text-[10px]">Cancel</Button><Button onClick={submitAdd} className="h-10 px-10 rounded-xl font-black uppercase tracking-widest bg-blue-600 text-white shadow-lg active:scale-95 transition-all text-[10px]">Initialize Record</Button></div>
                 </div>

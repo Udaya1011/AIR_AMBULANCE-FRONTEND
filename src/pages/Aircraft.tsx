@@ -100,11 +100,11 @@ const statusLabel = (s: AircraftStatus) =>
 
 const statusColorClass = (s: AircraftStatus) =>
   s === "available"
-    ? "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs bg-green-100 text-green-800"
+    ? "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
     : s === "in_flight"
-      ? "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-800"
+      ? "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
       : // maintenance -> neutral (no background)
-      "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs border border-gray-300 text-gray-800";
+      "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs border border-gray-300 text-gray-800 dark:border-slate-600 dark:text-slate-300";
 
 // -------------------- Component --------------------
 const Aircraft: React.FC = () => {
@@ -466,7 +466,7 @@ const Aircraft: React.FC = () => {
           placeholder="Search fleet..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="h-10 pl-9 pr-4 bg-slate-50 border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all w-full"
+          className="h-10 pl-9 pr-4 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all w-full"
         />
       </div>
 
@@ -494,7 +494,7 @@ const Aircraft: React.FC = () => {
             <span className="uppercase tracking-wider">Add Aircraft</span>
           </Button>
         </DialogTrigger>
-        <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+        <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white dark:bg-slate-900 p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl">
           <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
             <Plus className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
             <div className="relative z-10">
@@ -505,7 +505,7 @@ const Aircraft: React.FC = () => {
             </div>
           </DialogHeader>
 
-          <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 text-black bg-white">
+          <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 text-black dark:text-slate-200 bg-white dark:bg-slate-900">
             {/* ROW 1: Reg, Type, Operator, Status */}
             <div className="grid grid-cols-4 gap-4">
               <div className="col-span-1 space-y-1.5">
@@ -523,7 +523,7 @@ const Aircraft: React.FC = () => {
                   value={form.type || 'fixed_wing'}
                   onValueChange={(v) => setForm({ ...form, type: v as any })}
                 >
-                  <SelectTrigger className="h-9">
+                  <SelectTrigger className="h-9 dark:bg-slate-800 dark:border-slate-700">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -538,7 +538,7 @@ const Aircraft: React.FC = () => {
                   placeholder="e.g., AirSwift"
                   value={form.operator || ''}
                   onChange={(e) => setForm({ ...form, operator: e.target.value })}
-                  className="h-9"
+                  className="h-9 dark:bg-slate-800 dark:border-slate-700"
                 />
               </div>
               <div className="col-span-1 space-y-1.5">
@@ -547,13 +547,13 @@ const Aircraft: React.FC = () => {
                   value={form.status || 'available'}
                   onValueChange={(v) => setForm({ ...form, status: v as AircraftStatus })}
                 >
-                  <SelectTrigger className="h-9">
+                  <SelectTrigger className="h-9 dark:bg-slate-800 dark:border-slate-700">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="available">Available</SelectItem>
-                    <SelectItem value="in_flight">In Flight</SelectItem>
-                    <SelectItem value="maintenance"> Maintenance</SelectItem>
+                  <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
+                    <SelectItem value="available" className="dark:text-slate-200">Available</SelectItem>
+                    <SelectItem value="in_flight" className="dark:text-slate-200">In Flight</SelectItem>
+                    <SelectItem value="maintenance" className="dark:text-slate-200"> Maintenance</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -577,7 +577,7 @@ const Aircraft: React.FC = () => {
                   placeholder="e.g., 19.07"
                   value={form.latitude ?? ''}
                   onChange={(e) => setForm({ ...form, latitude: Number(e.target.value) })}
-                  className="h-9"
+                  className="h-9 dark:bg-slate-800 dark:border-slate-700"
                 />
               </div>
               <div className="space-y-1.5">
@@ -587,16 +587,16 @@ const Aircraft: React.FC = () => {
                   placeholder="e.g., 72.87"
                   value={form.longitude ?? ''}
                   onChange={(e) => setForm({ ...form, longitude: Number(e.target.value) })}
-                  className="h-9"
+                  className="h-9 dark:bg-slate-800 dark:border-slate-700"
                 />
               </div>
             </div>
 
             {/* MAP PICKER */}
-            <div className="space-y-3 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+            <div className="space-y-3 p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900">
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center">
-                  <p className="text-xs font-bold text-blue-800 flex items-center gap-2">
+                  <p className="text-xs font-bold text-blue-800 dark:text-blue-300 flex items-center gap-2">
                     <Navigation className="h-3 w-3" /> Click on the map or search to select aircraft location
                   </p>
                 </div>
@@ -715,17 +715,17 @@ const Aircraft: React.FC = () => {
               {view === "list" ? (
                 <div className="flex-1 flex flex-col min-h-0 space-y-4">
                   {/* TABLE */}
-                  <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-xl overflow-hidden flex-1 flex flex-col min-h-0">
+                  <div className="rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-xl overflow-hidden flex-1 flex flex-col min-h-0">
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
                       <table className="w-full border-collapse text-sm">
                         <thead className="sticky top-0 z-20">
-                          <tr className="bg-[#f8fafc] border-b border-slate-200">
-                            <th className="px-6 py-2.5 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Registration</th>
-                            <th className="px-6 py-2.5 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Operator</th>
-                            <th className="px-6 py-2.5 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Base</th>
-                            <th className="px-6 py-2.5 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Crew</th>
-                            <th className="px-6 py-2.5 text-left font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Status</th>
-                            <th className="px-6 py-2.5 text-center font-black text-[#64748b] uppercase tracking-widest bg-[#f8fafc]">Actions</th>
+                          <tr className="bg-[#f8fafc] dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                            <th className="px-6 py-2.5 text-left font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Registration</th>
+                            <th className="px-6 py-2.5 text-left font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Operator</th>
+                            <th className="px-6 py-2.5 text-left font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Base</th>
+                            <th className="px-6 py-2.5 text-left font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Crew</th>
+                            <th className="px-6 py-2.5 text-left font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Status</th>
+                            <th className="px-6 py-2.5 text-center font-black text-[#64748b] dark:text-slate-400 uppercase tracking-widest bg-[#f8fafc] dark:bg-slate-900/50">Actions</th>
                           </tr>
                         </thead>
 
@@ -755,7 +755,7 @@ const Aircraft: React.FC = () => {
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => setSelectedAircraft(ac)}
-                                        className="h-8 w-8 text-blue-600 hover:bg-blue-50 border border-slate-100 shadow-sm"
+                                        className="h-8 w-8 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 border border-slate-100 dark:border-slate-800 shadow-sm"
                                         title="View Details"
                                       >
                                         <Eye className="w-4 h-4" />
@@ -799,14 +799,14 @@ const Aircraft: React.FC = () => {
                     </div>
 
                     {/* 📊 PREMIUM PAGINATION FOOTER */}
-                    <div className="bg-[#f8fafc] border-t border-slate-200 px-6 py-3 flex items-center justify-between">
+                    <div className="bg-[#f8fafc] dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-6 py-3 flex items-center justify-between">
                       <div className="flex items-center gap-6">
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Show:</span>
                           <select
                             value={itemsPerPage.toString()}
                             onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
-                            className="h-9 w-20 bg-white border-slate-200 rounded-xl text-xs font-black text-slate-700 shadow-sm focus:ring-2 focus:ring-blue-100 outline-none px-2"
+                            className="h-9 w-20 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-700 dark:text-slate-200 shadow-sm focus:ring-2 focus:ring-blue-100 outline-none px-2"
                           >
                             {[10, 25, 50, 100].map(val => (
                               <option key={val} value={val}>{val}</option>
@@ -822,7 +822,7 @@ const Aircraft: React.FC = () => {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-9 w-9 bg-white rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                          className="h-9 w-9 bg-white dark:bg-slate-800 rounded-xl border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-30"
                           onClick={() => handlePageChange(1)}
                           disabled={currentPage === 1}
                           title="First Page"
@@ -883,7 +883,7 @@ const Aircraft: React.FC = () => {
 
           {/* Aircraft Detail View Dialog */}
           <Dialog open={!!selectedAircraft} onOpenChange={(open) => !open && setSelectedAircraft(null)}>
-            <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-xl">
+            <DialogContent className="w-full max-w-[980px] h-full max-h-[80vh] flex flex-col bg-white dark:bg-slate-900 p-0 gap-0 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl">
               <DialogHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-6 shrink-0 relative overflow-hidden text-left">
                 <Plane className="absolute top-4 right-4 h-32 w-32 -rotate-12 opacity-10 text-white pointer-events-none" />
                 <div className="relative z-10">
@@ -894,7 +894,7 @@ const Aircraft: React.FC = () => {
                   <p className="text-blue-100 text-[10px] uppercase font-bold tracking-widest mt-1">Global Asset Tracking Metrics</p>
                 </div>
               </DialogHeader>
-              <div className="p-5 space-y-5 overflow-y-auto custom-scrollbar flex-1 text-black bg-slate-50/10">
+              <div className="p-5 space-y-5 overflow-y-auto custom-scrollbar flex-1 text-black dark:text-slate-200 bg-slate-50/10 dark:bg-slate-900/50">
                 {selectedAircraft && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                     {/* Left Col: Aircraft Image and Primary Info */}
@@ -908,16 +908,16 @@ const Aircraft: React.FC = () => {
                         />
                       </div>
                       <div className="space-y-4">
-                        <div className="p-4 bg-slate-50 rounded-lg space-y-2">
-                          <Label className="text-xs text-slate-500 uppercase font-bold tracking-wider">Status</Label>
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
+                          <Label className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Status</Label>
                           <div className="flex items-center gap-3">
                             <span className={statusColorClass(selectedAircraft.status)}>
                               {statusLabel(selectedAircraft.status)}
                             </span>
                           </div>
                         </div>
-                        <div className="p-4 bg-slate-50 rounded-lg space-y-2">
-                          <Label className="text-xs text-slate-500 uppercase font-bold tracking-wider">Operator</Label>
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
+                          <Label className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Operator</Label>
                           <p className="font-bold flex items-center gap-2">
                             <Building2 className="h-4 w-4 text-blue-500" />
                             {selectedAircraft.operator}
@@ -982,9 +982,9 @@ const Aircraft: React.FC = () => {
                     <div className="md:col-span-1 space-y-6">
                       <h4 className="text-sm font-black uppercase text-slate-400 border-b pb-2">Operational Status</h4>
                       <div className="space-y-4">
-                        <div className="bg-slate-50 p-4 rounded-lg flex items-center justify-between">
+                        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="bg-white p-2 rounded-md shadow-sm">
+                            <div className="bg-white dark:bg-slate-700 p-2 rounded-md shadow-sm">
                               <Calendar className="h-4 w-4 text-orange-500" />
                             </div>
                             <div>
@@ -994,7 +994,7 @@ const Aircraft: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="bg-blue-50 p-4 rounded-lg space-y-3">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg space-y-3">
                           <div className="flex items-center gap-2">
                             <Activity className="h-4 w-4 text-blue-600" />
                             <p className="text-xs font-bold text-blue-800 uppercase">Live Location</p>
@@ -1032,7 +1032,7 @@ const Aircraft: React.FC = () => {
           <div className="fixed bottom-6 right-6 z-50">
             {isChatOpen ? (
               <Card
-                className="w-96 shadow-2xl flex flex-col rounded-2xl overflow-hidden border-2 border-blue-300 animate-in fade-in slide-in-from-bottom-4 duration-300 bg-white max-h-[85vh]"
+                className="w-96 shadow-2xl flex flex-col rounded-2xl overflow-hidden border-2 border-blue-300 animate-in fade-in slide-in-from-bottom-4 duration-300 bg-white dark:bg-slate-900 max-h-[85vh]"
                 onMouseLeave={() => setIsChatOpen(false)}
               >
                 {/* Chat Header */}
@@ -1056,7 +1056,7 @@ const Aircraft: React.FC = () => {
                 </div>
 
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white h-80 scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-50">
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white dark:bg-slate-900 h-80 scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-50">
                   {messages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in duration-200`}>
                       <div className={`max-w-xs px-4 py-3 rounded-2xl ${msg.sender === 'user'
@@ -1073,13 +1073,13 @@ const Aircraft: React.FC = () => {
                 </div>
 
                 {/* Input Area */}
-                <div className="border-t-2 border-blue-300 p-3 bg-white flex gap-2">
+                <div className="border-t-2 border-blue-300 p-3 bg-white dark:bg-slate-900 flex gap-2">
                   <Input
                     placeholder="Ask about aircraft..."
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                    className="flex-1 rounded-full border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-black"
+                    className="flex-1 rounded-full border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white dark:bg-slate-800 text-black dark:text-white"
                   />
                   <Button
                     size="sm"
@@ -1102,11 +1102,11 @@ const Aircraft: React.FC = () => {
 
           {/* 🛰️ LIVE TRACKING MAP DIALOG */}
           <Dialog open={isTrackingDialogOpen} onOpenChange={(open) => !open && setIsTrackingDialogOpen(false)}>
-            <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none bg-white p-6 overflow-hidden rounded-xl border-2 border-slate-200 shadow-2xl flex flex-col gap-0 backdrop-blur-sm">
+            <DialogContent className="w-[95vw] h-[95vh] max-w-none max-h-none bg-white dark:bg-slate-900 p-6 overflow-hidden rounded-xl border-2 border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col gap-0 backdrop-blur-sm">
               <DialogHeader className="mb-4 shrink-0">
                 <div className="flex items-center justify-between">
                   <div>
-                    <DialogTitle className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+                    <DialogTitle className="text-2xl font-black text-slate-800 dark:text-slate-200 tracking-tight flex items-center gap-3">
                       <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100">
                         <Navigation className="h-5 w-5 text-white animate-pulse" />
                       </div>

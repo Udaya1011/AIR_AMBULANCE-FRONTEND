@@ -14,8 +14,7 @@ import {
   Bell,
   Search,
   UserCircle,
-  Radio,
-  Download
+  Radio
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import "../components/Header.css";
@@ -34,29 +33,7 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
-    }
-  };
 
   // Persist sidebar state across navigations
   const [isMinimized, setIsMinimized] = useState(() => {
@@ -91,7 +68,6 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
 
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/live-monitoring', icon: Radio, label: 'Live Intel' },
     { path: '/bookings', icon: Calendar, label: 'Bookings' },
     { path: '/patients', icon: Users, label: 'Patients' },
     { path: '/hospitals', icon: Building2, label: 'Hospitals' },
@@ -280,16 +256,7 @@ export const Layout = ({ children, headerActions, subTitle, isFullHeight }: Layo
               </div>
             )}
 
-            {/* Install App Button */}
-            {deferredPrompt && (
-              <button
-                onClick={handleInstallClick}
-                className="hidden sm:flex items-center gap-2 px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all active:scale-95 font-semibold text-xs shadow-md shadow-blue-200"
-              >
-                <Download size={16} />
-                <span>Install App</span>
-              </button>
-            )}
+
 
             {/* Notification Bell */}
             <button

@@ -17,7 +17,7 @@ import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import LiveMapComponent from "./pages/LiveMapComponent";
 import ApiTest from "@/pages/ApiTest";
-import LiveTrackingDashboard from "@/pages/LiveTrackingDashboard";
+
 
 function App() {
   return (
@@ -41,16 +41,9 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/live-monitoring"
-                element={
-                  <ProtectedRoute>
-                    <PatientsProvider>
-                      <LiveTrackingDashboard />
-                    </PatientsProvider>
-                  </ProtectedRoute>
-                }
-              />
+
+
+
               <Route
                 path="/bookings"
                 element={
